@@ -1,15 +1,15 @@
-pub fn Register(comptime R: type) type {
-    return RegisterRW(R, R);
+pub fn Register(comptime R: type, comptime Backing: type) type {
+    return RegisterRW(R, R, Backing);
 }
 
-pub fn RegisterRW(comptime Read: type, comptime Write: type) type {
+pub fn RegisterRW(comptime Read: type, comptime Write: type, comptime Backing: type) type {
     return struct {
-        raw_ptr: *volatile u32,
+        raw_ptr: *volatile Backing,
 
         const Self = @This();
 
         pub fn init(address: usize) Self {
-            return Self{ .raw_ptr = @intToPtr(*volatile u32, address) };
+            return Self{ .raw_ptr = @intToPtr(*volatile Backing, address) };
         }
 
         pub fn initRange(address: usize, comptime dim_increment: usize, comptime num_registers: usize) [num_registers]Self {
@@ -31,8 +31,8 @@ pub fn RegisterRW(comptime Read: type, comptime Write: type) type {
             // This is necessary for LLVM to generate code that can successfully
             // modify MMIO registers that only allow word-sized stores.
             // https://github.com/ziglang/zig/issues/8981#issuecomment-854911077
-            const aligned: Write align(4) = value;
-            self.raw_ptr.* = @ptrCast(*const u32, &aligned).*;
+            const aligned: Write align(@sizeOf(Backing)) = value;
+            self.raw_ptr.* = @ptrCast(*const Backing, &aligned).*;
         }
 
         pub fn modify(self: Self, new_value: anytype) void {
@@ -47,11 +47,11 @@ pub fn RegisterRW(comptime Read: type, comptime Write: type) type {
             self.write(old_value);
         }
 
-        pub fn read_raw(self: Self) u32 {
+        pub fn read_raw(self: Self) Backing {
             return self.raw_ptr.*;
         }
 
-        pub fn write_raw(self: Self, value: u32) void {
+        pub fn write_raw(self: Self, value: Backing) void {
             self.raw_ptr.* = value;
         }
 
@@ -65,9 +65,9 @@ pub fn RegisterRW(comptime Read: type, comptime Write: type) type {
     };
 }
 
-pub const device_name = "STM32F072x";
+pub const device_name = "STM32F0xx";
 pub const device_revision = "1.0";
-pub const device_description = "STM32F072x";
+pub const device_description = "STM32F0xx";
 
 /// cyclic redundancy check calculation
 pub const CRC = struct {
@@ -79,7 +79,7 @@ pub const CRC = struct {
         DR: u32 = 4294967295,
     };
     /// Data register
-    pub const DR = Register(DR_val).init(base_address + 0x0);
+    pub const DR = Register(DR_val, u32).init(base_address + 0x0);
 
     /// IDR
     const IDR_val = packed struct {
@@ -92,7 +92,7 @@ pub const CRC = struct {
         _unused24: u8 = 0,
     };
     /// Independent data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x4);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x4);
 
     /// CR
     const CR_val = packed struct {
@@ -113,7 +113,7 @@ pub const CRC = struct {
         _unused24: u8 = 0,
     };
     /// Control register
-    pub const CR = Register(CR_val).init(base_address + 0x8);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x8);
 
     /// INIT
     const INIT_val = packed struct {
@@ -122,7 +122,7 @@ pub const CRC = struct {
         INIT: u32 = 4294967295,
     };
     /// Initial CRC value
-    pub const INIT = Register(INIT_val).init(base_address + 0xc);
+    pub const INIT = Register(INIT_val, u32).init(base_address + 0xc);
 };
 
 /// General-purpose I/Os
@@ -180,7 +180,7 @@ pub const GPIOF = struct {
         MODER15: u2 = 0,
     };
     /// GPIO port mode register
-    pub const MODER = Register(MODER_val).init(base_address + 0x0);
+    pub const MODER = Register(MODER_val, u32).init(base_address + 0x0);
 
     /// OTYPER
     const OTYPER_val = packed struct {
@@ -237,7 +237,7 @@ pub const GPIOF = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output type register
-    pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
+    pub const OTYPER = Register(OTYPER_val, u32).init(base_address + 0x4);
 
     /// OSPEEDR
     const OSPEEDR_val = packed struct {
@@ -291,7 +291,7 @@ pub const GPIOF = struct {
         OSPEEDR15: u2 = 0,
     };
     /// GPIO port output speed
-    pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
+    pub const OSPEEDR = Register(OSPEEDR_val, u32).init(base_address + 0x8);
 
     /// PUPDR
     const PUPDR_val = packed struct {
@@ -345,7 +345,7 @@ pub const GPIOF = struct {
         PUPDR15: u2 = 0,
     };
     /// GPIO port pull-up/pull-down
-    pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
+    pub const PUPDR = Register(PUPDR_val, u32).init(base_address + 0xc);
 
     /// IDR
     const IDR_val = packed struct {
@@ -402,7 +402,7 @@ pub const GPIOF = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port input data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x10);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x10);
 
     /// ODR
     const ODR_val = packed struct {
@@ -459,7 +459,7 @@ pub const GPIOF = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output data register
-    pub const ODR = Register(ODR_val).init(base_address + 0x14);
+    pub const ODR = Register(ODR_val, u32).init(base_address + 0x14);
 
     /// BSRR
     const BSRR_val = packed struct {
@@ -561,7 +561,7 @@ pub const GPIOF = struct {
         BR15: u1 = 0,
     };
     /// GPIO port bit set/reset
-    pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
+    pub const BSRR = Register(BSRR_val, u32).init(base_address + 0x18);
 
     /// LCKR
     const LCKR_val = packed struct {
@@ -621,7 +621,7 @@ pub const GPIOF = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port configuration lock
-    pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
+    pub const LCKR = Register(LCKR_val, u32).init(base_address + 0x1c);
 
     /// AFRL
     const AFRL_val = packed struct {
@@ -651,7 +651,7 @@ pub const GPIOF = struct {
         AFRL7: u4 = 0,
     };
     /// GPIO alternate function low
-    pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
+    pub const AFRL = Register(AFRL_val, u32).init(base_address + 0x20);
 
     /// AFRH
     const AFRH_val = packed struct {
@@ -681,7 +681,7 @@ pub const GPIOF = struct {
         AFRH15: u4 = 0,
     };
     /// GPIO alternate function high
-    pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
+    pub const AFRH = Register(AFRH_val, u32).init(base_address + 0x24);
 
     /// BRR
     const BRR_val = packed struct {
@@ -738,7 +738,7 @@ pub const GPIOF = struct {
         _unused24: u8 = 0,
     };
     /// Port bit reset register
-    pub const BRR = Register(BRR_val).init(base_address + 0x28);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0x28);
 };
 
 /// General-purpose I/Os
@@ -796,7 +796,7 @@ pub const GPIOD = struct {
         MODER15: u2 = 0,
     };
     /// GPIO port mode register
-    pub const MODER = Register(MODER_val).init(base_address + 0x0);
+    pub const MODER = Register(MODER_val, u32).init(base_address + 0x0);
 
     /// OTYPER
     const OTYPER_val = packed struct {
@@ -853,7 +853,7 @@ pub const GPIOD = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output type register
-    pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
+    pub const OTYPER = Register(OTYPER_val, u32).init(base_address + 0x4);
 
     /// OSPEEDR
     const OSPEEDR_val = packed struct {
@@ -907,7 +907,7 @@ pub const GPIOD = struct {
         OSPEEDR15: u2 = 0,
     };
     /// GPIO port output speed
-    pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
+    pub const OSPEEDR = Register(OSPEEDR_val, u32).init(base_address + 0x8);
 
     /// PUPDR
     const PUPDR_val = packed struct {
@@ -961,7 +961,7 @@ pub const GPIOD = struct {
         PUPDR15: u2 = 0,
     };
     /// GPIO port pull-up/pull-down
-    pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
+    pub const PUPDR = Register(PUPDR_val, u32).init(base_address + 0xc);
 
     /// IDR
     const IDR_val = packed struct {
@@ -1018,7 +1018,7 @@ pub const GPIOD = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port input data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x10);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x10);
 
     /// ODR
     const ODR_val = packed struct {
@@ -1075,7 +1075,7 @@ pub const GPIOD = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output data register
-    pub const ODR = Register(ODR_val).init(base_address + 0x14);
+    pub const ODR = Register(ODR_val, u32).init(base_address + 0x14);
 
     /// BSRR
     const BSRR_val = packed struct {
@@ -1177,7 +1177,7 @@ pub const GPIOD = struct {
         BR15: u1 = 0,
     };
     /// GPIO port bit set/reset
-    pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
+    pub const BSRR = Register(BSRR_val, u32).init(base_address + 0x18);
 
     /// LCKR
     const LCKR_val = packed struct {
@@ -1237,7 +1237,7 @@ pub const GPIOD = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port configuration lock
-    pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
+    pub const LCKR = Register(LCKR_val, u32).init(base_address + 0x1c);
 
     /// AFRL
     const AFRL_val = packed struct {
@@ -1267,7 +1267,7 @@ pub const GPIOD = struct {
         AFRL7: u4 = 0,
     };
     /// GPIO alternate function low
-    pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
+    pub const AFRL = Register(AFRL_val, u32).init(base_address + 0x20);
 
     /// AFRH
     const AFRH_val = packed struct {
@@ -1297,7 +1297,7 @@ pub const GPIOD = struct {
         AFRH15: u4 = 0,
     };
     /// GPIO alternate function high
-    pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
+    pub const AFRH = Register(AFRH_val, u32).init(base_address + 0x24);
 
     /// BRR
     const BRR_val = packed struct {
@@ -1354,7 +1354,7 @@ pub const GPIOD = struct {
         _unused24: u8 = 0,
     };
     /// Port bit reset register
-    pub const BRR = Register(BRR_val).init(base_address + 0x28);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0x28);
 };
 
 /// General-purpose I/Os
@@ -1412,7 +1412,7 @@ pub const GPIOC = struct {
         MODER15: u2 = 0,
     };
     /// GPIO port mode register
-    pub const MODER = Register(MODER_val).init(base_address + 0x0);
+    pub const MODER = Register(MODER_val, u32).init(base_address + 0x0);
 
     /// OTYPER
     const OTYPER_val = packed struct {
@@ -1469,7 +1469,7 @@ pub const GPIOC = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output type register
-    pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
+    pub const OTYPER = Register(OTYPER_val, u32).init(base_address + 0x4);
 
     /// OSPEEDR
     const OSPEEDR_val = packed struct {
@@ -1523,7 +1523,7 @@ pub const GPIOC = struct {
         OSPEEDR15: u2 = 0,
     };
     /// GPIO port output speed
-    pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
+    pub const OSPEEDR = Register(OSPEEDR_val, u32).init(base_address + 0x8);
 
     /// PUPDR
     const PUPDR_val = packed struct {
@@ -1577,7 +1577,7 @@ pub const GPIOC = struct {
         PUPDR15: u2 = 0,
     };
     /// GPIO port pull-up/pull-down
-    pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
+    pub const PUPDR = Register(PUPDR_val, u32).init(base_address + 0xc);
 
     /// IDR
     const IDR_val = packed struct {
@@ -1634,7 +1634,7 @@ pub const GPIOC = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port input data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x10);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x10);
 
     /// ODR
     const ODR_val = packed struct {
@@ -1691,7 +1691,7 @@ pub const GPIOC = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output data register
-    pub const ODR = Register(ODR_val).init(base_address + 0x14);
+    pub const ODR = Register(ODR_val, u32).init(base_address + 0x14);
 
     /// BSRR
     const BSRR_val = packed struct {
@@ -1793,7 +1793,7 @@ pub const GPIOC = struct {
         BR15: u1 = 0,
     };
     /// GPIO port bit set/reset
-    pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
+    pub const BSRR = Register(BSRR_val, u32).init(base_address + 0x18);
 
     /// LCKR
     const LCKR_val = packed struct {
@@ -1853,7 +1853,7 @@ pub const GPIOC = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port configuration lock
-    pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
+    pub const LCKR = Register(LCKR_val, u32).init(base_address + 0x1c);
 
     /// AFRL
     const AFRL_val = packed struct {
@@ -1883,7 +1883,7 @@ pub const GPIOC = struct {
         AFRL7: u4 = 0,
     };
     /// GPIO alternate function low
-    pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
+    pub const AFRL = Register(AFRL_val, u32).init(base_address + 0x20);
 
     /// AFRH
     const AFRH_val = packed struct {
@@ -1913,7 +1913,7 @@ pub const GPIOC = struct {
         AFRH15: u4 = 0,
     };
     /// GPIO alternate function high
-    pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
+    pub const AFRH = Register(AFRH_val, u32).init(base_address + 0x24);
 
     /// BRR
     const BRR_val = packed struct {
@@ -1970,7 +1970,7 @@ pub const GPIOC = struct {
         _unused24: u8 = 0,
     };
     /// Port bit reset register
-    pub const BRR = Register(BRR_val).init(base_address + 0x28);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0x28);
 };
 
 /// General-purpose I/Os
@@ -2028,7 +2028,7 @@ pub const GPIOB = struct {
         MODER15: u2 = 0,
     };
     /// GPIO port mode register
-    pub const MODER = Register(MODER_val).init(base_address + 0x0);
+    pub const MODER = Register(MODER_val, u32).init(base_address + 0x0);
 
     /// OTYPER
     const OTYPER_val = packed struct {
@@ -2085,7 +2085,7 @@ pub const GPIOB = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output type register
-    pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
+    pub const OTYPER = Register(OTYPER_val, u32).init(base_address + 0x4);
 
     /// OSPEEDR
     const OSPEEDR_val = packed struct {
@@ -2139,7 +2139,7 @@ pub const GPIOB = struct {
         OSPEEDR15: u2 = 0,
     };
     /// GPIO port output speed
-    pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
+    pub const OSPEEDR = Register(OSPEEDR_val, u32).init(base_address + 0x8);
 
     /// PUPDR
     const PUPDR_val = packed struct {
@@ -2193,7 +2193,7 @@ pub const GPIOB = struct {
         PUPDR15: u2 = 0,
     };
     /// GPIO port pull-up/pull-down
-    pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
+    pub const PUPDR = Register(PUPDR_val, u32).init(base_address + 0xc);
 
     /// IDR
     const IDR_val = packed struct {
@@ -2250,7 +2250,7 @@ pub const GPIOB = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port input data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x10);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x10);
 
     /// ODR
     const ODR_val = packed struct {
@@ -2307,7 +2307,7 @@ pub const GPIOB = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output data register
-    pub const ODR = Register(ODR_val).init(base_address + 0x14);
+    pub const ODR = Register(ODR_val, u32).init(base_address + 0x14);
 
     /// BSRR
     const BSRR_val = packed struct {
@@ -2409,7 +2409,7 @@ pub const GPIOB = struct {
         BR15: u1 = 0,
     };
     /// GPIO port bit set/reset
-    pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
+    pub const BSRR = Register(BSRR_val, u32).init(base_address + 0x18);
 
     /// LCKR
     const LCKR_val = packed struct {
@@ -2469,7 +2469,7 @@ pub const GPIOB = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port configuration lock
-    pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
+    pub const LCKR = Register(LCKR_val, u32).init(base_address + 0x1c);
 
     /// AFRL
     const AFRL_val = packed struct {
@@ -2499,7 +2499,7 @@ pub const GPIOB = struct {
         AFRL7: u4 = 0,
     };
     /// GPIO alternate function low
-    pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
+    pub const AFRL = Register(AFRL_val, u32).init(base_address + 0x20);
 
     /// AFRH
     const AFRH_val = packed struct {
@@ -2529,7 +2529,7 @@ pub const GPIOB = struct {
         AFRH15: u4 = 0,
     };
     /// GPIO alternate function high
-    pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
+    pub const AFRH = Register(AFRH_val, u32).init(base_address + 0x24);
 
     /// BRR
     const BRR_val = packed struct {
@@ -2586,7 +2586,7 @@ pub const GPIOB = struct {
         _unused24: u8 = 0,
     };
     /// Port bit reset register
-    pub const BRR = Register(BRR_val).init(base_address + 0x28);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0x28);
 };
 
 /// General-purpose I/Os
@@ -2644,7 +2644,7 @@ pub const GPIOE = struct {
         MODER15: u2 = 0,
     };
     /// GPIO port mode register
-    pub const MODER = Register(MODER_val).init(base_address + 0x0);
+    pub const MODER = Register(MODER_val, u32).init(base_address + 0x0);
 
     /// OTYPER
     const OTYPER_val = packed struct {
@@ -2701,7 +2701,7 @@ pub const GPIOE = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output type register
-    pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
+    pub const OTYPER = Register(OTYPER_val, u32).init(base_address + 0x4);
 
     /// OSPEEDR
     const OSPEEDR_val = packed struct {
@@ -2755,7 +2755,7 @@ pub const GPIOE = struct {
         OSPEEDR15: u2 = 0,
     };
     /// GPIO port output speed
-    pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
+    pub const OSPEEDR = Register(OSPEEDR_val, u32).init(base_address + 0x8);
 
     /// PUPDR
     const PUPDR_val = packed struct {
@@ -2809,7 +2809,7 @@ pub const GPIOE = struct {
         PUPDR15: u2 = 0,
     };
     /// GPIO port pull-up/pull-down
-    pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
+    pub const PUPDR = Register(PUPDR_val, u32).init(base_address + 0xc);
 
     /// IDR
     const IDR_val = packed struct {
@@ -2866,7 +2866,7 @@ pub const GPIOE = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port input data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x10);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x10);
 
     /// ODR
     const ODR_val = packed struct {
@@ -2923,7 +2923,7 @@ pub const GPIOE = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output data register
-    pub const ODR = Register(ODR_val).init(base_address + 0x14);
+    pub const ODR = Register(ODR_val, u32).init(base_address + 0x14);
 
     /// BSRR
     const BSRR_val = packed struct {
@@ -3025,7 +3025,7 @@ pub const GPIOE = struct {
         BR15: u1 = 0,
     };
     /// GPIO port bit set/reset
-    pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
+    pub const BSRR = Register(BSRR_val, u32).init(base_address + 0x18);
 
     /// LCKR
     const LCKR_val = packed struct {
@@ -3085,7 +3085,7 @@ pub const GPIOE = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port configuration lock
-    pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
+    pub const LCKR = Register(LCKR_val, u32).init(base_address + 0x1c);
 
     /// AFRL
     const AFRL_val = packed struct {
@@ -3115,7 +3115,7 @@ pub const GPIOE = struct {
         AFRL7: u4 = 0,
     };
     /// GPIO alternate function low
-    pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
+    pub const AFRL = Register(AFRL_val, u32).init(base_address + 0x20);
 
     /// AFRH
     const AFRH_val = packed struct {
@@ -3145,7 +3145,7 @@ pub const GPIOE = struct {
         AFRH15: u4 = 0,
     };
     /// GPIO alternate function high
-    pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
+    pub const AFRH = Register(AFRH_val, u32).init(base_address + 0x24);
 
     /// BRR
     const BRR_val = packed struct {
@@ -3202,7 +3202,7 @@ pub const GPIOE = struct {
         _unused24: u8 = 0,
     };
     /// Port bit reset register
-    pub const BRR = Register(BRR_val).init(base_address + 0x28);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0x28);
 };
 
 /// General-purpose I/Os
@@ -3260,7 +3260,7 @@ pub const GPIOA = struct {
         MODER15: u2 = 0,
     };
     /// GPIO port mode register
-    pub const MODER = Register(MODER_val).init(base_address + 0x0);
+    pub const MODER = Register(MODER_val, u32).init(base_address + 0x0);
 
     /// OTYPER
     const OTYPER_val = packed struct {
@@ -3317,7 +3317,7 @@ pub const GPIOA = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output type register
-    pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
+    pub const OTYPER = Register(OTYPER_val, u32).init(base_address + 0x4);
 
     /// OSPEEDR
     const OSPEEDR_val = packed struct {
@@ -3371,7 +3371,7 @@ pub const GPIOA = struct {
         OSPEEDR15: u2 = 0,
     };
     /// GPIO port output speed
-    pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
+    pub const OSPEEDR = Register(OSPEEDR_val, u32).init(base_address + 0x8);
 
     /// PUPDR
     const PUPDR_val = packed struct {
@@ -3425,7 +3425,7 @@ pub const GPIOA = struct {
         PUPDR15: u2 = 0,
     };
     /// GPIO port pull-up/pull-down
-    pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
+    pub const PUPDR = Register(PUPDR_val, u32).init(base_address + 0xc);
 
     /// IDR
     const IDR_val = packed struct {
@@ -3482,7 +3482,7 @@ pub const GPIOA = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port input data register
-    pub const IDR = Register(IDR_val).init(base_address + 0x10);
+    pub const IDR = Register(IDR_val, u32).init(base_address + 0x10);
 
     /// ODR
     const ODR_val = packed struct {
@@ -3539,7 +3539,7 @@ pub const GPIOA = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port output data register
-    pub const ODR = Register(ODR_val).init(base_address + 0x14);
+    pub const ODR = Register(ODR_val, u32).init(base_address + 0x14);
 
     /// BSRR
     const BSRR_val = packed struct {
@@ -3641,7 +3641,7 @@ pub const GPIOA = struct {
         BR15: u1 = 0,
     };
     /// GPIO port bit set/reset
-    pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
+    pub const BSRR = Register(BSRR_val, u32).init(base_address + 0x18);
 
     /// LCKR
     const LCKR_val = packed struct {
@@ -3701,7 +3701,7 @@ pub const GPIOA = struct {
         _unused24: u8 = 0,
     };
     /// GPIO port configuration lock
-    pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
+    pub const LCKR = Register(LCKR_val, u32).init(base_address + 0x1c);
 
     /// AFRL
     const AFRL_val = packed struct {
@@ -3731,7 +3731,7 @@ pub const GPIOA = struct {
         AFRL7: u4 = 0,
     };
     /// GPIO alternate function low
-    pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
+    pub const AFRL = Register(AFRL_val, u32).init(base_address + 0x20);
 
     /// AFRH
     const AFRH_val = packed struct {
@@ -3761,7 +3761,7 @@ pub const GPIOA = struct {
         AFRH15: u4 = 0,
     };
     /// GPIO alternate function high
-    pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
+    pub const AFRH = Register(AFRH_val, u32).init(base_address + 0x24);
 
     /// BRR
     const BRR_val = packed struct {
@@ -3818,7 +3818,7 @@ pub const GPIOA = struct {
         _unused24: u8 = 0,
     };
     /// Port bit reset register
-    pub const BRR = Register(BRR_val).init(base_address + 0x28);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0x28);
 };
 
 /// Serial peripheral interface
@@ -3873,7 +3873,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -3919,7 +3919,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// SR
     const SR_val = packed struct {
@@ -3962,19 +3962,25 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x8);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x8);
 
     /// DR
     const DR_val = packed struct {
+        /// DR [0:7]
+        /// Data register
+        DR: u8 = 0,
+    };
+    /// data register
+    pub const DR = Register(DR_val, u8).init(base_address + 0xc);
+
+    /// DR16
+    const DR16_val = packed struct {
         /// DR [0:15]
         /// Data register
         DR: u16 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
     };
     /// data register
-    pub const DR = Register(DR_val).init(base_address + 0xc);
+    pub const DR16 = Register(DR16_val, u16).init(base_address + 0xc);
 
     /// CRCPR
     const CRCPR_val = packed struct {
@@ -3986,7 +3992,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// CRC polynomial register
-    pub const CRCPR = Register(CRCPR_val).init(base_address + 0x10);
+    pub const CRCPR = Register(CRCPR_val, u32).init(base_address + 0x10);
 
     /// RXCRCR
     const RXCRCR_val = packed struct {
@@ -3998,7 +4004,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// RX CRC register
-    pub const RXCRCR = Register(RXCRCR_val).init(base_address + 0x14);
+    pub const RXCRCR = Register(RXCRCR_val, u32).init(base_address + 0x14);
 
     /// TXCRCR
     const TXCRCR_val = packed struct {
@@ -4010,7 +4016,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// TX CRC register
-    pub const TXCRCR = Register(TXCRCR_val).init(base_address + 0x18);
+    pub const TXCRCR = Register(TXCRCR_val, u32).init(base_address + 0x18);
 
     /// I2SCFGR
     const I2SCFGR_val = packed struct {
@@ -4046,7 +4052,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// I2S configuration register
-    pub const I2SCFGR = Register(I2SCFGR_val).init(base_address + 0x1c);
+    pub const I2SCFGR = Register(I2SCFGR_val, u32).init(base_address + 0x1c);
 
     /// I2SPR
     const I2SPR_val = packed struct {
@@ -4065,7 +4071,7 @@ pub const SPI1 = struct {
         _unused24: u8 = 0,
     };
     /// I2S prescaler register
-    pub const I2SPR = Register(I2SPR_val).init(base_address + 0x20);
+    pub const I2SPR = Register(I2SPR_val, u32).init(base_address + 0x20);
 };
 
 /// Serial peripheral interface
@@ -4120,7 +4126,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -4166,7 +4172,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// SR
     const SR_val = packed struct {
@@ -4209,19 +4215,25 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x8);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x8);
 
     /// DR
     const DR_val = packed struct {
+        /// DR [0:7]
+        /// Data register
+        DR: u8 = 0,
+    };
+    /// data register
+    pub const DR = Register(DR_val, u8).init(base_address + 0xc);
+
+    /// DR16
+    const DR16_val = packed struct {
         /// DR [0:15]
         /// Data register
         DR: u16 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
     };
     /// data register
-    pub const DR = Register(DR_val).init(base_address + 0xc);
+    pub const DR16 = Register(DR16_val, u16).init(base_address + 0xc);
 
     /// CRCPR
     const CRCPR_val = packed struct {
@@ -4233,7 +4245,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// CRC polynomial register
-    pub const CRCPR = Register(CRCPR_val).init(base_address + 0x10);
+    pub const CRCPR = Register(CRCPR_val, u32).init(base_address + 0x10);
 
     /// RXCRCR
     const RXCRCR_val = packed struct {
@@ -4245,7 +4257,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// RX CRC register
-    pub const RXCRCR = Register(RXCRCR_val).init(base_address + 0x14);
+    pub const RXCRCR = Register(RXCRCR_val, u32).init(base_address + 0x14);
 
     /// TXCRCR
     const TXCRCR_val = packed struct {
@@ -4257,7 +4269,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// TX CRC register
-    pub const TXCRCR = Register(TXCRCR_val).init(base_address + 0x18);
+    pub const TXCRCR = Register(TXCRCR_val, u32).init(base_address + 0x18);
 
     /// I2SCFGR
     const I2SCFGR_val = packed struct {
@@ -4293,7 +4305,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// I2S configuration register
-    pub const I2SCFGR = Register(I2SCFGR_val).init(base_address + 0x1c);
+    pub const I2SCFGR = Register(I2SCFGR_val, u32).init(base_address + 0x1c);
 
     /// I2SPR
     const I2SPR_val = packed struct {
@@ -4312,7 +4324,7 @@ pub const SPI2 = struct {
         _unused24: u8 = 0,
     };
     /// I2S prescaler register
-    pub const I2SPR = Register(I2SPR_val).init(base_address + 0x20);
+    pub const I2SPR = Register(I2SPR_val, u32).init(base_address + 0x20);
 };
 
 /// Digital-to-analog converter
@@ -4353,7 +4365,7 @@ pub const DAC = struct {
         _unused24: u8 = 0,
     };
     /// control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x0);
 
     /// SWTRIGR
     const SWTRIGR_val = packed struct {
@@ -4367,7 +4379,7 @@ pub const DAC = struct {
         _unused24: u8 = 0,
     };
     /// software trigger register
-    pub const SWTRIGR = Register(SWTRIGR_val).init(base_address + 0x4);
+    pub const SWTRIGR = Register(SWTRIGR_val, u32).init(base_address + 0x4);
 
     /// DHR12R1
     const DHR12R1_val = packed struct {
@@ -4380,7 +4392,7 @@ pub const DAC = struct {
         _unused24: u8 = 0,
     };
     /// channel1 12-bit right-aligned data holding
-    pub const DHR12R1 = Register(DHR12R1_val).init(base_address + 0x8);
+    pub const DHR12R1 = Register(DHR12R1_val, u32).init(base_address + 0x8);
 
     /// DHR12L1
     const DHR12L1_val = packed struct {
@@ -4394,7 +4406,7 @@ pub const DAC = struct {
         _unused24: u8 = 0,
     };
     /// channel1 12-bit left aligned data holding
-    pub const DHR12L1 = Register(DHR12L1_val).init(base_address + 0xc);
+    pub const DHR12L1 = Register(DHR12L1_val, u32).init(base_address + 0xc);
 
     /// DHR8R1
     const DHR8R1_val = packed struct {
@@ -4407,7 +4419,7 @@ pub const DAC = struct {
         _unused24: u8 = 0,
     };
     /// channel1 8-bit right aligned data holding
-    pub const DHR8R1 = Register(DHR8R1_val).init(base_address + 0x10);
+    pub const DHR8R1 = Register(DHR8R1_val, u32).init(base_address + 0x10);
 
     /// DOR1
     const DOR1_val = packed struct {
@@ -4420,7 +4432,7 @@ pub const DAC = struct {
         _unused24: u8 = 0,
     };
     /// channel1 data output register
-    pub const DOR1 = Register(DOR1_val).init(base_address + 0x2c);
+    pub const DOR1 = Register(DOR1_val, u32).init(base_address + 0x2c);
 
     /// SR
     const SR_val = packed struct {
@@ -4441,7 +4453,7 @@ pub const DAC = struct {
         _unused30: u2 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x34);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x34);
 };
 
 /// Power control
@@ -4479,7 +4491,7 @@ pub const PWR = struct {
         _unused24: u8 = 0,
     };
     /// power control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x0);
 
     /// CSR
     const CSR_val = packed struct {
@@ -4509,7 +4521,7 @@ pub const PWR = struct {
         _unused24: u8 = 0,
     };
     /// power control/status register
-    pub const CSR = Register(CSR_val).init(base_address + 0x4);
+    pub const CSR = Register(CSR_val, u32).init(base_address + 0x4);
 };
 
 /// Inter-integrated circuit
@@ -4584,7 +4596,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -4631,7 +4643,7 @@ pub const I2C1 = struct {
         _unused27: u5 = 0,
     };
     /// Control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// OAR1
     const OAR1_val = packed struct {
@@ -4657,7 +4669,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Own address register 1
-    pub const OAR1 = Register(OAR1_val).init(base_address + 0x8);
+    pub const OAR1 = Register(OAR1_val, u32).init(base_address + 0x8);
 
     /// OAR2
     const OAR2_val = packed struct {
@@ -4679,7 +4691,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Own address register 2
-    pub const OAR2 = Register(OAR2_val).init(base_address + 0xc);
+    pub const OAR2 = Register(OAR2_val, u32).init(base_address + 0xc);
 
     /// TIMINGR
     const TIMINGR_val = packed struct {
@@ -4702,7 +4714,7 @@ pub const I2C1 = struct {
         PRESC: u4 = 0,
     };
     /// Timing register
-    pub const TIMINGR = Register(TIMINGR_val).init(base_address + 0x10);
+    pub const TIMINGR = Register(TIMINGR_val, u32).init(base_address + 0x10);
 
     /// TIMEOUTR
     const TIMEOUTR_val = packed struct {
@@ -4727,7 +4739,7 @@ pub const I2C1 = struct {
         TEXTEN: u1 = 0,
     };
     /// Status register 1
-    pub const TIMEOUTR = Register(TIMEOUTR_val).init(base_address + 0x14);
+    pub const TIMEOUTR = Register(TIMEOUTR_val, u32).init(base_address + 0x14);
 
     /// ISR
     const ISR_val = packed struct {
@@ -4788,7 +4800,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt and Status register
-    pub const ISR = Register(ISR_val).init(base_address + 0x18);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x18);
 
     /// ICR
     const ICR_val = packed struct {
@@ -4829,7 +4841,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x1c);
+    pub const ICR = Register(ICR_val, u32).init(base_address + 0x1c);
 
     /// PECR
     const PECR_val = packed struct {
@@ -4842,7 +4854,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// PEC register
-    pub const PECR = Register(PECR_val).init(base_address + 0x20);
+    pub const PECR = Register(PECR_val, u32).init(base_address + 0x20);
 
     /// RXDR
     const RXDR_val = packed struct {
@@ -4855,7 +4867,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Receive data register
-    pub const RXDR = Register(RXDR_val).init(base_address + 0x24);
+    pub const RXDR = Register(RXDR_val, u32).init(base_address + 0x24);
 
     /// TXDR
     const TXDR_val = packed struct {
@@ -4868,7 +4880,7 @@ pub const I2C1 = struct {
         _unused24: u8 = 0,
     };
     /// Transmit data register
-    pub const TXDR = Register(TXDR_val).init(base_address + 0x28);
+    pub const TXDR = Register(TXDR_val, u32).init(base_address + 0x28);
 };
 
 /// Inter-integrated circuit
@@ -4943,7 +4955,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -4990,7 +5002,7 @@ pub const I2C2 = struct {
         _unused27: u5 = 0,
     };
     /// Control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// OAR1
     const OAR1_val = packed struct {
@@ -5016,7 +5028,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Own address register 1
-    pub const OAR1 = Register(OAR1_val).init(base_address + 0x8);
+    pub const OAR1 = Register(OAR1_val, u32).init(base_address + 0x8);
 
     /// OAR2
     const OAR2_val = packed struct {
@@ -5038,7 +5050,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Own address register 2
-    pub const OAR2 = Register(OAR2_val).init(base_address + 0xc);
+    pub const OAR2 = Register(OAR2_val, u32).init(base_address + 0xc);
 
     /// TIMINGR
     const TIMINGR_val = packed struct {
@@ -5061,7 +5073,7 @@ pub const I2C2 = struct {
         PRESC: u4 = 0,
     };
     /// Timing register
-    pub const TIMINGR = Register(TIMINGR_val).init(base_address + 0x10);
+    pub const TIMINGR = Register(TIMINGR_val, u32).init(base_address + 0x10);
 
     /// TIMEOUTR
     const TIMEOUTR_val = packed struct {
@@ -5086,7 +5098,7 @@ pub const I2C2 = struct {
         TEXTEN: u1 = 0,
     };
     /// Status register 1
-    pub const TIMEOUTR = Register(TIMEOUTR_val).init(base_address + 0x14);
+    pub const TIMEOUTR = Register(TIMEOUTR_val, u32).init(base_address + 0x14);
 
     /// ISR
     const ISR_val = packed struct {
@@ -5147,7 +5159,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt and Status register
-    pub const ISR = Register(ISR_val).init(base_address + 0x18);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x18);
 
     /// ICR
     const ICR_val = packed struct {
@@ -5188,7 +5200,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x1c);
+    pub const ICR = Register(ICR_val, u32).init(base_address + 0x1c);
 
     /// PECR
     const PECR_val = packed struct {
@@ -5201,7 +5213,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// PEC register
-    pub const PECR = Register(PECR_val).init(base_address + 0x20);
+    pub const PECR = Register(PECR_val, u32).init(base_address + 0x20);
 
     /// RXDR
     const RXDR_val = packed struct {
@@ -5214,7 +5226,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Receive data register
-    pub const RXDR = Register(RXDR_val).init(base_address + 0x24);
+    pub const RXDR = Register(RXDR_val, u32).init(base_address + 0x24);
 
     /// TXDR
     const TXDR_val = packed struct {
@@ -5227,7 +5239,7 @@ pub const I2C2 = struct {
         _unused24: u8 = 0,
     };
     /// Transmit data register
-    pub const TXDR = Register(TXDR_val).init(base_address + 0x28);
+    pub const TXDR = Register(TXDR_val, u32).init(base_address + 0x28);
 };
 
 /// Independent watchdog
@@ -5243,7 +5255,7 @@ pub const IWDG = struct {
         _unused24: u8 = 0,
     };
     /// Key register
-    pub const KR = Register(KR_val).init(base_address + 0x0);
+    pub const KR = Register(KR_val, u32).init(base_address + 0x0);
 
     /// PR
     const PR_val = packed struct {
@@ -5257,7 +5269,7 @@ pub const IWDG = struct {
         _unused24: u8 = 0,
     };
     /// Prescaler register
-    pub const PR = Register(PR_val).init(base_address + 0x4);
+    pub const PR = Register(PR_val, u32).init(base_address + 0x4);
 
     /// RLR
     const RLR_val = packed struct {
@@ -5270,7 +5282,7 @@ pub const IWDG = struct {
         _unused24: u8 = 0,
     };
     /// Reload register
-    pub const RLR = Register(RLR_val).init(base_address + 0x8);
+    pub const RLR = Register(RLR_val, u32).init(base_address + 0x8);
 
     /// SR
     const SR_val = packed struct {
@@ -5290,7 +5302,7 @@ pub const IWDG = struct {
         _unused24: u8 = 0,
     };
     /// Status register
-    pub const SR = Register(SR_val).init(base_address + 0xc);
+    pub const SR = Register(SR_val, u32).init(base_address + 0xc);
 
     /// WINR
     const WINR_val = packed struct {
@@ -5303,7 +5315,7 @@ pub const IWDG = struct {
         _unused24: u8 = 0,
     };
     /// Window register
-    pub const WINR = Register(WINR_val).init(base_address + 0x10);
+    pub const WINR = Register(WINR_val, u32).init(base_address + 0x10);
 };
 
 /// Window watchdog
@@ -5323,7 +5335,7 @@ pub const WWDG = struct {
         _unused24: u8 = 0,
     };
     /// Control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x0);
 
     /// CFR
     const CFR_val = packed struct {
@@ -5342,7 +5354,7 @@ pub const WWDG = struct {
         _unused24: u8 = 0,
     };
     /// Configuration register
-    pub const CFR = Register(CFR_val).init(base_address + 0x4);
+    pub const CFR = Register(CFR_val, u32).init(base_address + 0x4);
 
     /// SR
     const SR_val = packed struct {
@@ -5356,7 +5368,7 @@ pub const WWDG = struct {
         _unused24: u8 = 0,
     };
     /// Status register
-    pub const SR = Register(SR_val).init(base_address + 0x8);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x8);
 };
 
 /// Advanced-timers
@@ -5394,7 +5406,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -5442,7 +5454,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// SMCR
     const SMCR_val = packed struct {
@@ -5474,7 +5486,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// slave mode control register
-    pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
+    pub const SMCR = Register(SMCR_val, u32).init(base_address + 0x8);
 
     /// DIER
     const DIER_val = packed struct {
@@ -5529,7 +5541,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -5577,7 +5589,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -5611,7 +5623,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -5650,7 +5662,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -5677,7 +5689,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCMR2_Output
     const CCMR2_Output_val = packed struct {
@@ -5716,7 +5728,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (output
-    pub const CCMR2_Output = Register(CCMR2_Output_val).init(base_address + 0x1c);
+    pub const CCMR2_Output = Register(CCMR2_Output_val, u32).init(base_address + 0x1c);
 
     /// CCMR2_Input
     const CCMR2_Input_val = packed struct {
@@ -5743,7 +5755,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 2 (input
-    pub const CCMR2_Input = Register(CCMR2_Input_val).init(base_address + 0x1c);
+    pub const CCMR2_Input = Register(CCMR2_Input_val, u32).init(base_address + 0x1c);
 
     /// CCER
     const CCER_val = packed struct {
@@ -5795,7 +5807,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -5807,7 +5819,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -5819,7 +5831,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -5831,7 +5843,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// RCR
     const RCR_val = packed struct {
@@ -5844,7 +5856,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// repetition counter register
-    pub const RCR = Register(RCR_val).init(base_address + 0x30);
+    pub const RCR = Register(RCR_val, u32).init(base_address + 0x30);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -5856,7 +5868,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// CCR2
     const CCR2_val = packed struct {
@@ -5868,7 +5880,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 2
-    pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
+    pub const CCR2 = Register(CCR2_val, u32).init(base_address + 0x38);
 
     /// CCR3
     const CCR3_val = packed struct {
@@ -5880,7 +5892,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 3
-    pub const CCR3 = Register(CCR3_val).init(base_address + 0x3c);
+    pub const CCR3 = Register(CCR3_val, u32).init(base_address + 0x3c);
 
     /// CCR4
     const CCR4_val = packed struct {
@@ -5892,7 +5904,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 4
-    pub const CCR4 = Register(CCR4_val).init(base_address + 0x40);
+    pub const CCR4 = Register(CCR4_val, u32).init(base_address + 0x40);
 
     /// BDTR
     const BDTR_val = packed struct {
@@ -5925,7 +5937,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// break and dead-time register
-    pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
+    pub const BDTR = Register(BDTR_val, u32).init(base_address + 0x44);
 
     /// DCR
     const DCR_val = packed struct {
@@ -5943,7 +5955,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// DMA control register
-    pub const DCR = Register(DCR_val).init(base_address + 0x48);
+    pub const DCR = Register(DCR_val, u32).init(base_address + 0x48);
 
     /// DMAR
     const DMAR_val = packed struct {
@@ -5955,7 +5967,7 @@ pub const TIM1 = struct {
         _unused24: u8 = 0,
     };
     /// DMA address for full transfer
-    pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
+    pub const DMAR = Register(DMAR_val, u32).init(base_address + 0x4c);
 };
 
 /// General-purpose-timers
@@ -5993,7 +6005,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -6014,7 +6026,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// SMCR
     const SMCR_val = packed struct {
@@ -6046,7 +6058,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// slave mode control register
-    pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
+    pub const SMCR = Register(SMCR_val, u32).init(base_address + 0x8);
 
     /// DIER
     const DIER_val = packed struct {
@@ -6099,7 +6111,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -6144,7 +6156,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -6175,7 +6187,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -6214,7 +6226,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -6241,7 +6253,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCMR2_Output
     const CCMR2_Output_val = packed struct {
@@ -6280,7 +6292,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 2 (output
-    pub const CCMR2_Output = Register(CCMR2_Output_val).init(base_address + 0x1c);
+    pub const CCMR2_Output = Register(CCMR2_Output_val, u32).init(base_address + 0x1c);
 
     /// CCMR2_Input
     const CCMR2_Input_val = packed struct {
@@ -6307,7 +6319,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 2 (input
-    pub const CCMR2_Input = Register(CCMR2_Input_val).init(base_address + 0x1c);
+    pub const CCMR2_Input = Register(CCMR2_Input_val, u32).init(base_address + 0x1c);
 
     /// CCER
     const CCER_val = packed struct {
@@ -6360,7 +6372,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -6372,7 +6384,7 @@ pub const TIM2 = struct {
         CNT_H: u16 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -6384,7 +6396,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -6396,7 +6408,7 @@ pub const TIM2 = struct {
         ARR_H: u16 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -6408,7 +6420,7 @@ pub const TIM2 = struct {
         CCR1_H: u16 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// CCR2
     const CCR2_val = packed struct {
@@ -6420,7 +6432,7 @@ pub const TIM2 = struct {
         CCR2_H: u16 = 0,
     };
     /// capture/compare register 2
-    pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
+    pub const CCR2 = Register(CCR2_val, u32).init(base_address + 0x38);
 
     /// CCR3
     const CCR3_val = packed struct {
@@ -6432,7 +6444,7 @@ pub const TIM2 = struct {
         CCR3_H: u16 = 0,
     };
     /// capture/compare register 3
-    pub const CCR3 = Register(CCR3_val).init(base_address + 0x3c);
+    pub const CCR3 = Register(CCR3_val, u32).init(base_address + 0x3c);
 
     /// CCR4
     const CCR4_val = packed struct {
@@ -6444,7 +6456,7 @@ pub const TIM2 = struct {
         CCR4_H: u16 = 0,
     };
     /// capture/compare register 4
-    pub const CCR4 = Register(CCR4_val).init(base_address + 0x40);
+    pub const CCR4 = Register(CCR4_val, u32).init(base_address + 0x40);
 
     /// DCR
     const DCR_val = packed struct {
@@ -6462,7 +6474,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// DMA control register
-    pub const DCR = Register(DCR_val).init(base_address + 0x48);
+    pub const DCR = Register(DCR_val, u32).init(base_address + 0x48);
 
     /// DMAR
     const DMAR_val = packed struct {
@@ -6474,7 +6486,7 @@ pub const TIM2 = struct {
         _unused24: u8 = 0,
     };
     /// DMA address for full transfer
-    pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
+    pub const DMAR = Register(DMAR_val, u32).init(base_address + 0x4c);
 };
 
 /// General-purpose-timers
@@ -6512,7 +6524,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -6533,7 +6545,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// SMCR
     const SMCR_val = packed struct {
@@ -6565,7 +6577,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// slave mode control register
-    pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
+    pub const SMCR = Register(SMCR_val, u32).init(base_address + 0x8);
 
     /// DIER
     const DIER_val = packed struct {
@@ -6618,7 +6630,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -6663,7 +6675,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -6694,7 +6706,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -6733,7 +6745,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -6760,7 +6772,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCMR2_Output
     const CCMR2_Output_val = packed struct {
@@ -6799,7 +6811,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 2 (output
-    pub const CCMR2_Output = Register(CCMR2_Output_val).init(base_address + 0x1c);
+    pub const CCMR2_Output = Register(CCMR2_Output_val, u32).init(base_address + 0x1c);
 
     /// CCMR2_Input
     const CCMR2_Input_val = packed struct {
@@ -6826,7 +6838,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 2 (input
-    pub const CCMR2_Input = Register(CCMR2_Input_val).init(base_address + 0x1c);
+    pub const CCMR2_Input = Register(CCMR2_Input_val, u32).init(base_address + 0x1c);
 
     /// CCER
     const CCER_val = packed struct {
@@ -6879,7 +6891,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -6891,7 +6903,7 @@ pub const TIM3 = struct {
         CNT_H: u16 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -6903,7 +6915,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -6915,7 +6927,7 @@ pub const TIM3 = struct {
         ARR_H: u16 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -6927,7 +6939,7 @@ pub const TIM3 = struct {
         CCR1_H: u16 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// CCR2
     const CCR2_val = packed struct {
@@ -6939,7 +6951,7 @@ pub const TIM3 = struct {
         CCR2_H: u16 = 0,
     };
     /// capture/compare register 2
-    pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
+    pub const CCR2 = Register(CCR2_val, u32).init(base_address + 0x38);
 
     /// CCR3
     const CCR3_val = packed struct {
@@ -6951,7 +6963,7 @@ pub const TIM3 = struct {
         CCR3_H: u16 = 0,
     };
     /// capture/compare register 3
-    pub const CCR3 = Register(CCR3_val).init(base_address + 0x3c);
+    pub const CCR3 = Register(CCR3_val, u32).init(base_address + 0x3c);
 
     /// CCR4
     const CCR4_val = packed struct {
@@ -6963,7 +6975,7 @@ pub const TIM3 = struct {
         CCR4_H: u16 = 0,
     };
     /// capture/compare register 4
-    pub const CCR4 = Register(CCR4_val).init(base_address + 0x40);
+    pub const CCR4 = Register(CCR4_val, u32).init(base_address + 0x40);
 
     /// DCR
     const DCR_val = packed struct {
@@ -6981,7 +6993,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// DMA control register
-    pub const DCR = Register(DCR_val).init(base_address + 0x48);
+    pub const DCR = Register(DCR_val, u32).init(base_address + 0x48);
 
     /// DMAR
     const DMAR_val = packed struct {
@@ -6993,7 +7005,7 @@ pub const TIM3 = struct {
         _unused24: u8 = 0,
     };
     /// DMA address for full transfer
-    pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
+    pub const DMAR = Register(DMAR_val, u32).init(base_address + 0x4c);
 };
 
 /// General-purpose-timers
@@ -7024,7 +7036,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// DIER
     const DIER_val = packed struct {
@@ -7041,7 +7053,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -7063,7 +7075,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -7080,7 +7092,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -7103,7 +7115,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -7122,7 +7134,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCER
     const CCER_val = packed struct {
@@ -7144,7 +7156,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -7156,7 +7168,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -7168,7 +7180,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -7180,7 +7192,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -7192,7 +7204,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// OR
     const OR_val = packed struct {
@@ -7206,7 +7218,7 @@ pub const TIM14 = struct {
         _unused24: u8 = 0,
     };
     /// option register
-    pub const OR = Register(OR_val).init(base_address + 0x50);
+    pub const OR = Register(OR_val, u32).init(base_address + 0x50);
 };
 
 /// Basic-timers
@@ -7237,7 +7249,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -7253,7 +7265,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// DIER
     const DIER_val = packed struct {
@@ -7271,7 +7283,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -7285,7 +7297,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -7299,7 +7311,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CNT
     const CNT_val = packed struct {
@@ -7311,7 +7323,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -7323,7 +7335,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -7335,136 +7347,7 @@ pub const TIM6 = struct {
         _unused24: u8 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-};
-
-/// Basic-timers
-pub const TIM7 = struct {
-    const base_address = 0x40001400;
-    /// CR1
-    const CR1_val = packed struct {
-        /// CEN [0:0]
-        /// Counter enable
-        CEN: u1 = 0,
-        /// UDIS [1:1]
-        /// Update disable
-        UDIS: u1 = 0,
-        /// URS [2:2]
-        /// Update request source
-        URS: u1 = 0,
-        /// OPM [3:3]
-        /// One-pulse mode
-        OPM: u1 = 0,
-        /// unused [4:6]
-        _unused4: u3 = 0,
-        /// ARPE [7:7]
-        /// Auto-reload preload enable
-        ARPE: u1 = 0,
-        /// unused [8:31]
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-    /// CR2
-    const CR2_val = packed struct {
-        /// unused [0:3]
-        _unused0: u4 = 0,
-        /// MMS [4:6]
-        /// Master mode selection
-        MMS: u3 = 0,
-        /// unused [7:31]
-        _unused7: u1 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-    /// DIER
-    const DIER_val = packed struct {
-        /// UIE [0:0]
-        /// Update interrupt enable
-        UIE: u1 = 0,
-        /// unused [1:7]
-        _unused1: u7 = 0,
-        /// UDE [8:8]
-        /// Update DMA request enable
-        UDE: u1 = 0,
-        /// unused [9:31]
-        _unused9: u7 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-    /// SR
-    const SR_val = packed struct {
-        /// UIF [0:0]
-        /// Update interrupt flag
-        UIF: u1 = 0,
-        /// unused [1:31]
-        _unused1: u7 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
-
-    /// EGR
-    const EGR_val = packed struct {
-        /// UG [0:0]
-        /// Update generation
-        UG: u1 = 0,
-        /// unused [1:31]
-        _unused1: u7 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-    /// CNT
-    const CNT_val = packed struct {
-        /// CNT [0:15]
-        /// Low counter value
-        CNT: u16 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-    /// PSC
-    const PSC_val = packed struct {
-        /// PSC [0:15]
-        /// Prescaler value
-        PSC: u16 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-    /// ARR
-    const ARR_val = packed struct {
-        /// ARR [0:15]
-        /// Low Auto-reload value
-        ARR: u16 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 };
 
 /// External interrupt/event
@@ -7560,7 +7443,7 @@ pub const EXTI = struct {
         _unused28: u4 = 0,
     };
     /// Interrupt mask register
-    pub const IMR = Register(IMR_val).init(base_address + 0x0);
+    pub const IMR = Register(IMR_val, u32).init(base_address + 0x0);
 
     /// EMR
     const EMR_val = packed struct {
@@ -7652,7 +7535,7 @@ pub const EXTI = struct {
         _unused28: u4 = 0,
     };
     /// Event mask register (EXTI_EMR)
-    pub const EMR = Register(EMR_val).init(base_address + 0x4);
+    pub const EMR = Register(EMR_val, u32).init(base_address + 0x4);
 
     /// RTSR
     const RTSR_val = packed struct {
@@ -7720,7 +7603,7 @@ pub const EXTI = struct {
         _unused24: u8 = 0,
     };
     /// Rising Trigger selection register
-    pub const RTSR = Register(RTSR_val).init(base_address + 0x8);
+    pub const RTSR = Register(RTSR_val, u32).init(base_address + 0x8);
 
     /// FTSR
     const FTSR_val = packed struct {
@@ -7788,7 +7671,7 @@ pub const EXTI = struct {
         _unused24: u8 = 0,
     };
     /// Falling Trigger selection register
-    pub const FTSR = Register(FTSR_val).init(base_address + 0xc);
+    pub const FTSR = Register(FTSR_val, u32).init(base_address + 0xc);
 
     /// SWIER
     const SWIER_val = packed struct {
@@ -7856,7 +7739,7 @@ pub const EXTI = struct {
         _unused24: u8 = 0,
     };
     /// Software interrupt event register
-    pub const SWIER = Register(SWIER_val).init(base_address + 0x10);
+    pub const SWIER = Register(SWIER_val, u32).init(base_address + 0x10);
 
     /// PR
     const PR_val = packed struct {
@@ -7924,7 +7807,7 @@ pub const EXTI = struct {
         _unused24: u8 = 0,
     };
     /// Pending register (EXTI_PR)
-    pub const PR = Register(PR_val).init(base_address + 0x14);
+    pub const PR = Register(PR_val, u32).init(base_address + 0x14);
 };
 
 /// Nested Vectored Interrupt
@@ -7937,7 +7820,7 @@ pub const NVIC = struct {
         SETENA: u32 = 0,
     };
     /// Interrupt Set Enable Register
-    pub const ISER = Register(ISER_val).init(base_address + 0x0);
+    pub const ISER = Register(ISER_val, u32).init(base_address + 0x0);
 
     /// ICER
     const ICER_val = packed struct {
@@ -7946,7 +7829,7 @@ pub const NVIC = struct {
         CLRENA: u32 = 0,
     };
     /// Interrupt Clear Enable
-    pub const ICER = Register(ICER_val).init(base_address + 0x80);
+    pub const ICER = Register(ICER_val, u32).init(base_address + 0x80);
 
     /// ISPR
     const ISPR_val = packed struct {
@@ -7955,7 +7838,7 @@ pub const NVIC = struct {
         SETPEND: u32 = 0,
     };
     /// Interrupt Set-Pending Register
-    pub const ISPR = Register(ISPR_val).init(base_address + 0x100);
+    pub const ISPR = Register(ISPR_val, u32).init(base_address + 0x100);
 
     /// ICPR
     const ICPR_val = packed struct {
@@ -7964,7 +7847,7 @@ pub const NVIC = struct {
         CLRPEND: u32 = 0,
     };
     /// Interrupt Clear-Pending
-    pub const ICPR = Register(ICPR_val).init(base_address + 0x180);
+    pub const ICPR = Register(ICPR_val, u32).init(base_address + 0x180);
 
     /// IPR0
     const IPR0_val = packed struct {
@@ -7990,7 +7873,7 @@ pub const NVIC = struct {
         PRI_03: u2 = 0,
     };
     /// Interrupt Priority Register 0
-    pub const IPR0 = Register(IPR0_val).init(base_address + 0x300);
+    pub const IPR0 = Register(IPR0_val, u32).init(base_address + 0x300);
 
     /// IPR1
     const IPR1_val = packed struct {
@@ -8016,7 +7899,7 @@ pub const NVIC = struct {
         PRI_43: u2 = 0,
     };
     /// Interrupt Priority Register 1
-    pub const IPR1 = Register(IPR1_val).init(base_address + 0x304);
+    pub const IPR1 = Register(IPR1_val, u32).init(base_address + 0x304);
 
     /// IPR2
     const IPR2_val = packed struct {
@@ -8042,7 +7925,7 @@ pub const NVIC = struct {
         PRI_83: u2 = 0,
     };
     /// Interrupt Priority Register 2
-    pub const IPR2 = Register(IPR2_val).init(base_address + 0x308);
+    pub const IPR2 = Register(IPR2_val, u32).init(base_address + 0x308);
 
     /// IPR3
     const IPR3_val = packed struct {
@@ -8068,7 +7951,7 @@ pub const NVIC = struct {
         PRI_123: u2 = 0,
     };
     /// Interrupt Priority Register 3
-    pub const IPR3 = Register(IPR3_val).init(base_address + 0x30c);
+    pub const IPR3 = Register(IPR3_val, u32).init(base_address + 0x30c);
 
     /// IPR4
     const IPR4_val = packed struct {
@@ -8094,7 +7977,7 @@ pub const NVIC = struct {
         PRI_163: u2 = 0,
     };
     /// Interrupt Priority Register 4
-    pub const IPR4 = Register(IPR4_val).init(base_address + 0x310);
+    pub const IPR4 = Register(IPR4_val, u32).init(base_address + 0x310);
 
     /// IPR5
     const IPR5_val = packed struct {
@@ -8120,7 +8003,7 @@ pub const NVIC = struct {
         PRI_203: u2 = 0,
     };
     /// Interrupt Priority Register 5
-    pub const IPR5 = Register(IPR5_val).init(base_address + 0x314);
+    pub const IPR5 = Register(IPR5_val, u32).init(base_address + 0x314);
 
     /// IPR6
     const IPR6_val = packed struct {
@@ -8146,7 +8029,7 @@ pub const NVIC = struct {
         PRI_243: u2 = 0,
     };
     /// Interrupt Priority Register 6
-    pub const IPR6 = Register(IPR6_val).init(base_address + 0x318);
+    pub const IPR6 = Register(IPR6_val, u32).init(base_address + 0x318);
 
     /// IPR7
     const IPR7_val = packed struct {
@@ -8172,7 +8055,7 @@ pub const NVIC = struct {
         PRI_283: u2 = 0,
     };
     /// Interrupt Priority Register 7
-    pub const IPR7 = Register(IPR7_val).init(base_address + 0x31c);
+    pub const IPR7 = Register(IPR7_val, u32).init(base_address + 0x31c);
 };
 
 /// DMA controller
@@ -8268,7 +8151,7 @@ pub const DMA = struct {
         _unused28: u4 = 0,
     };
     /// DMA interrupt status register
-    pub const ISR = Register(ISR_val).init(base_address + 0x0);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x0);
 
     /// IFCR
     const IFCR_val = packed struct {
@@ -8360,7 +8243,7 @@ pub const DMA = struct {
         _unused28: u4 = 0,
     };
     /// DMA interrupt flag clear register
-    pub const IFCR = Register(IFCR_val).init(base_address + 0x4);
+    pub const IFCR = Register(IFCR_val, u32).init(base_address + 0x4);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -8406,7 +8289,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x8);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x8);
 
     /// CNDTR1
     const CNDTR1_val = packed struct {
@@ -8418,7 +8301,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 1 number of data
-    pub const CNDTR1 = Register(CNDTR1_val).init(base_address + 0xc);
+    pub const CNDTR1 = Register(CNDTR1_val, u32).init(base_address + 0xc);
 
     /// CPAR1
     const CPAR1_val = packed struct {
@@ -8427,7 +8310,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 1 peripheral address
-    pub const CPAR1 = Register(CPAR1_val).init(base_address + 0x10);
+    pub const CPAR1 = Register(CPAR1_val, u32).init(base_address + 0x10);
 
     /// CMAR1
     const CMAR1_val = packed struct {
@@ -8436,7 +8319,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 1 memory address
-    pub const CMAR1 = Register(CMAR1_val).init(base_address + 0x14);
+    pub const CMAR1 = Register(CMAR1_val, u32).init(base_address + 0x14);
 
     /// CCR2
     const CCR2_val = packed struct {
@@ -8482,7 +8365,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR2 = Register(CCR2_val).init(base_address + 0x1c);
+    pub const CCR2 = Register(CCR2_val, u32).init(base_address + 0x1c);
 
     /// CNDTR2
     const CNDTR2_val = packed struct {
@@ -8494,7 +8377,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 2 number of data
-    pub const CNDTR2 = Register(CNDTR2_val).init(base_address + 0x20);
+    pub const CNDTR2 = Register(CNDTR2_val, u32).init(base_address + 0x20);
 
     /// CPAR2
     const CPAR2_val = packed struct {
@@ -8503,7 +8386,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 2 peripheral address
-    pub const CPAR2 = Register(CPAR2_val).init(base_address + 0x24);
+    pub const CPAR2 = Register(CPAR2_val, u32).init(base_address + 0x24);
 
     /// CMAR2
     const CMAR2_val = packed struct {
@@ -8512,7 +8395,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 2 memory address
-    pub const CMAR2 = Register(CMAR2_val).init(base_address + 0x28);
+    pub const CMAR2 = Register(CMAR2_val, u32).init(base_address + 0x28);
 
     /// CCR3
     const CCR3_val = packed struct {
@@ -8558,7 +8441,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR3 = Register(CCR3_val).init(base_address + 0x30);
+    pub const CCR3 = Register(CCR3_val, u32).init(base_address + 0x30);
 
     /// CNDTR3
     const CNDTR3_val = packed struct {
@@ -8570,7 +8453,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 3 number of data
-    pub const CNDTR3 = Register(CNDTR3_val).init(base_address + 0x34);
+    pub const CNDTR3 = Register(CNDTR3_val, u32).init(base_address + 0x34);
 
     /// CPAR3
     const CPAR3_val = packed struct {
@@ -8579,7 +8462,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 3 peripheral address
-    pub const CPAR3 = Register(CPAR3_val).init(base_address + 0x38);
+    pub const CPAR3 = Register(CPAR3_val, u32).init(base_address + 0x38);
 
     /// CMAR3
     const CMAR3_val = packed struct {
@@ -8588,7 +8471,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 3 memory address
-    pub const CMAR3 = Register(CMAR3_val).init(base_address + 0x3c);
+    pub const CMAR3 = Register(CMAR3_val, u32).init(base_address + 0x3c);
 
     /// CCR4
     const CCR4_val = packed struct {
@@ -8634,7 +8517,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR4 = Register(CCR4_val).init(base_address + 0x44);
+    pub const CCR4 = Register(CCR4_val, u32).init(base_address + 0x44);
 
     /// CNDTR4
     const CNDTR4_val = packed struct {
@@ -8646,7 +8529,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 4 number of data
-    pub const CNDTR4 = Register(CNDTR4_val).init(base_address + 0x48);
+    pub const CNDTR4 = Register(CNDTR4_val, u32).init(base_address + 0x48);
 
     /// CPAR4
     const CPAR4_val = packed struct {
@@ -8655,7 +8538,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 4 peripheral address
-    pub const CPAR4 = Register(CPAR4_val).init(base_address + 0x4c);
+    pub const CPAR4 = Register(CPAR4_val, u32).init(base_address + 0x4c);
 
     /// CMAR4
     const CMAR4_val = packed struct {
@@ -8664,7 +8547,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 4 memory address
-    pub const CMAR4 = Register(CMAR4_val).init(base_address + 0x50);
+    pub const CMAR4 = Register(CMAR4_val, u32).init(base_address + 0x50);
 
     /// CCR5
     const CCR5_val = packed struct {
@@ -8710,7 +8593,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR5 = Register(CCR5_val).init(base_address + 0x58);
+    pub const CCR5 = Register(CCR5_val, u32).init(base_address + 0x58);
 
     /// CNDTR5
     const CNDTR5_val = packed struct {
@@ -8722,7 +8605,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 5 number of data
-    pub const CNDTR5 = Register(CNDTR5_val).init(base_address + 0x5c);
+    pub const CNDTR5 = Register(CNDTR5_val, u32).init(base_address + 0x5c);
 
     /// CPAR5
     const CPAR5_val = packed struct {
@@ -8731,7 +8614,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 5 peripheral address
-    pub const CPAR5 = Register(CPAR5_val).init(base_address + 0x60);
+    pub const CPAR5 = Register(CPAR5_val, u32).init(base_address + 0x60);
 
     /// CMAR5
     const CMAR5_val = packed struct {
@@ -8740,7 +8623,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 5 memory address
-    pub const CMAR5 = Register(CMAR5_val).init(base_address + 0x64);
+    pub const CMAR5 = Register(CMAR5_val, u32).init(base_address + 0x64);
 
     /// CCR6
     const CCR6_val = packed struct {
@@ -8786,7 +8669,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR6 = Register(CCR6_val).init(base_address + 0x6c);
+    pub const CCR6 = Register(CCR6_val, u32).init(base_address + 0x6c);
 
     /// CNDTR6
     const CNDTR6_val = packed struct {
@@ -8798,7 +8681,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 6 number of data
-    pub const CNDTR6 = Register(CNDTR6_val).init(base_address + 0x70);
+    pub const CNDTR6 = Register(CNDTR6_val, u32).init(base_address + 0x70);
 
     /// CPAR6
     const CPAR6_val = packed struct {
@@ -8807,7 +8690,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 6 peripheral address
-    pub const CPAR6 = Register(CPAR6_val).init(base_address + 0x74);
+    pub const CPAR6 = Register(CPAR6_val, u32).init(base_address + 0x74);
 
     /// CMAR6
     const CMAR6_val = packed struct {
@@ -8816,7 +8699,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 6 memory address
-    pub const CMAR6 = Register(CMAR6_val).init(base_address + 0x78);
+    pub const CMAR6 = Register(CMAR6_val, u32).init(base_address + 0x78);
 
     /// CCR7
     const CCR7_val = packed struct {
@@ -8862,7 +8745,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel configuration register
-    pub const CCR7 = Register(CCR7_val).init(base_address + 0x80);
+    pub const CCR7 = Register(CCR7_val, u32).init(base_address + 0x80);
 
     /// CNDTR7
     const CNDTR7_val = packed struct {
@@ -8874,7 +8757,7 @@ pub const DMA = struct {
         _unused24: u8 = 0,
     };
     /// DMA channel 7 number of data
-    pub const CNDTR7 = Register(CNDTR7_val).init(base_address + 0x84);
+    pub const CNDTR7 = Register(CNDTR7_val, u32).init(base_address + 0x84);
 
     /// CPAR7
     const CPAR7_val = packed struct {
@@ -8883,7 +8766,7 @@ pub const DMA = struct {
         PA: u32 = 0,
     };
     /// DMA channel 7 peripheral address
-    pub const CPAR7 = Register(CPAR7_val).init(base_address + 0x88);
+    pub const CPAR7 = Register(CPAR7_val, u32).init(base_address + 0x88);
 
     /// CMAR7
     const CMAR7_val = packed struct {
@@ -8892,7 +8775,7 @@ pub const DMA = struct {
         MA: u32 = 0,
     };
     /// DMA channel 7 memory address
-    pub const CMAR7 = Register(CMAR7_val).init(base_address + 0x8c);
+    pub const CMAR7 = Register(CMAR7_val, u32).init(base_address + 0x8c);
 };
 
 /// Reset and clock control
@@ -8938,7 +8821,7 @@ pub const RCC = struct {
         _unused26: u6 = 0,
     };
     /// Clock control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x0);
 
     /// CFGR
     const CFGR_val = packed struct {
@@ -8956,12 +8839,12 @@ pub const RCC = struct {
         PPRE: u3 = 0,
         /// unused [11:13]
         _unused11: u3 = 0,
-        /// ADCPRE [14:14]
+        /// ADCPRE [14:15]
         /// ADC prescaler
-        ADCPRE: u1 = 0,
-        /// PLLSRC [15:16]
-        /// PLL input clock source
-        PLLSRC: u2 = 0,
+        ADCPRE: u2 = 0,
+        /// PLLSRC [16:16]
+        /// PLL entry clock source
+        PLLSRC: u1 = 0,
         /// PLLXTPRE [17:17]
         /// HSE divider for PLL entry
         PLLXTPRE: u1 = 0,
@@ -8973,17 +8856,11 @@ pub const RCC = struct {
         /// MCO [24:26]
         /// Microcontroller clock
         MCO: u3 = 0,
-        /// unused [27:27]
-        _unused27: u1 = 0,
-        /// MCOPRE [28:30]
-        /// Microcontroller Clock Output
-        MCOPRE: u3 = 0,
-        /// PLLNODIV [31:31]
-        /// PLL clock not divided for
-        PLLNODIV: u1 = 0,
+        /// unused [27:31]
+        _unused27: u5 = 0,
     };
     /// Clock configuration register
-    pub const CFGR = Register(CFGR_val).init(base_address + 0x4);
+    pub const CFGR = Register(CFGR_val, u32).init(base_address + 0x4);
 
     /// CIR
     const CIR_val = packed struct {
@@ -9005,9 +8882,8 @@ pub const RCC = struct {
         /// HSI14RDYF [5:5]
         /// HSI14 ready interrupt flag
         HSI14RDYF: u1 = 0,
-        /// HSI48RDYF [6:6]
-        /// HSI48 ready interrupt flag
-        HSI48RDYF: u1 = 0,
+        /// unused [6:6]
+        _unused6: u1 = 0,
         /// CSSF [7:7]
         /// Clock Security System Interrupt
         CSSF: u1 = 0,
@@ -9029,11 +8905,8 @@ pub const RCC = struct {
         /// HSI14RDYE [13:13]
         /// HSI14 ready interrupt
         HSI14RDYE: u1 = 0,
-        /// HSI48RDYIE [14:14]
-        /// HSI48 ready interrupt
-        HSI48RDYIE: u1 = 0,
-        /// unused [15:15]
-        _unused15: u1 = 0,
+        /// unused [14:15]
+        _unused14: u2 = 0,
         /// LSIRDYC [16:16]
         /// LSI Ready Interrupt Clear
         LSIRDYC: u1 = 0,
@@ -9052,9 +8925,8 @@ pub const RCC = struct {
         /// HSI14RDYC [21:21]
         /// HSI 14 MHz Ready Interrupt
         HSI14RDYC: u1 = 0,
-        /// HSI48RDYC [22:22]
-        /// HSI48 Ready Interrupt
-        HSI48RDYC: u1 = 0,
+        /// unused [22:22]
+        _unused22: u1 = 0,
         /// CSSC [23:23]
         /// Clock security system interrupt
         CSSC: u1 = 0,
@@ -9062,7 +8934,7 @@ pub const RCC = struct {
         _unused24: u8 = 0,
     };
     /// Clock interrupt register
-    pub const CIR = Register(CIR_val).init(base_address + 0x8);
+    pub const CIR = Register(CIR_val, u32).init(base_address + 0x8);
 
     /// APB2RSTR
     const APB2RSTR_val = packed struct {
@@ -9109,7 +8981,7 @@ pub const RCC = struct {
         _unused24: u8 = 0,
     };
     /// APB2 peripheral reset register
-    pub const APB2RSTR = Register(APB2RSTR_val).init(base_address + 0xc);
+    pub const APB2RSTR = Register(APB2RSTR_val, u32).init(base_address + 0xc);
 
     /// APB1RSTR
     const APB1RSTR_val = packed struct {
@@ -9124,11 +8996,8 @@ pub const RCC = struct {
         /// TIM6RST [4:4]
         /// Timer 6 reset
         TIM6RST: u1 = 0,
-        /// TIM7RST [5:5]
-        /// TIM7 timer reset
-        TIM7RST: u1 = 0,
-        /// unused [6:7]
-        _unused6: u2 = 0,
+        /// unused [5:7]
+        _unused5: u3 = 0,
         /// TIM14RST [8:8]
         /// Timer 14 reset
         TIM14RST: u1 = 0,
@@ -9148,33 +9017,17 @@ pub const RCC = struct {
         /// USART2RST [17:17]
         /// USART 2 reset
         USART2RST: u1 = 0,
-        /// USART3RST [18:18]
-        /// USART3 reset
-        USART3RST: u1 = 0,
-        /// USART4RST [19:19]
-        /// USART4 reset
-        USART4RST: u1 = 0,
-        /// unused [20:20]
-        _unused20: u1 = 0,
+        /// unused [18:20]
+        _unused18: u3 = 0,
         /// I2C1RST [21:21]
         /// I2C1 reset
         I2C1RST: u1 = 0,
         /// I2C2RST [22:22]
         /// I2C2 reset
         I2C2RST: u1 = 0,
-        /// USBRST [23:23]
-        /// USB interface reset
-        USBRST: u1 = 0,
-        /// unused [24:24]
-        _unused24: u1 = 0,
-        /// CANRST [25:25]
-        /// CAN interface reset
-        CANRST: u1 = 0,
-        /// unused [26:26]
-        _unused26: u1 = 0,
-        /// CRSRST [27:27]
-        /// Clock Recovery System interface
-        CRSRST: u1 = 0,
+        /// unused [23:27]
+        _unused23: u1 = 0,
+        _unused24: u4 = 0,
         /// PWRRST [28:28]
         /// Power interface reset
         PWRRST: u1 = 0,
@@ -9188,7 +9041,7 @@ pub const RCC = struct {
         _unused31: u1 = 0,
     };
     /// APB1 peripheral reset register
-    pub const APB1RSTR = Register(APB1RSTR_val).init(base_address + 0x10);
+    pub const APB1RSTR = Register(APB1RSTR_val, u32).init(base_address + 0x10);
 
     /// AHBENR
     const AHBENR_val = packed struct {
@@ -9240,7 +9093,7 @@ pub const RCC = struct {
         _unused25: u7 = 0,
     };
     /// AHB Peripheral Clock enable register
-    pub const AHBENR = Register(AHBENR_val).init(base_address + 0x14);
+    pub const AHBENR = Register(AHBENR_val, u32).init(base_address + 0x14);
 
     /// APB2ENR
     const APB2ENR_val = packed struct {
@@ -9287,7 +9140,7 @@ pub const RCC = struct {
         _unused24: u8 = 0,
     };
     /// APB2 peripheral clock enable register
-    pub const APB2ENR = Register(APB2ENR_val).init(base_address + 0x18);
+    pub const APB2ENR = Register(APB2ENR_val, u32).init(base_address + 0x18);
 
     /// APB1ENR
     const APB1ENR_val = packed struct {
@@ -9302,11 +9155,8 @@ pub const RCC = struct {
         /// TIM6EN [4:4]
         /// Timer 6 clock enable
         TIM6EN: u1 = 0,
-        /// TIM7EN [5:5]
-        /// TIM7 timer clock enable
-        TIM7EN: u1 = 0,
-        /// unused [6:7]
-        _unused6: u2 = 0,
+        /// unused [5:7]
+        _unused5: u3 = 0,
         /// TIM14EN [8:8]
         /// Timer 14 clock enable
         TIM14EN: u1 = 0,
@@ -9326,33 +9176,17 @@ pub const RCC = struct {
         /// USART2EN [17:17]
         /// USART 2 clock enable
         USART2EN: u1 = 0,
-        /// USART3EN [18:18]
-        /// USART3 clock enable
-        USART3EN: u1 = 0,
-        /// USART4EN [19:19]
-        /// USART4 clock enable
-        USART4EN: u1 = 0,
-        /// unused [20:20]
-        _unused20: u1 = 0,
+        /// unused [18:20]
+        _unused18: u3 = 0,
         /// I2C1EN [21:21]
         /// I2C 1 clock enable
         I2C1EN: u1 = 0,
         /// I2C2EN [22:22]
         /// I2C 2 clock enable
         I2C2EN: u1 = 0,
-        /// USBRST [23:23]
-        /// USB interface clock enable
-        USBRST: u1 = 0,
-        /// unused [24:24]
-        _unused24: u1 = 0,
-        /// CANEN [25:25]
-        /// CAN interface clock enable
-        CANEN: u1 = 0,
-        /// unused [26:26]
-        _unused26: u1 = 0,
-        /// CRSEN [27:27]
-        /// Clock Recovery System interface clock
-        CRSEN: u1 = 0,
+        /// unused [23:27]
+        _unused23: u1 = 0,
+        _unused24: u4 = 0,
         /// PWREN [28:28]
         /// Power interface clock
         PWREN: u1 = 0,
@@ -9366,7 +9200,7 @@ pub const RCC = struct {
         _unused31: u1 = 0,
     };
     /// APB1 peripheral clock enable register
-    pub const APB1ENR = Register(APB1ENR_val).init(base_address + 0x1c);
+    pub const APB1ENR = Register(APB1ENR_val, u32).init(base_address + 0x1c);
 
     /// BDCR
     const BDCR_val = packed struct {
@@ -9400,7 +9234,7 @@ pub const RCC = struct {
         _unused24: u8 = 0,
     };
     /// Backup domain control register
-    pub const BDCR = Register(BDCR_val).init(base_address + 0x20);
+    pub const BDCR = Register(BDCR_val, u32).init(base_address + 0x20);
 
     /// CSR
     const CSR_val = packed struct {
@@ -9440,7 +9274,7 @@ pub const RCC = struct {
         LPWRRSTF: u1 = 0,
     };
     /// Control/status register
-    pub const CSR = Register(CSR_val).init(base_address + 0x24);
+    pub const CSR = Register(CSR_val, u32).init(base_address + 0x24);
 
     /// AHBRSTR
     const AHBRSTR_val = packed struct {
@@ -9474,7 +9308,7 @@ pub const RCC = struct {
         _unused25: u7 = 0,
     };
     /// AHB peripheral reset register
-    pub const AHBRSTR = Register(AHBRSTR_val).init(base_address + 0x28);
+    pub const AHBRSTR = Register(AHBRSTR_val, u32).init(base_address + 0x28);
 
     /// CFGR2
     const CFGR2_val = packed struct {
@@ -9488,7 +9322,7 @@ pub const RCC = struct {
         _unused24: u8 = 0,
     };
     /// Clock configuration register 2
-    pub const CFGR2 = Register(CFGR2_val).init(base_address + 0x2c);
+    pub const CFGR2 = Register(CFGR2_val, u32).init(base_address + 0x2c);
 
     /// CFGR3
     const CFGR3_val = packed struct {
@@ -9505,23 +9339,18 @@ pub const RCC = struct {
         /// CECSW [6:6]
         /// HDMI CEC clock source
         CECSW: u1 = 0,
-        /// USBSW [7:7]
-        /// USB clock source selection
-        USBSW: u1 = 0,
+        /// unused [7:7]
+        _unused7: u1 = 0,
         /// ADCSW [8:8]
         /// ADC clock source selection
         ADCSW: u1 = 0,
-        /// unused [9:15]
+        /// unused [9:31]
         _unused9: u7 = 0,
-        /// USART2SW [16:17]
-        /// USART2 clock source
-        USART2SW: u2 = 0,
-        /// unused [18:31]
-        _unused18: u6 = 0,
+        _unused16: u8 = 0,
         _unused24: u8 = 0,
     };
     /// Clock configuration register 3
-    pub const CFGR3 = Register(CFGR3_val).init(base_address + 0x30);
+    pub const CFGR3 = Register(CFGR3_val, u32).init(base_address + 0x30);
 
     /// CR2
     const CR2_val = packed struct {
@@ -9540,22 +9369,12 @@ pub const RCC = struct {
         /// HSI14CAL [8:15]
         /// HSI14 clock calibration
         HSI14CAL: u8 = 0,
-        /// HSI48ON [16:16]
-        /// HSI48 clock enable
-        HSI48ON: u1 = 0,
-        /// HSI48RDY [17:17]
-        /// HSI48 clock ready flag
-        HSI48RDY: u1 = 0,
-        /// unused [18:23]
-        _unused18: u6 = 0,
-        /// HSI48CAL [24:24]
-        /// HSI48 factory clock
-        HSI48CAL: u1 = 0,
-        /// unused [25:31]
-        _unused25: u7 = 0,
+        /// unused [16:31]
+        _unused16: u8 = 0,
+        _unused24: u8 = 0,
     };
     /// Clock control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x34);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x34);
 };
 
 /// System configuration controller
@@ -9586,7 +9405,7 @@ pub const SYSCFG = struct {
         /// unused [13:15]
         _unused13: u3 = 0,
         /// I2C_PB6_FM [16:16]
-        /// Fast Mode Plus (FM plus) driving
+        /// Fast Mode Plus (FM+) driving capability
         I2C_PB6_FM: u1 = 0,
         /// I2C_PB7_FM [17:17]
         /// Fast Mode Plus (FM+) driving capability
@@ -9597,40 +9416,12 @@ pub const SYSCFG = struct {
         /// I2C_PB9_FM [19:19]
         /// Fast Mode Plus (FM+) driving capability
         I2C_PB9_FM: u1 = 0,
-        /// I2C1_FM_plus [20:20]
-        /// FM+ driving capability activation for
-        I2C1_FM_plus: u1 = 0,
-        /// I2C2_FM_plus [21:21]
-        /// FM+ driving capability activation for
-        I2C2_FM_plus: u1 = 0,
-        /// unused [22:23]
-        _unused22: u2 = 0,
-        /// SPI2_DMA_RMP [24:24]
-        /// SPI2 DMA request remapping
-        SPI2_DMA_RMP: u1 = 0,
-        /// USART2_DMA_RMP [25:25]
-        /// USART2 DMA request remapping
-        USART2_DMA_RMP: u1 = 0,
-        /// USART3_DMA_RMP [26:26]
-        /// USART3 DMA request remapping
-        USART3_DMA_RMP: u1 = 0,
-        /// I2C1_DMA_RMP [27:27]
-        /// I2C1 DMA request remapping
-        I2C1_DMA_RMP: u1 = 0,
-        /// TIM1_DMA_RMP [28:28]
-        /// TIM1 DMA request remapping
-        TIM1_DMA_RMP: u1 = 0,
-        /// TIM2_DMA_RMP [29:29]
-        /// TIM2 DMA request remapping
-        TIM2_DMA_RMP: u1 = 0,
-        /// TIM3_DMA_RMP [30:30]
-        /// TIM3 DMA request remapping
-        TIM3_DMA_RMP: u1 = 0,
-        /// unused [31:31]
-        _unused31: u1 = 0,
+        /// unused [20:31]
+        _unused20: u4 = 0,
+        _unused24: u8 = 0,
     };
     /// configuration register 1
-    pub const CFGR1 = Register(CFGR1_val).init(base_address + 0x0);
+    pub const CFGR1 = Register(CFGR1_val, u32).init(base_address + 0x0);
 
     /// EXTICR1
     const EXTICR1_val = packed struct {
@@ -9651,7 +9442,7 @@ pub const SYSCFG = struct {
         _unused24: u8 = 0,
     };
     /// external interrupt configuration register
-    pub const EXTICR1 = Register(EXTICR1_val).init(base_address + 0x8);
+    pub const EXTICR1 = Register(EXTICR1_val, u32).init(base_address + 0x8);
 
     /// EXTICR2
     const EXTICR2_val = packed struct {
@@ -9672,7 +9463,7 @@ pub const SYSCFG = struct {
         _unused24: u8 = 0,
     };
     /// external interrupt configuration register
-    pub const EXTICR2 = Register(EXTICR2_val).init(base_address + 0xc);
+    pub const EXTICR2 = Register(EXTICR2_val, u32).init(base_address + 0xc);
 
     /// EXTICR3
     const EXTICR3_val = packed struct {
@@ -9693,7 +9484,7 @@ pub const SYSCFG = struct {
         _unused24: u8 = 0,
     };
     /// external interrupt configuration register
-    pub const EXTICR3 = Register(EXTICR3_val).init(base_address + 0x10);
+    pub const EXTICR3 = Register(EXTICR3_val, u32).init(base_address + 0x10);
 
     /// EXTICR4
     const EXTICR4_val = packed struct {
@@ -9714,7 +9505,7 @@ pub const SYSCFG = struct {
         _unused24: u8 = 0,
     };
     /// external interrupt configuration register
-    pub const EXTICR4 = Register(EXTICR4_val).init(base_address + 0x14);
+    pub const EXTICR4 = Register(EXTICR4_val, u32).init(base_address + 0x14);
 
     /// CFGR2
     const CFGR2_val = packed struct {
@@ -9738,7 +9529,7 @@ pub const SYSCFG = struct {
         _unused24: u8 = 0,
     };
     /// configuration register 2
-    pub const CFGR2 = Register(CFGR2_val).init(base_address + 0x18);
+    pub const CFGR2 = Register(CFGR2_val, u32).init(base_address + 0x18);
 };
 
 /// Analog-to-digital converter
@@ -9772,7 +9563,7 @@ pub const ADC = struct {
         _unused24: u8 = 0,
     };
     /// interrupt and status register
-    pub const ISR = Register(ISR_val).init(base_address + 0x0);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x0);
 
     /// IER
     const IER_val = packed struct {
@@ -9802,7 +9593,7 @@ pub const ADC = struct {
         _unused24: u8 = 0,
     };
     /// interrupt enable register
-    pub const IER = Register(IER_val).init(base_address + 0x4);
+    pub const IER = Register(IER_val, u32).init(base_address + 0x4);
 
     /// CR
     const CR_val = packed struct {
@@ -9830,7 +9621,7 @@ pub const ADC = struct {
         ADCAL: u1 = 0,
     };
     /// control register
-    pub const CR = Register(CR_val).init(base_address + 0x8);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x8);
 
     /// CFGR1
     const CFGR1_val = packed struct {
@@ -9889,7 +9680,7 @@ pub const ADC = struct {
         _unused31: u1 = 0,
     };
     /// configuration register 1
-    pub const CFGR1 = Register(CFGR1_val).init(base_address + 0xc);
+    pub const CFGR1 = Register(CFGR1_val, u32).init(base_address + 0xc);
 
     /// CFGR2
     const CFGR2_val = packed struct {
@@ -9906,7 +9697,7 @@ pub const ADC = struct {
         JITOFF_D4: u1 = 0,
     };
     /// configuration register 2
-    pub const CFGR2 = Register(CFGR2_val).init(base_address + 0x10);
+    pub const CFGR2 = Register(CFGR2_val, u32).init(base_address + 0x10);
 
     /// SMPR
     const SMPR_val = packed struct {
@@ -9920,7 +9711,7 @@ pub const ADC = struct {
         _unused24: u8 = 0,
     };
     /// sampling time register
-    pub const SMPR = Register(SMPR_val).init(base_address + 0x14);
+    pub const SMPR = Register(SMPR_val, u32).init(base_address + 0x14);
 
     /// TR
     const TR_val = packed struct {
@@ -9936,7 +9727,7 @@ pub const ADC = struct {
         _unused28: u4 = 0,
     };
     /// watchdog threshold register
-    pub const TR = Register(TR_val).init(base_address + 0x20);
+    pub const TR = Register(TR_val, u32).init(base_address + 0x20);
 
     /// CHSELR
     const CHSELR_val = packed struct {
@@ -10002,7 +9793,7 @@ pub const ADC = struct {
         _unused24: u8 = 0,
     };
     /// channel selection register
-    pub const CHSELR = Register(CHSELR_val).init(base_address + 0x28);
+    pub const CHSELR = Register(CHSELR_val, u32).init(base_address + 0x28);
 
     /// DR
     const DR_val = packed struct {
@@ -10014,7 +9805,7 @@ pub const ADC = struct {
         _unused24: u8 = 0,
     };
     /// data register
-    pub const DR = Register(DR_val).init(base_address + 0x40);
+    pub const DR = Register(DR_val, u32).init(base_address + 0x40);
 
     /// CCR
     const CCR_val = packed struct {
@@ -10035,7 +9826,7 @@ pub const ADC = struct {
         _unused25: u7 = 0,
     };
     /// common configuration register
-    pub const CCR = Register(CCR_val).init(base_address + 0x308);
+    pub const CCR = Register(CCR_val, u32).init(base_address + 0x308);
 };
 
 /// Universal synchronous asynchronous receiver
@@ -10103,14 +9894,11 @@ pub const USART1 = struct {
         /// EOBIE [27:27]
         /// End of Block interrupt
         EOBIE: u1 = 0,
-        /// M1 [28:28]
-        /// Word length
-        M1: u1 = 0,
-        /// unused [29:31]
-        _unused29: u3 = 0,
+        /// unused [28:31]
+        _unused28: u4 = 0,
     };
     /// Control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -10177,7 +9965,7 @@ pub const USART1 = struct {
         ADD4: u4 = 0,
     };
     /// Control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// CR3
     const CR3_val = packed struct {
@@ -10245,7 +10033,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Control register 3
-    pub const CR3 = Register(CR3_val).init(base_address + 0x8);
+    pub const CR3 = Register(CR3_val, u32).init(base_address + 0x8);
 
     /// BRR
     const BRR_val = packed struct {
@@ -10260,7 +10048,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Baud rate register
-    pub const BRR = Register(BRR_val).init(base_address + 0xc);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0xc);
 
     /// GTPR
     const GTPR_val = packed struct {
@@ -10275,7 +10063,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Guard time and prescaler
-    pub const GTPR = Register(GTPR_val).init(base_address + 0x10);
+    pub const GTPR = Register(GTPR_val, u32).init(base_address + 0x10);
 
     /// RTOR
     const RTOR_val = packed struct {
@@ -10287,7 +10075,7 @@ pub const USART1 = struct {
         BLEN: u8 = 0,
     };
     /// Receiver timeout register
-    pub const RTOR = Register(RTOR_val).init(base_address + 0x14);
+    pub const RTOR = Register(RTOR_val, u32).init(base_address + 0x14);
 
     /// RQR
     const RQR_val = packed struct {
@@ -10313,7 +10101,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Request register
-    pub const RQR = Register(RQR_val).init(base_address + 0x18);
+    pub const RQR = Register(RQR_val, u32).init(base_address + 0x18);
 
     /// ISR
     const ISR_val = packed struct {
@@ -10390,7 +10178,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt &amp; status
-    pub const ISR = Register(ISR_val).init(base_address + 0x1c);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x1c);
 
     /// ICR
     const ICR_val = packed struct {
@@ -10446,7 +10234,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt flag clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x20);
+    pub const ICR = Register(ICR_val, u32).init(base_address + 0x20);
 
     /// RDR
     const RDR_val = packed struct {
@@ -10459,7 +10247,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Receive data register
-    pub const RDR = Register(RDR_val).init(base_address + 0x24);
+    pub const RDR = Register(RDR_val, u32).init(base_address + 0x24);
 
     /// TDR
     const TDR_val = packed struct {
@@ -10472,7 +10260,7 @@ pub const USART1 = struct {
         _unused24: u8 = 0,
     };
     /// Transmit data register
-    pub const TDR = Register(TDR_val).init(base_address + 0x28);
+    pub const TDR = Register(TDR_val, u32).init(base_address + 0x28);
 };
 
 /// Universal synchronous asynchronous receiver
@@ -10540,14 +10328,11 @@ pub const USART2 = struct {
         /// EOBIE [27:27]
         /// End of Block interrupt
         EOBIE: u1 = 0,
-        /// M1 [28:28]
-        /// Word length
-        M1: u1 = 0,
-        /// unused [29:31]
-        _unused29: u3 = 0,
+        /// unused [28:31]
+        _unused28: u4 = 0,
     };
     /// Control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -10614,7 +10399,7 @@ pub const USART2 = struct {
         ADD4: u4 = 0,
     };
     /// Control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// CR3
     const CR3_val = packed struct {
@@ -10682,7 +10467,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Control register 3
-    pub const CR3 = Register(CR3_val).init(base_address + 0x8);
+    pub const CR3 = Register(CR3_val, u32).init(base_address + 0x8);
 
     /// BRR
     const BRR_val = packed struct {
@@ -10697,7 +10482,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Baud rate register
-    pub const BRR = Register(BRR_val).init(base_address + 0xc);
+    pub const BRR = Register(BRR_val, u32).init(base_address + 0xc);
 
     /// GTPR
     const GTPR_val = packed struct {
@@ -10712,7 +10497,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Guard time and prescaler
-    pub const GTPR = Register(GTPR_val).init(base_address + 0x10);
+    pub const GTPR = Register(GTPR_val, u32).init(base_address + 0x10);
 
     /// RTOR
     const RTOR_val = packed struct {
@@ -10724,7 +10509,7 @@ pub const USART2 = struct {
         BLEN: u8 = 0,
     };
     /// Receiver timeout register
-    pub const RTOR = Register(RTOR_val).init(base_address + 0x14);
+    pub const RTOR = Register(RTOR_val, u32).init(base_address + 0x14);
 
     /// RQR
     const RQR_val = packed struct {
@@ -10750,7 +10535,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Request register
-    pub const RQR = Register(RQR_val).init(base_address + 0x18);
+    pub const RQR = Register(RQR_val, u32).init(base_address + 0x18);
 
     /// ISR
     const ISR_val = packed struct {
@@ -10827,7 +10612,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt &amp; status
-    pub const ISR = Register(ISR_val).init(base_address + 0x1c);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x1c);
 
     /// ICR
     const ICR_val = packed struct {
@@ -10883,7 +10668,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt flag clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x20);
+    pub const ICR = Register(ICR_val, u32).init(base_address + 0x20);
 
     /// RDR
     const RDR_val = packed struct {
@@ -10896,7 +10681,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Receive data register
-    pub const RDR = Register(RDR_val).init(base_address + 0x24);
+    pub const RDR = Register(RDR_val, u32).init(base_address + 0x24);
 
     /// TDR
     const TDR_val = packed struct {
@@ -10909,881 +10694,7 @@ pub const USART2 = struct {
         _unused24: u8 = 0,
     };
     /// Transmit data register
-    pub const TDR = Register(TDR_val).init(base_address + 0x28);
-};
-
-/// Universal synchronous asynchronous receiver
-pub const USART3 = struct {
-    const base_address = 0x40004800;
-    /// CR1
-    const CR1_val = packed struct {
-        /// UE [0:0]
-        /// USART enable
-        UE: u1 = 0,
-        /// UESM [1:1]
-        /// USART enable in Stop mode
-        UESM: u1 = 0,
-        /// RE [2:2]
-        /// Receiver enable
-        RE: u1 = 0,
-        /// TE [3:3]
-        /// Transmitter enable
-        TE: u1 = 0,
-        /// IDLEIE [4:4]
-        /// IDLE interrupt enable
-        IDLEIE: u1 = 0,
-        /// RXNEIE [5:5]
-        /// RXNE interrupt enable
-        RXNEIE: u1 = 0,
-        /// TCIE [6:6]
-        /// Transmission complete interrupt
-        TCIE: u1 = 0,
-        /// TXEIE [7:7]
-        /// interrupt enable
-        TXEIE: u1 = 0,
-        /// PEIE [8:8]
-        /// PE interrupt enable
-        PEIE: u1 = 0,
-        /// PS [9:9]
-        /// Parity selection
-        PS: u1 = 0,
-        /// PCE [10:10]
-        /// Parity control enable
-        PCE: u1 = 0,
-        /// WAKE [11:11]
-        /// Receiver wakeup method
-        WAKE: u1 = 0,
-        /// M [12:12]
-        /// Word length
-        M: u1 = 0,
-        /// MME [13:13]
-        /// Mute mode enable
-        MME: u1 = 0,
-        /// CMIE [14:14]
-        /// Character match interrupt
-        CMIE: u1 = 0,
-        /// OVER8 [15:15]
-        /// Oversampling mode
-        OVER8: u1 = 0,
-        /// DEDT [16:20]
-        /// Driver Enable deassertion
-        DEDT: u5 = 0,
-        /// DEAT [21:25]
-        /// Driver Enable assertion
-        DEAT: u5 = 0,
-        /// RTOIE [26:26]
-        /// Receiver timeout interrupt
-        RTOIE: u1 = 0,
-        /// EOBIE [27:27]
-        /// End of Block interrupt
-        EOBIE: u1 = 0,
-        /// M1 [28:28]
-        /// Word length
-        M1: u1 = 0,
-        /// unused [29:31]
-        _unused29: u3 = 0,
-    };
-    /// Control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-    /// CR2
-    const CR2_val = packed struct {
-        /// unused [0:3]
-        _unused0: u4 = 0,
-        /// ADDM7 [4:4]
-        /// 7-bit Address Detection/4-bit Address
-        ADDM7: u1 = 0,
-        /// LBDL [5:5]
-        /// LIN break detection length
-        LBDL: u1 = 0,
-        /// LBDIE [6:6]
-        /// LIN break detection interrupt
-        LBDIE: u1 = 0,
-        /// unused [7:7]
-        _unused7: u1 = 0,
-        /// LBCL [8:8]
-        /// Last bit clock pulse
-        LBCL: u1 = 0,
-        /// CPHA [9:9]
-        /// Clock phase
-        CPHA: u1 = 0,
-        /// CPOL [10:10]
-        /// Clock polarity
-        CPOL: u1 = 0,
-        /// CLKEN [11:11]
-        /// Clock enable
-        CLKEN: u1 = 0,
-        /// STOP [12:13]
-        /// STOP bits
-        STOP: u2 = 0,
-        /// LINEN [14:14]
-        /// LIN mode enable
-        LINEN: u1 = 0,
-        /// SWAP [15:15]
-        /// Swap TX/RX pins
-        SWAP: u1 = 0,
-        /// RXINV [16:16]
-        /// RX pin active level
-        RXINV: u1 = 0,
-        /// TXINV [17:17]
-        /// TX pin active level
-        TXINV: u1 = 0,
-        /// DATAINV [18:18]
-        /// Binary data inversion
-        DATAINV: u1 = 0,
-        /// MSBFIRST [19:19]
-        /// Most significant bit first
-        MSBFIRST: u1 = 0,
-        /// ABREN [20:20]
-        /// Auto baud rate enable
-        ABREN: u1 = 0,
-        /// ABRMOD [21:22]
-        /// Auto baud rate mode
-        ABRMOD: u2 = 0,
-        /// RTOEN [23:23]
-        /// Receiver timeout enable
-        RTOEN: u1 = 0,
-        /// ADD0 [24:27]
-        /// Address of the USART node
-        ADD0: u4 = 0,
-        /// ADD4 [28:31]
-        /// Address of the USART node
-        ADD4: u4 = 0,
-    };
-    /// Control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-    /// CR3
-    const CR3_val = packed struct {
-        /// EIE [0:0]
-        /// Error interrupt enable
-        EIE: u1 = 0,
-        /// IREN [1:1]
-        /// IrDA mode enable
-        IREN: u1 = 0,
-        /// IRLP [2:2]
-        /// IrDA low-power
-        IRLP: u1 = 0,
-        /// HDSEL [3:3]
-        /// Half-duplex selection
-        HDSEL: u1 = 0,
-        /// NACK [4:4]
-        /// Smartcard NACK enable
-        NACK: u1 = 0,
-        /// SCEN [5:5]
-        /// Smartcard mode enable
-        SCEN: u1 = 0,
-        /// DMAR [6:6]
-        /// DMA enable receiver
-        DMAR: u1 = 0,
-        /// DMAT [7:7]
-        /// DMA enable transmitter
-        DMAT: u1 = 0,
-        /// RTSE [8:8]
-        /// RTS enable
-        RTSE: u1 = 0,
-        /// CTSE [9:9]
-        /// CTS enable
-        CTSE: u1 = 0,
-        /// CTSIE [10:10]
-        /// CTS interrupt enable
-        CTSIE: u1 = 0,
-        /// ONEBIT [11:11]
-        /// One sample bit method
-        ONEBIT: u1 = 0,
-        /// OVRDIS [12:12]
-        /// Overrun Disable
-        OVRDIS: u1 = 0,
-        /// DDRE [13:13]
-        /// DMA Disable on Reception
-        DDRE: u1 = 0,
-        /// DEM [14:14]
-        /// Driver enable mode
-        DEM: u1 = 0,
-        /// DEP [15:15]
-        /// Driver enable polarity
-        DEP: u1 = 0,
-        /// unused [16:16]
-        _unused16: u1 = 0,
-        /// SCARCNT [17:19]
-        /// Smartcard auto-retry count
-        SCARCNT: u3 = 0,
-        /// WUS [20:21]
-        /// Wakeup from Stop mode interrupt flag
-        WUS: u2 = 0,
-        /// WUFIE [22:22]
-        /// Wakeup from Stop mode interrupt
-        WUFIE: u1 = 0,
-        /// unused [23:31]
-        _unused23: u1 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Control register 3
-    pub const CR3 = Register(CR3_val).init(base_address + 0x8);
-
-    /// BRR
-    const BRR_val = packed struct {
-        /// DIV_Fraction [0:3]
-        /// fraction of USARTDIV
-        DIV_Fraction: u4 = 0,
-        /// DIV_Mantissa [4:15]
-        /// mantissa of USARTDIV
-        DIV_Mantissa: u12 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Baud rate register
-    pub const BRR = Register(BRR_val).init(base_address + 0xc);
-
-    /// GTPR
-    const GTPR_val = packed struct {
-        /// PSC [0:7]
-        /// Prescaler value
-        PSC: u8 = 0,
-        /// GT [8:15]
-        /// Guard time value
-        GT: u8 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Guard time and prescaler
-    pub const GTPR = Register(GTPR_val).init(base_address + 0x10);
-
-    /// RTOR
-    const RTOR_val = packed struct {
-        /// RTO [0:23]
-        /// Receiver timeout value
-        RTO: u24 = 0,
-        /// BLEN [24:31]
-        /// Block Length
-        BLEN: u8 = 0,
-    };
-    /// Receiver timeout register
-    pub const RTOR = Register(RTOR_val).init(base_address + 0x14);
-
-    /// RQR
-    const RQR_val = packed struct {
-        /// ABRRQ [0:0]
-        /// Auto baud rate request
-        ABRRQ: u1 = 0,
-        /// SBKRQ [1:1]
-        /// Send break request
-        SBKRQ: u1 = 0,
-        /// MMRQ [2:2]
-        /// Mute mode request
-        MMRQ: u1 = 0,
-        /// RXFRQ [3:3]
-        /// Receive data flush request
-        RXFRQ: u1 = 0,
-        /// TXFRQ [4:4]
-        /// Transmit data flush
-        TXFRQ: u1 = 0,
-        /// unused [5:31]
-        _unused5: u3 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Request register
-    pub const RQR = Register(RQR_val).init(base_address + 0x18);
-
-    /// ISR
-    const ISR_val = packed struct {
-        /// PE [0:0]
-        /// Parity error
-        PE: u1 = 0,
-        /// FE [1:1]
-        /// Framing error
-        FE: u1 = 0,
-        /// NF [2:2]
-        /// Noise detected flag
-        NF: u1 = 0,
-        /// ORE [3:3]
-        /// Overrun error
-        ORE: u1 = 0,
-        /// IDLE [4:4]
-        /// Idle line detected
-        IDLE: u1 = 0,
-        /// RXNE [5:5]
-        /// Read data register not
-        RXNE: u1 = 0,
-        /// TC [6:6]
-        /// Transmission complete
-        TC: u1 = 1,
-        /// TXE [7:7]
-        /// Transmit data register
-        TXE: u1 = 1,
-        /// LBDF [8:8]
-        /// LIN break detection flag
-        LBDF: u1 = 0,
-        /// CTSIF [9:9]
-        /// CTS interrupt flag
-        CTSIF: u1 = 0,
-        /// CTS [10:10]
-        /// CTS flag
-        CTS: u1 = 0,
-        /// RTOF [11:11]
-        /// Receiver timeout
-        RTOF: u1 = 0,
-        /// EOBF [12:12]
-        /// End of block flag
-        EOBF: u1 = 0,
-        /// unused [13:13]
-        _unused13: u1 = 0,
-        /// ABRE [14:14]
-        /// Auto baud rate error
-        ABRE: u1 = 0,
-        /// ABRF [15:15]
-        /// Auto baud rate flag
-        ABRF: u1 = 0,
-        /// BUSY [16:16]
-        /// Busy flag
-        BUSY: u1 = 0,
-        /// CMF [17:17]
-        /// character match flag
-        CMF: u1 = 0,
-        /// SBKF [18:18]
-        /// Send break flag
-        SBKF: u1 = 0,
-        /// RWU [19:19]
-        /// Receiver wakeup from Mute
-        RWU: u1 = 0,
-        /// WUF [20:20]
-        /// Wakeup from Stop mode flag
-        WUF: u1 = 0,
-        /// TEACK [21:21]
-        /// Transmit enable acknowledge
-        TEACK: u1 = 0,
-        /// REACK [22:22]
-        /// Receive enable acknowledge
-        REACK: u1 = 0,
-        /// unused [23:31]
-        _unused23: u1 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Interrupt &amp; status
-    pub const ISR = Register(ISR_val).init(base_address + 0x1c);
-
-    /// ICR
-    const ICR_val = packed struct {
-        /// PECF [0:0]
-        /// Parity error clear flag
-        PECF: u1 = 0,
-        /// FECF [1:1]
-        /// Framing error clear flag
-        FECF: u1 = 0,
-        /// NCF [2:2]
-        /// Noise detected clear flag
-        NCF: u1 = 0,
-        /// ORECF [3:3]
-        /// Overrun error clear flag
-        ORECF: u1 = 0,
-        /// IDLECF [4:4]
-        /// Idle line detected clear
-        IDLECF: u1 = 0,
-        /// unused [5:5]
-        _unused5: u1 = 0,
-        /// TCCF [6:6]
-        /// Transmission complete clear
-        TCCF: u1 = 0,
-        /// unused [7:7]
-        _unused7: u1 = 0,
-        /// LBDCF [8:8]
-        /// LIN break detection clear
-        LBDCF: u1 = 0,
-        /// CTSCF [9:9]
-        /// CTS clear flag
-        CTSCF: u1 = 0,
-        /// unused [10:10]
-        _unused10: u1 = 0,
-        /// RTOCF [11:11]
-        /// Receiver timeout clear
-        RTOCF: u1 = 0,
-        /// EOBCF [12:12]
-        /// End of timeout clear flag
-        EOBCF: u1 = 0,
-        /// unused [13:16]
-        _unused13: u3 = 0,
-        _unused16: u1 = 0,
-        /// CMCF [17:17]
-        /// Character match clear flag
-        CMCF: u1 = 0,
-        /// unused [18:19]
-        _unused18: u2 = 0,
-        /// WUCF [20:20]
-        /// Wakeup from Stop mode clear
-        WUCF: u1 = 0,
-        /// unused [21:31]
-        _unused21: u3 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Interrupt flag clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x20);
-
-    /// RDR
-    const RDR_val = packed struct {
-        /// RDR [0:8]
-        /// Receive data value
-        RDR: u9 = 0,
-        /// unused [9:31]
-        _unused9: u7 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Receive data register
-    pub const RDR = Register(RDR_val).init(base_address + 0x24);
-
-    /// TDR
-    const TDR_val = packed struct {
-        /// TDR [0:8]
-        /// Transmit data value
-        TDR: u9 = 0,
-        /// unused [9:31]
-        _unused9: u7 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Transmit data register
-    pub const TDR = Register(TDR_val).init(base_address + 0x28);
-};
-
-/// Universal synchronous asynchronous receiver
-pub const USART4 = struct {
-    const base_address = 0x40004c00;
-    /// CR1
-    const CR1_val = packed struct {
-        /// UE [0:0]
-        /// USART enable
-        UE: u1 = 0,
-        /// UESM [1:1]
-        /// USART enable in Stop mode
-        UESM: u1 = 0,
-        /// RE [2:2]
-        /// Receiver enable
-        RE: u1 = 0,
-        /// TE [3:3]
-        /// Transmitter enable
-        TE: u1 = 0,
-        /// IDLEIE [4:4]
-        /// IDLE interrupt enable
-        IDLEIE: u1 = 0,
-        /// RXNEIE [5:5]
-        /// RXNE interrupt enable
-        RXNEIE: u1 = 0,
-        /// TCIE [6:6]
-        /// Transmission complete interrupt
-        TCIE: u1 = 0,
-        /// TXEIE [7:7]
-        /// interrupt enable
-        TXEIE: u1 = 0,
-        /// PEIE [8:8]
-        /// PE interrupt enable
-        PEIE: u1 = 0,
-        /// PS [9:9]
-        /// Parity selection
-        PS: u1 = 0,
-        /// PCE [10:10]
-        /// Parity control enable
-        PCE: u1 = 0,
-        /// WAKE [11:11]
-        /// Receiver wakeup method
-        WAKE: u1 = 0,
-        /// M [12:12]
-        /// Word length
-        M: u1 = 0,
-        /// MME [13:13]
-        /// Mute mode enable
-        MME: u1 = 0,
-        /// CMIE [14:14]
-        /// Character match interrupt
-        CMIE: u1 = 0,
-        /// OVER8 [15:15]
-        /// Oversampling mode
-        OVER8: u1 = 0,
-        /// DEDT [16:20]
-        /// Driver Enable deassertion
-        DEDT: u5 = 0,
-        /// DEAT [21:25]
-        /// Driver Enable assertion
-        DEAT: u5 = 0,
-        /// RTOIE [26:26]
-        /// Receiver timeout interrupt
-        RTOIE: u1 = 0,
-        /// EOBIE [27:27]
-        /// End of Block interrupt
-        EOBIE: u1 = 0,
-        /// M1 [28:28]
-        /// Word length
-        M1: u1 = 0,
-        /// unused [29:31]
-        _unused29: u3 = 0,
-    };
-    /// Control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-    /// CR2
-    const CR2_val = packed struct {
-        /// unused [0:3]
-        _unused0: u4 = 0,
-        /// ADDM7 [4:4]
-        /// 7-bit Address Detection/4-bit Address
-        ADDM7: u1 = 0,
-        /// LBDL [5:5]
-        /// LIN break detection length
-        LBDL: u1 = 0,
-        /// LBDIE [6:6]
-        /// LIN break detection interrupt
-        LBDIE: u1 = 0,
-        /// unused [7:7]
-        _unused7: u1 = 0,
-        /// LBCL [8:8]
-        /// Last bit clock pulse
-        LBCL: u1 = 0,
-        /// CPHA [9:9]
-        /// Clock phase
-        CPHA: u1 = 0,
-        /// CPOL [10:10]
-        /// Clock polarity
-        CPOL: u1 = 0,
-        /// CLKEN [11:11]
-        /// Clock enable
-        CLKEN: u1 = 0,
-        /// STOP [12:13]
-        /// STOP bits
-        STOP: u2 = 0,
-        /// LINEN [14:14]
-        /// LIN mode enable
-        LINEN: u1 = 0,
-        /// SWAP [15:15]
-        /// Swap TX/RX pins
-        SWAP: u1 = 0,
-        /// RXINV [16:16]
-        /// RX pin active level
-        RXINV: u1 = 0,
-        /// TXINV [17:17]
-        /// TX pin active level
-        TXINV: u1 = 0,
-        /// DATAINV [18:18]
-        /// Binary data inversion
-        DATAINV: u1 = 0,
-        /// MSBFIRST [19:19]
-        /// Most significant bit first
-        MSBFIRST: u1 = 0,
-        /// ABREN [20:20]
-        /// Auto baud rate enable
-        ABREN: u1 = 0,
-        /// ABRMOD [21:22]
-        /// Auto baud rate mode
-        ABRMOD: u2 = 0,
-        /// RTOEN [23:23]
-        /// Receiver timeout enable
-        RTOEN: u1 = 0,
-        /// ADD0 [24:27]
-        /// Address of the USART node
-        ADD0: u4 = 0,
-        /// ADD4 [28:31]
-        /// Address of the USART node
-        ADD4: u4 = 0,
-    };
-    /// Control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-    /// CR3
-    const CR3_val = packed struct {
-        /// EIE [0:0]
-        /// Error interrupt enable
-        EIE: u1 = 0,
-        /// IREN [1:1]
-        /// IrDA mode enable
-        IREN: u1 = 0,
-        /// IRLP [2:2]
-        /// IrDA low-power
-        IRLP: u1 = 0,
-        /// HDSEL [3:3]
-        /// Half-duplex selection
-        HDSEL: u1 = 0,
-        /// NACK [4:4]
-        /// Smartcard NACK enable
-        NACK: u1 = 0,
-        /// SCEN [5:5]
-        /// Smartcard mode enable
-        SCEN: u1 = 0,
-        /// DMAR [6:6]
-        /// DMA enable receiver
-        DMAR: u1 = 0,
-        /// DMAT [7:7]
-        /// DMA enable transmitter
-        DMAT: u1 = 0,
-        /// RTSE [8:8]
-        /// RTS enable
-        RTSE: u1 = 0,
-        /// CTSE [9:9]
-        /// CTS enable
-        CTSE: u1 = 0,
-        /// CTSIE [10:10]
-        /// CTS interrupt enable
-        CTSIE: u1 = 0,
-        /// ONEBIT [11:11]
-        /// One sample bit method
-        ONEBIT: u1 = 0,
-        /// OVRDIS [12:12]
-        /// Overrun Disable
-        OVRDIS: u1 = 0,
-        /// DDRE [13:13]
-        /// DMA Disable on Reception
-        DDRE: u1 = 0,
-        /// DEM [14:14]
-        /// Driver enable mode
-        DEM: u1 = 0,
-        /// DEP [15:15]
-        /// Driver enable polarity
-        DEP: u1 = 0,
-        /// unused [16:16]
-        _unused16: u1 = 0,
-        /// SCARCNT [17:19]
-        /// Smartcard auto-retry count
-        SCARCNT: u3 = 0,
-        /// WUS [20:21]
-        /// Wakeup from Stop mode interrupt flag
-        WUS: u2 = 0,
-        /// WUFIE [22:22]
-        /// Wakeup from Stop mode interrupt
-        WUFIE: u1 = 0,
-        /// unused [23:31]
-        _unused23: u1 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Control register 3
-    pub const CR3 = Register(CR3_val).init(base_address + 0x8);
-
-    /// BRR
-    const BRR_val = packed struct {
-        /// DIV_Fraction [0:3]
-        /// fraction of USARTDIV
-        DIV_Fraction: u4 = 0,
-        /// DIV_Mantissa [4:15]
-        /// mantissa of USARTDIV
-        DIV_Mantissa: u12 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Baud rate register
-    pub const BRR = Register(BRR_val).init(base_address + 0xc);
-
-    /// GTPR
-    const GTPR_val = packed struct {
-        /// PSC [0:7]
-        /// Prescaler value
-        PSC: u8 = 0,
-        /// GT [8:15]
-        /// Guard time value
-        GT: u8 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Guard time and prescaler
-    pub const GTPR = Register(GTPR_val).init(base_address + 0x10);
-
-    /// RTOR
-    const RTOR_val = packed struct {
-        /// RTO [0:23]
-        /// Receiver timeout value
-        RTO: u24 = 0,
-        /// BLEN [24:31]
-        /// Block Length
-        BLEN: u8 = 0,
-    };
-    /// Receiver timeout register
-    pub const RTOR = Register(RTOR_val).init(base_address + 0x14);
-
-    /// RQR
-    const RQR_val = packed struct {
-        /// ABRRQ [0:0]
-        /// Auto baud rate request
-        ABRRQ: u1 = 0,
-        /// SBKRQ [1:1]
-        /// Send break request
-        SBKRQ: u1 = 0,
-        /// MMRQ [2:2]
-        /// Mute mode request
-        MMRQ: u1 = 0,
-        /// RXFRQ [3:3]
-        /// Receive data flush request
-        RXFRQ: u1 = 0,
-        /// TXFRQ [4:4]
-        /// Transmit data flush
-        TXFRQ: u1 = 0,
-        /// unused [5:31]
-        _unused5: u3 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Request register
-    pub const RQR = Register(RQR_val).init(base_address + 0x18);
-
-    /// ISR
-    const ISR_val = packed struct {
-        /// PE [0:0]
-        /// Parity error
-        PE: u1 = 0,
-        /// FE [1:1]
-        /// Framing error
-        FE: u1 = 0,
-        /// NF [2:2]
-        /// Noise detected flag
-        NF: u1 = 0,
-        /// ORE [3:3]
-        /// Overrun error
-        ORE: u1 = 0,
-        /// IDLE [4:4]
-        /// Idle line detected
-        IDLE: u1 = 0,
-        /// RXNE [5:5]
-        /// Read data register not
-        RXNE: u1 = 0,
-        /// TC [6:6]
-        /// Transmission complete
-        TC: u1 = 1,
-        /// TXE [7:7]
-        /// Transmit data register
-        TXE: u1 = 1,
-        /// LBDF [8:8]
-        /// LIN break detection flag
-        LBDF: u1 = 0,
-        /// CTSIF [9:9]
-        /// CTS interrupt flag
-        CTSIF: u1 = 0,
-        /// CTS [10:10]
-        /// CTS flag
-        CTS: u1 = 0,
-        /// RTOF [11:11]
-        /// Receiver timeout
-        RTOF: u1 = 0,
-        /// EOBF [12:12]
-        /// End of block flag
-        EOBF: u1 = 0,
-        /// unused [13:13]
-        _unused13: u1 = 0,
-        /// ABRE [14:14]
-        /// Auto baud rate error
-        ABRE: u1 = 0,
-        /// ABRF [15:15]
-        /// Auto baud rate flag
-        ABRF: u1 = 0,
-        /// BUSY [16:16]
-        /// Busy flag
-        BUSY: u1 = 0,
-        /// CMF [17:17]
-        /// character match flag
-        CMF: u1 = 0,
-        /// SBKF [18:18]
-        /// Send break flag
-        SBKF: u1 = 0,
-        /// RWU [19:19]
-        /// Receiver wakeup from Mute
-        RWU: u1 = 0,
-        /// WUF [20:20]
-        /// Wakeup from Stop mode flag
-        WUF: u1 = 0,
-        /// TEACK [21:21]
-        /// Transmit enable acknowledge
-        TEACK: u1 = 0,
-        /// REACK [22:22]
-        /// Receive enable acknowledge
-        REACK: u1 = 0,
-        /// unused [23:31]
-        _unused23: u1 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Interrupt &amp; status
-    pub const ISR = Register(ISR_val).init(base_address + 0x1c);
-
-    /// ICR
-    const ICR_val = packed struct {
-        /// PECF [0:0]
-        /// Parity error clear flag
-        PECF: u1 = 0,
-        /// FECF [1:1]
-        /// Framing error clear flag
-        FECF: u1 = 0,
-        /// NCF [2:2]
-        /// Noise detected clear flag
-        NCF: u1 = 0,
-        /// ORECF [3:3]
-        /// Overrun error clear flag
-        ORECF: u1 = 0,
-        /// IDLECF [4:4]
-        /// Idle line detected clear
-        IDLECF: u1 = 0,
-        /// unused [5:5]
-        _unused5: u1 = 0,
-        /// TCCF [6:6]
-        /// Transmission complete clear
-        TCCF: u1 = 0,
-        /// unused [7:7]
-        _unused7: u1 = 0,
-        /// LBDCF [8:8]
-        /// LIN break detection clear
-        LBDCF: u1 = 0,
-        /// CTSCF [9:9]
-        /// CTS clear flag
-        CTSCF: u1 = 0,
-        /// unused [10:10]
-        _unused10: u1 = 0,
-        /// RTOCF [11:11]
-        /// Receiver timeout clear
-        RTOCF: u1 = 0,
-        /// EOBCF [12:12]
-        /// End of timeout clear flag
-        EOBCF: u1 = 0,
-        /// unused [13:16]
-        _unused13: u3 = 0,
-        _unused16: u1 = 0,
-        /// CMCF [17:17]
-        /// Character match clear flag
-        CMCF: u1 = 0,
-        /// unused [18:19]
-        _unused18: u2 = 0,
-        /// WUCF [20:20]
-        /// Wakeup from Stop mode clear
-        WUCF: u1 = 0,
-        /// unused [21:31]
-        _unused21: u3 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Interrupt flag clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x20);
-
-    /// RDR
-    const RDR_val = packed struct {
-        /// RDR [0:8]
-        /// Receive data value
-        RDR: u9 = 0,
-        /// unused [9:31]
-        _unused9: u7 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Receive data register
-    pub const RDR = Register(RDR_val).init(base_address + 0x24);
-
-    /// TDR
-    const TDR_val = packed struct {
-        /// TDR [0:8]
-        /// Transmit data value
-        TDR: u9 = 0,
-        /// unused [9:31]
-        _unused9: u7 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Transmit data register
-    pub const TDR = Register(TDR_val).init(base_address + 0x28);
+    pub const TDR = Register(TDR_val, u32).init(base_address + 0x28);
 };
 
 /// Comparator
@@ -11851,7 +10762,7 @@ pub const COMP = struct {
         COMP2LOCK: u1 = 0,
     };
     /// control and status register
-    pub const CSR = Register(CSR_val).init(base_address + 0x0);
+    pub const CSR = Register(CSR_val, u32).init(base_address + 0x0);
 };
 
 /// Real-time clock
@@ -11889,7 +10800,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// time register
-    pub const TR = Register(TR_val).init(base_address + 0x0);
+    pub const TR = Register(TR_val, u32).init(base_address + 0x0);
 
     /// DR
     const DR_val = packed struct {
@@ -11920,7 +10831,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// date register
-    pub const DR = Register(DR_val).init(base_address + 0x4);
+    pub const DR = Register(DR_val, u32).init(base_address + 0x4);
 
     /// CR
     const CR_val = packed struct {
@@ -11981,7 +10892,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// control register
-    pub const CR = Register(CR_val).init(base_address + 0x8);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x8);
 
     /// ISR
     const ISR_val = packed struct {
@@ -12032,7 +10943,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// initialization and status
-    pub const ISR = Register(ISR_val).init(base_address + 0xc);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0xc);
 
     /// PRER
     const PRER_val = packed struct {
@@ -12049,7 +10960,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// prescaler register
-    pub const PRER = Register(PRER_val).init(base_address + 0x10);
+    pub const PRER = Register(PRER_val, u32).init(base_address + 0x10);
 
     /// ALRMAR
     const ALRMAR_val = packed struct {
@@ -12097,7 +11008,7 @@ pub const RTC = struct {
         MSK4: u1 = 0,
     };
     /// alarm A register
-    pub const ALRMAR = Register(ALRMAR_val).init(base_address + 0x1c);
+    pub const ALRMAR = Register(ALRMAR_val, u32).init(base_address + 0x1c);
 
     /// WPR
     const WPR_val = packed struct {
@@ -12110,7 +11021,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// write protection register
-    pub const WPR = Register(WPR_val).init(base_address + 0x24);
+    pub const WPR = Register(WPR_val, u32).init(base_address + 0x24);
 
     /// SSR
     const SSR_val = packed struct {
@@ -12122,7 +11033,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// sub second register
-    pub const SSR = Register(SSR_val).init(base_address + 0x28);
+    pub const SSR = Register(SSR_val, u32).init(base_address + 0x28);
 
     /// SHIFTR
     const SHIFTR_val = packed struct {
@@ -12138,7 +11049,7 @@ pub const RTC = struct {
         ADD1S: u1 = 0,
     };
     /// shift control register
-    pub const SHIFTR = Register(SHIFTR_val).init(base_address + 0x2c);
+    pub const SHIFTR = Register(SHIFTR_val, u32).init(base_address + 0x2c);
 
     /// TSTR
     const TSTR_val = packed struct {
@@ -12172,7 +11083,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// timestamp time register
-    pub const TSTR = Register(TSTR_val).init(base_address + 0x30);
+    pub const TSTR = Register(TSTR_val, u32).init(base_address + 0x30);
 
     /// TSDR
     const TSDR_val = packed struct {
@@ -12198,7 +11109,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// timestamp date register
-    pub const TSDR = Register(TSDR_val).init(base_address + 0x34);
+    pub const TSDR = Register(TSDR_val, u32).init(base_address + 0x34);
 
     /// TSSSR
     const TSSSR_val = packed struct {
@@ -12210,7 +11121,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// time-stamp sub second register
-    pub const TSSSR = Register(TSSSR_val).init(base_address + 0x38);
+    pub const TSSSR = Register(TSSSR_val, u32).init(base_address + 0x38);
 
     /// CALR
     const CALR_val = packed struct {
@@ -12233,7 +11144,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// calibration register
-    pub const CALR = Register(CALR_val).init(base_address + 0x3c);
+    pub const CALR = Register(CALR_val, u32).init(base_address + 0x3c);
 
     /// TAFCR
     const TAFCR_val = packed struct {
@@ -12293,7 +11204,7 @@ pub const RTC = struct {
         _unused24: u8 = 0,
     };
     /// tamper and alternate function configuration
-    pub const TAFCR = Register(TAFCR_val).init(base_address + 0x40);
+    pub const TAFCR = Register(TAFCR_val, u32).init(base_address + 0x40);
 
     /// ALRMASSR
     const ALRMASSR_val = packed struct {
@@ -12310,7 +11221,7 @@ pub const RTC = struct {
         _unused28: u4 = 0,
     };
     /// alarm A sub second register
-    pub const ALRMASSR = Register(ALRMASSR_val).init(base_address + 0x44);
+    pub const ALRMASSR = Register(ALRMASSR_val, u32).init(base_address + 0x44);
 
     /// BKP0R
     const BKP0R_val = packed struct {
@@ -12319,7 +11230,7 @@ pub const RTC = struct {
         BKP: u32 = 0,
     };
     /// backup register
-    pub const BKP0R = Register(BKP0R_val).init(base_address + 0x50);
+    pub const BKP0R = Register(BKP0R_val, u32).init(base_address + 0x50);
 
     /// BKP1R
     const BKP1R_val = packed struct {
@@ -12328,7 +11239,7 @@ pub const RTC = struct {
         BKP: u32 = 0,
     };
     /// backup register
-    pub const BKP1R = Register(BKP1R_val).init(base_address + 0x54);
+    pub const BKP1R = Register(BKP1R_val, u32).init(base_address + 0x54);
 
     /// BKP2R
     const BKP2R_val = packed struct {
@@ -12337,7 +11248,7 @@ pub const RTC = struct {
         BKP: u32 = 0,
     };
     /// backup register
-    pub const BKP2R = Register(BKP2R_val).init(base_address + 0x58);
+    pub const BKP2R = Register(BKP2R_val, u32).init(base_address + 0x58);
 
     /// BKP3R
     const BKP3R_val = packed struct {
@@ -12346,7 +11257,7 @@ pub const RTC = struct {
         BKP: u32 = 0,
     };
     /// backup register
-    pub const BKP3R = Register(BKP3R_val).init(base_address + 0x5c);
+    pub const BKP3R = Register(BKP3R_val, u32).init(base_address + 0x5c);
 
     /// BKP4R
     const BKP4R_val = packed struct {
@@ -12355,7 +11266,7 @@ pub const RTC = struct {
         BKP: u32 = 0,
     };
     /// backup register
-    pub const BKP4R = Register(BKP4R_val).init(base_address + 0x60);
+    pub const BKP4R = Register(BKP4R_val, u32).init(base_address + 0x60);
 };
 
 /// General-purpose-timers
@@ -12389,7 +11300,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -12424,7 +11335,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// SMCR
     const SMCR_val = packed struct {
@@ -12445,7 +11356,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// slave mode control register
-    pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
+    pub const SMCR = Register(SMCR_val, u32).init(base_address + 0x8);
 
     /// DIER
     const DIER_val = packed struct {
@@ -12489,7 +11400,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -12527,7 +11438,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -12557,7 +11468,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -12593,7 +11504,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -12620,7 +11531,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCER
     const CCER_val = packed struct {
@@ -12653,7 +11564,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -12665,7 +11576,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -12677,7 +11588,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -12689,7 +11600,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// RCR
     const RCR_val = packed struct {
@@ -12702,7 +11613,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// repetition counter register
-    pub const RCR = Register(RCR_val).init(base_address + 0x30);
+    pub const RCR = Register(RCR_val, u32).init(base_address + 0x30);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -12714,7 +11625,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// CCR2
     const CCR2_val = packed struct {
@@ -12726,7 +11637,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 2
-    pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
+    pub const CCR2 = Register(CCR2_val, u32).init(base_address + 0x38);
 
     /// BDTR
     const BDTR_val = packed struct {
@@ -12759,7 +11670,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// break and dead-time register
-    pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
+    pub const BDTR = Register(BDTR_val, u32).init(base_address + 0x44);
 
     /// DCR
     const DCR_val = packed struct {
@@ -12777,7 +11688,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// DMA control register
-    pub const DCR = Register(DCR_val).init(base_address + 0x48);
+    pub const DCR = Register(DCR_val, u32).init(base_address + 0x48);
 
     /// DMAR
     const DMAR_val = packed struct {
@@ -12789,7 +11700,7 @@ pub const TIM15 = struct {
         _unused24: u8 = 0,
     };
     /// DMA address for full transfer
-    pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
+    pub const DMAR = Register(DMAR_val, u32).init(base_address + 0x4c);
 };
 
 /// General-purpose-timers
@@ -12823,7 +11734,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -12852,7 +11763,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// DIER
     const DIER_val = packed struct {
@@ -12890,7 +11801,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -12922,7 +11833,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -12949,7 +11860,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -12972,7 +11883,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -12991,7 +11902,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCER
     const CCER_val = packed struct {
@@ -13014,7 +11925,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -13026,7 +11937,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -13038,7 +11949,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -13050,7 +11961,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// RCR
     const RCR_val = packed struct {
@@ -13063,7 +11974,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// repetition counter register
-    pub const RCR = Register(RCR_val).init(base_address + 0x30);
+    pub const RCR = Register(RCR_val, u32).init(base_address + 0x30);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -13075,7 +11986,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// BDTR
     const BDTR_val = packed struct {
@@ -13108,7 +12019,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// break and dead-time register
-    pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
+    pub const BDTR = Register(BDTR_val, u32).init(base_address + 0x44);
 
     /// DCR
     const DCR_val = packed struct {
@@ -13126,7 +12037,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// DMA control register
-    pub const DCR = Register(DCR_val).init(base_address + 0x48);
+    pub const DCR = Register(DCR_val, u32).init(base_address + 0x48);
 
     /// DMAR
     const DMAR_val = packed struct {
@@ -13138,7 +12049,7 @@ pub const TIM16 = struct {
         _unused24: u8 = 0,
     };
     /// DMA address for full transfer
-    pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
+    pub const DMAR = Register(DMAR_val, u32).init(base_address + 0x4c);
 };
 
 /// General-purpose-timers
@@ -13172,7 +12083,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// control register 1
-    pub const CR1 = Register(CR1_val).init(base_address + 0x0);
+    pub const CR1 = Register(CR1_val, u32).init(base_address + 0x0);
 
     /// CR2
     const CR2_val = packed struct {
@@ -13201,7 +12112,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// control register 2
-    pub const CR2 = Register(CR2_val).init(base_address + 0x4);
+    pub const CR2 = Register(CR2_val, u32).init(base_address + 0x4);
 
     /// DIER
     const DIER_val = packed struct {
@@ -13239,7 +12150,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// DMA/Interrupt enable register
-    pub const DIER = Register(DIER_val).init(base_address + 0xc);
+    pub const DIER = Register(DIER_val, u32).init(base_address + 0xc);
 
     /// SR
     const SR_val = packed struct {
@@ -13271,7 +12182,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// status register
-    pub const SR = Register(SR_val).init(base_address + 0x10);
+    pub const SR = Register(SR_val, u32).init(base_address + 0x10);
 
     /// EGR
     const EGR_val = packed struct {
@@ -13298,7 +12209,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// event generation register
-    pub const EGR = Register(EGR_val).init(base_address + 0x14);
+    pub const EGR = Register(EGR_val, u32).init(base_address + 0x14);
 
     /// CCMR1_Output
     const CCMR1_Output_val = packed struct {
@@ -13321,7 +12232,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register (output
-    pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
+    pub const CCMR1_Output = Register(CCMR1_Output_val, u32).init(base_address + 0x18);
 
     /// CCMR1_Input
     const CCMR1_Input_val = packed struct {
@@ -13340,7 +12251,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare mode register 1 (input
-    pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
+    pub const CCMR1_Input = Register(CCMR1_Input_val, u32).init(base_address + 0x18);
 
     /// CCER
     const CCER_val = packed struct {
@@ -13363,7 +12274,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare enable
-    pub const CCER = Register(CCER_val).init(base_address + 0x20);
+    pub const CCER = Register(CCER_val, u32).init(base_address + 0x20);
 
     /// CNT
     const CNT_val = packed struct {
@@ -13375,7 +12286,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// counter
-    pub const CNT = Register(CNT_val).init(base_address + 0x24);
+    pub const CNT = Register(CNT_val, u32).init(base_address + 0x24);
 
     /// PSC
     const PSC_val = packed struct {
@@ -13387,7 +12298,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// prescaler
-    pub const PSC = Register(PSC_val).init(base_address + 0x28);
+    pub const PSC = Register(PSC_val, u32).init(base_address + 0x28);
 
     /// ARR
     const ARR_val = packed struct {
@@ -13399,7 +12310,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// auto-reload register
-    pub const ARR = Register(ARR_val).init(base_address + 0x2c);
+    pub const ARR = Register(ARR_val, u32).init(base_address + 0x2c);
 
     /// RCR
     const RCR_val = packed struct {
@@ -13412,7 +12323,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// repetition counter register
-    pub const RCR = Register(RCR_val).init(base_address + 0x30);
+    pub const RCR = Register(RCR_val, u32).init(base_address + 0x30);
 
     /// CCR1
     const CCR1_val = packed struct {
@@ -13424,7 +12335,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// capture/compare register 1
-    pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
+    pub const CCR1 = Register(CCR1_val, u32).init(base_address + 0x34);
 
     /// BDTR
     const BDTR_val = packed struct {
@@ -13457,7 +12368,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// break and dead-time register
-    pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
+    pub const BDTR = Register(BDTR_val, u32).init(base_address + 0x44);
 
     /// DCR
     const DCR_val = packed struct {
@@ -13475,7 +12386,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// DMA control register
-    pub const DCR = Register(DCR_val).init(base_address + 0x48);
+    pub const DCR = Register(DCR_val, u32).init(base_address + 0x48);
 
     /// DMAR
     const DMAR_val = packed struct {
@@ -13487,7 +12398,7 @@ pub const TIM17 = struct {
         _unused24: u8 = 0,
     };
     /// DMA address for full transfer
-    pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
+    pub const DMAR = Register(DMAR_val, u32).init(base_address + 0x4c);
 };
 
 /// Touch sensing controller
@@ -13535,7 +12446,7 @@ pub const TSC = struct {
         CTPH: u4 = 0,
     };
     /// control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x0);
 
     /// IER
     const IER_val = packed struct {
@@ -13552,7 +12463,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// interrupt enable register
-    pub const IER = Register(IER_val).init(base_address + 0x4);
+    pub const IER = Register(IER_val, u32).init(base_address + 0x4);
 
     /// ICR
     const ICR_val = packed struct {
@@ -13569,7 +12480,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// interrupt clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0x8);
+    pub const ICR = Register(ICR_val, u32).init(base_address + 0x8);
 
     /// ISR
     const ISR_val = packed struct {
@@ -13586,7 +12497,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// interrupt status register
-    pub const ISR = Register(ISR_val).init(base_address + 0xc);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0xc);
 
     /// IOHCR
     const IOHCR_val = packed struct {
@@ -13666,7 +12577,7 @@ pub const TSC = struct {
         _unused24: u8 = 255,
     };
     /// I/O hysteresis control
-    pub const IOHCR = Register(IOHCR_val).init(base_address + 0x10);
+    pub const IOHCR = Register(IOHCR_val, u32).init(base_address + 0x10);
 
     /// IOASCR
     const IOASCR_val = packed struct {
@@ -13746,7 +12657,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O analog switch control
-    pub const IOASCR = Register(IOASCR_val).init(base_address + 0x18);
+    pub const IOASCR = Register(IOASCR_val, u32).init(base_address + 0x18);
 
     /// IOSCR
     const IOSCR_val = packed struct {
@@ -13826,7 +12737,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O sampling control register
-    pub const IOSCR = Register(IOSCR_val).init(base_address + 0x20);
+    pub const IOSCR = Register(IOSCR_val, u32).init(base_address + 0x20);
 
     /// IOCCR
     const IOCCR_val = packed struct {
@@ -13906,7 +12817,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O channel control register
-    pub const IOCCR = Register(IOCCR_val).init(base_address + 0x28);
+    pub const IOCCR = Register(IOCCR_val, u32).init(base_address + 0x28);
 
     /// IOGCSR
     const IOGCSR_val = packed struct {
@@ -13964,7 +12875,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group control status
-    pub const IOGCSR = Register(IOGCSR_val).init(base_address + 0x30);
+    pub const IOGCSR = Register(IOGCSR_val, u32).init(base_address + 0x30);
 
     /// IOG1CR
     const IOG1CR_val = packed struct {
@@ -13977,7 +12888,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group x counter register
-    pub const IOG1CR = Register(IOG1CR_val).init(base_address + 0x34);
+    pub const IOG1CR = Register(IOG1CR_val, u32).init(base_address + 0x34);
 
     /// IOG2CR
     const IOG2CR_val = packed struct {
@@ -13990,7 +12901,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group x counter register
-    pub const IOG2CR = Register(IOG2CR_val).init(base_address + 0x38);
+    pub const IOG2CR = Register(IOG2CR_val, u32).init(base_address + 0x38);
 
     /// IOG3CR
     const IOG3CR_val = packed struct {
@@ -14003,7 +12914,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group x counter register
-    pub const IOG3CR = Register(IOG3CR_val).init(base_address + 0x3c);
+    pub const IOG3CR = Register(IOG3CR_val, u32).init(base_address + 0x3c);
 
     /// IOG4CR
     const IOG4CR_val = packed struct {
@@ -14016,7 +12927,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group x counter register
-    pub const IOG4CR = Register(IOG4CR_val).init(base_address + 0x40);
+    pub const IOG4CR = Register(IOG4CR_val, u32).init(base_address + 0x40);
 
     /// IOG5CR
     const IOG5CR_val = packed struct {
@@ -14029,7 +12940,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group x counter register
-    pub const IOG5CR = Register(IOG5CR_val).init(base_address + 0x44);
+    pub const IOG5CR = Register(IOG5CR_val, u32).init(base_address + 0x44);
 
     /// IOG6CR
     const IOG6CR_val = packed struct {
@@ -14042,7 +12953,7 @@ pub const TSC = struct {
         _unused24: u8 = 0,
     };
     /// I/O group x counter register
-    pub const IOG6CR = Register(IOG6CR_val).init(base_address + 0x48);
+    pub const IOG6CR = Register(IOG6CR_val, u32).init(base_address + 0x48);
 };
 
 /// HDMI-CEC controller
@@ -14066,7 +12977,7 @@ pub const CEC = struct {
         _unused24: u8 = 0,
     };
     /// control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x0);
 
     /// CFGR
     const CFGR_val = packed struct {
@@ -14097,7 +13008,7 @@ pub const CEC = struct {
         _unused24: u8 = 0,
     };
     /// configuration register
-    pub const CFGR = Register(CFGR_val).init(base_address + 0x4);
+    pub const CFGR = Register(CFGR_val, u32).init(base_address + 0x4);
 
     /// TXDR
     const TXDR_val = packed struct {
@@ -14110,7 +13021,7 @@ pub const CEC = struct {
         _unused24: u8 = 0,
     };
     /// Tx data register
-    pub const TXDR = Register(TXDR_val).init(base_address + 0x8);
+    pub const TXDR = Register(TXDR_val, u32).init(base_address + 0x8);
 
     /// RXDR
     const RXDR_val = packed struct {
@@ -14123,7 +13034,7 @@ pub const CEC = struct {
         _unused24: u8 = 0,
     };
     /// Rx Data Register
-    pub const RXDR = Register(RXDR_val).init(base_address + 0xc);
+    pub const RXDR = Register(RXDR_val, u32).init(base_address + 0xc);
 
     /// ISR
     const ISR_val = packed struct {
@@ -14172,7 +13083,7 @@ pub const CEC = struct {
         _unused24: u8 = 0,
     };
     /// Interrupt and Status Register
-    pub const ISR = Register(ISR_val).init(base_address + 0x10);
+    pub const ISR = Register(ISR_val, u32).init(base_address + 0x10);
 
     /// IER
     const IER_val = packed struct {
@@ -14221,7 +13132,7 @@ pub const CEC = struct {
         _unused24: u8 = 0,
     };
     /// interrupt enable register
-    pub const IER = Register(IER_val).init(base_address + 0x14);
+    pub const IER = Register(IER_val, u32).init(base_address + 0x14);
 };
 
 /// Flash
@@ -14247,7 +13158,7 @@ pub const Flash = struct {
         _unused24: u8 = 0,
     };
     /// Flash access control register
-    pub const ACR = Register(ACR_val).init(base_address + 0x0);
+    pub const ACR = Register(ACR_val, u32).init(base_address + 0x0);
 
     /// KEYR
     const KEYR_val = packed struct {
@@ -14256,7 +13167,7 @@ pub const Flash = struct {
         FKEYR: u32 = 0,
     };
     /// Flash key register
-    pub const KEYR = Register(KEYR_val).init(base_address + 0x4);
+    pub const KEYR = Register(KEYR_val, u32).init(base_address + 0x4);
 
     /// OPTKEYR
     const OPTKEYR_val = packed struct {
@@ -14265,7 +13176,7 @@ pub const Flash = struct {
         OPTKEYR: u32 = 0,
     };
     /// Flash option key register
-    pub const OPTKEYR = Register(OPTKEYR_val).init(base_address + 0x8);
+    pub const OPTKEYR = Register(OPTKEYR_val, u32).init(base_address + 0x8);
 
     /// SR
     const SR_val = packed struct {
@@ -14292,7 +13203,7 @@ pub const Flash = struct {
         _unused24: u8 = 0,
     };
     /// Flash status register
-    pub const SR = Register(SR_val).init(base_address + 0xc);
+    pub const SR = Register(SR_val, u32).init(base_address + 0xc);
 
     /// CR
     const CR_val = packed struct {
@@ -14341,7 +13252,7 @@ pub const Flash = struct {
         _unused24: u8 = 0,
     };
     /// Flash control register
-    pub const CR = Register(CR_val).init(base_address + 0x10);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x10);
 
     /// AR
     const AR_val = packed struct {
@@ -14350,7 +13261,7 @@ pub const Flash = struct {
         FAR: u32 = 0,
     };
     /// Flash address register
-    pub const AR = Register(AR_val).init(base_address + 0x14);
+    pub const AR = Register(AR_val, u32).init(base_address + 0x14);
 
     /// OBR
     const OBR_val = packed struct {
@@ -14392,16 +13303,19 @@ pub const Flash = struct {
         Data1: u8 = 3,
     };
     /// Option byte register
-    pub const OBR = Register(OBR_val).init(base_address + 0x1c);
+    pub const OBR = Register(OBR_val, u32).init(base_address + 0x1c);
 
     /// WRPR
     const WRPR_val = packed struct {
-        /// WRP [0:31]
+        /// WRP [0:15]
         /// Write protect
-        WRP: u32 = 4294967295,
+        WRP: u16 = 65535,
+        /// unused [16:31]
+        _unused16: u8 = 255,
+        _unused24: u8 = 255,
     };
     /// Write protection register
-    pub const WRPR = Register(WRPR_val).init(base_address + 0x20);
+    pub const WRPR = Register(WRPR_val, u32).init(base_address + 0x20);
 };
 
 /// Debug support
@@ -14420,7 +13334,7 @@ pub const DBGMCU = struct {
         REV_ID: u16 = 0,
     };
     /// MCU Device ID Code Register
-    pub const IDCODE = Register(IDCODE_val).init(base_address + 0x0);
+    pub const IDCODE = Register(IDCODE_val, u32).init(base_address + 0x0);
 
     /// CR
     const CR_val = packed struct {
@@ -14439,7 +13353,7 @@ pub const DBGMCU = struct {
         _unused24: u8 = 0,
     };
     /// Debug MCU Configuration
-    pub const CR = Register(CR_val).init(base_address + 0x4);
+    pub const CR = Register(CR_val, u32).init(base_address + 0x4);
 
     /// APBLFZ
     const APBLFZ_val = packed struct {
@@ -14481,7 +13395,7 @@ pub const DBGMCU = struct {
         _unused24: u8 = 0,
     };
     /// APB Low Freeze Register
-    pub const APBLFZ = Register(APBLFZ_val).init(base_address + 0x8);
+    pub const APBLFZ = Register(APBLFZ_val, u32).init(base_address + 0x8);
 
     /// APBHFZ
     const APBHFZ_val = packed struct {
@@ -14507,7462 +13421,7 @@ pub const DBGMCU = struct {
         _unused24: u8 = 0,
     };
     /// APB High Freeze Register
-    pub const APBHFZ = Register(APBHFZ_val).init(base_address + 0xc);
-};
-
-/// Universal serial bus full-speed device
-pub const USB = struct {
-    const base_address = 0x40005c00;
-    /// EP0R
-    const EP0R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 0 register
-    pub const EP0R = Register(EP0R_val).init(base_address + 0x0);
-
-    /// EP1R
-    const EP1R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 1 register
-    pub const EP1R = Register(EP1R_val).init(base_address + 0x4);
-
-    /// EP2R
-    const EP2R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 2 register
-    pub const EP2R = Register(EP2R_val).init(base_address + 0x8);
-
-    /// EP3R
-    const EP3R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 3 register
-    pub const EP3R = Register(EP3R_val).init(base_address + 0xc);
-
-    /// EP4R
-    const EP4R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 4 register
-    pub const EP4R = Register(EP4R_val).init(base_address + 0x10);
-
-    /// EP5R
-    const EP5R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 5 register
-    pub const EP5R = Register(EP5R_val).init(base_address + 0x14);
-
-    /// EP6R
-    const EP6R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 6 register
-    pub const EP6R = Register(EP6R_val).init(base_address + 0x18);
-
-    /// EP7R
-    const EP7R_val = packed struct {
-        /// EA [0:3]
-        /// Endpoint address
-        EA: u4 = 0,
-        /// STAT_TX [4:5]
-        /// Status bits, for transmission
-        STAT_TX: u2 = 0,
-        /// DTOG_TX [6:6]
-        /// Data Toggle, for transmission
-        DTOG_TX: u1 = 0,
-        /// CTR_TX [7:7]
-        /// Correct Transfer for
-        CTR_TX: u1 = 0,
-        /// EP_KIND [8:8]
-        /// Endpoint kind
-        EP_KIND: u1 = 0,
-        /// EP_TYPE [9:10]
-        /// Endpoint type
-        EP_TYPE: u2 = 0,
-        /// SETUP [11:11]
-        /// Setup transaction
-        SETUP: u1 = 0,
-        /// STAT_RX [12:13]
-        /// Status bits, for reception
-        STAT_RX: u2 = 0,
-        /// DTOG_RX [14:14]
-        /// Data Toggle, for reception
-        DTOG_RX: u1 = 0,
-        /// CTR_RX [15:15]
-        /// Correct transfer for
-        CTR_RX: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// endpoint 7 register
-    pub const EP7R = Register(EP7R_val).init(base_address + 0x1c);
-
-    /// CNTR
-    const CNTR_val = packed struct {
-        /// FRES [0:0]
-        /// Force USB Reset
-        FRES: u1 = 1,
-        /// PDWN [1:1]
-        /// Power down
-        PDWN: u1 = 1,
-        /// LPMODE [2:2]
-        /// Low-power mode
-        LPMODE: u1 = 0,
-        /// FSUSP [3:3]
-        /// Force suspend
-        FSUSP: u1 = 0,
-        /// RESUME [4:4]
-        /// Resume request
-        RESUME: u1 = 0,
-        /// L1RESUME [5:5]
-        /// LPM L1 Resume request
-        L1RESUME: u1 = 0,
-        /// unused [6:6]
-        _unused6: u1 = 0,
-        /// L1REQM [7:7]
-        /// LPM L1 state request interrupt
-        L1REQM: u1 = 0,
-        /// ESOFM [8:8]
-        /// Expected start of frame interrupt
-        ESOFM: u1 = 0,
-        /// SOFM [9:9]
-        /// Start of frame interrupt
-        SOFM: u1 = 0,
-        /// RESETM [10:10]
-        /// USB reset interrupt mask
-        RESETM: u1 = 0,
-        /// SUSPM [11:11]
-        /// Suspend mode interrupt
-        SUSPM: u1 = 0,
-        /// WKUPM [12:12]
-        /// Wakeup interrupt mask
-        WKUPM: u1 = 0,
-        /// ERRM [13:13]
-        /// Error interrupt mask
-        ERRM: u1 = 0,
-        /// PMAOVRM [14:14]
-        /// Packet memory area over / underrun
-        PMAOVRM: u1 = 0,
-        /// CTRM [15:15]
-        /// Correct transfer interrupt
-        CTRM: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// control register
-    pub const CNTR = Register(CNTR_val).init(base_address + 0x40);
-
-    /// ISTR
-    const ISTR_val = packed struct {
-        /// EP_ID [0:3]
-        /// Endpoint Identifier
-        EP_ID: u4 = 0,
-        /// DIR [4:4]
-        /// Direction of transaction
-        DIR: u1 = 0,
-        /// unused [5:6]
-        _unused5: u2 = 0,
-        /// L1REQ [7:7]
-        /// LPM L1 state request
-        L1REQ: u1 = 0,
-        /// ESOF [8:8]
-        /// Expected start frame
-        ESOF: u1 = 0,
-        /// SOF [9:9]
-        /// start of frame
-        SOF: u1 = 0,
-        /// RESET [10:10]
-        /// reset request
-        RESET: u1 = 0,
-        /// SUSP [11:11]
-        /// Suspend mode request
-        SUSP: u1 = 0,
-        /// WKUP [12:12]
-        /// Wakeup
-        WKUP: u1 = 0,
-        /// ERR [13:13]
-        /// Error
-        ERR: u1 = 0,
-        /// PMAOVR [14:14]
-        /// Packet memory area over /
-        PMAOVR: u1 = 0,
-        /// CTR [15:15]
-        /// Correct transfer
-        CTR: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// interrupt status register
-    pub const ISTR = Register(ISTR_val).init(base_address + 0x44);
-
-    /// FNR
-    const FNR_val = packed struct {
-        /// FN [0:10]
-        /// Frame number
-        FN: u11 = 0,
-        /// LSOF [11:12]
-        /// Lost SOF
-        LSOF: u2 = 0,
-        /// LCK [13:13]
-        /// Locked
-        LCK: u1 = 0,
-        /// RXDM [14:14]
-        /// Receive data - line status
-        RXDM: u1 = 0,
-        /// RXDP [15:15]
-        /// Receive data + line status
-        RXDP: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// frame number register
-    pub const FNR = Register(FNR_val).init(base_address + 0x48);
-
-    /// DADDR
-    const DADDR_val = packed struct {
-        /// ADD [0:6]
-        /// Device address
-        ADD: u7 = 0,
-        /// EF [7:7]
-        /// Enable function
-        EF: u1 = 0,
-        /// unused [8:31]
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// device address
-    pub const DADDR = Register(DADDR_val).init(base_address + 0x4c);
-
-    /// BTABLE
-    const BTABLE_val = packed struct {
-        /// unused [0:2]
-        _unused0: u3 = 0,
-        /// BTABLE [3:15]
-        /// Buffer table
-        BTABLE: u13 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Buffer table address
-    pub const BTABLE = Register(BTABLE_val).init(base_address + 0x50);
-
-    /// LPMCSR
-    const LPMCSR_val = packed struct {
-        /// LPMEN [0:0]
-        /// LPM support enable
-        LPMEN: u1 = 0,
-        /// LPMACK [1:1]
-        /// LPM Token acknowledge
-        LPMACK: u1 = 0,
-        /// unused [2:2]
-        _unused2: u1 = 0,
-        /// REMWAKE [3:3]
-        /// bRemoteWake value
-        REMWAKE: u1 = 0,
-        /// BESL [4:7]
-        /// BESL value
-        BESL: u4 = 0,
-        /// unused [8:31]
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// LPM control and status
-    pub const LPMCSR = Register(LPMCSR_val).init(base_address + 0x54);
-
-    /// BCDR
-    const BCDR_val = packed struct {
-        /// BCDEN [0:0]
-        /// Battery charging detector (BCD)
-        BCDEN: u1 = 0,
-        /// DCDEN [1:1]
-        /// Data contact detection (DCD) mode
-        DCDEN: u1 = 0,
-        /// PDEN [2:2]
-        /// Primary detection (PD) mode
-        PDEN: u1 = 0,
-        /// SDEN [3:3]
-        /// Secondary detection (SD) mode
-        SDEN: u1 = 0,
-        /// DCDET [4:4]
-        /// Data contact detection (DCD)
-        DCDET: u1 = 0,
-        /// PDET [5:5]
-        /// Primary detection (PD)
-        PDET: u1 = 0,
-        /// SDET [6:6]
-        /// Secondary detection (SD)
-        SDET: u1 = 0,
-        /// PS2DET [7:7]
-        /// DM pull-up detection
-        PS2DET: u1 = 0,
-        /// unused [8:14]
-        _unused8: u7 = 0,
-        /// DPPU [15:15]
-        /// DP pull-up control
-        DPPU: u1 = 0,
-        /// unused [16:31]
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// Battery charging detector
-    pub const BCDR = Register(BCDR_val).init(base_address + 0x58);
-};
-
-/// Clock recovery system
-pub const CRS = struct {
-    const base_address = 0x40006c00;
-    /// CR
-    const CR_val = packed struct {
-        /// SYNCOKIE [0:0]
-        /// SYNC event OK interrupt
-        SYNCOKIE: u1 = 0,
-        /// SYNCWARNIE [1:1]
-        /// SYNC warning interrupt
-        SYNCWARNIE: u1 = 0,
-        /// ERRIE [2:2]
-        /// Synchronization or trimming error
-        ERRIE: u1 = 0,
-        /// ESYNCIE [3:3]
-        /// Expected SYNC interrupt
-        ESYNCIE: u1 = 0,
-        /// unused [4:4]
-        _unused4: u1 = 0,
-        /// CEN [5:5]
-        /// Frequency error counter
-        CEN: u1 = 0,
-        /// AUTOTRIMEN [6:6]
-        /// Automatic trimming enable
-        AUTOTRIMEN: u1 = 0,
-        /// SWSYNC [7:7]
-        /// Generate software SYNC
-        SWSYNC: u1 = 0,
-        /// TRIM [8:13]
-        /// HSI48 oscillator smooth
-        TRIM: u6 = 32,
-        /// unused [14:31]
-        _unused14: u2 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// control register
-    pub const CR = Register(CR_val).init(base_address + 0x0);
-
-    /// CFGR
-    const CFGR_val = packed struct {
-        /// RELOAD [0:15]
-        /// Counter reload value
-        RELOAD: u16 = 47999,
-        /// FELIM [16:23]
-        /// Frequency error limit
-        FELIM: u8 = 34,
-        /// SYNCDIV [24:26]
-        /// SYNC divider
-        SYNCDIV: u3 = 0,
-        /// unused [27:27]
-        _unused27: u1 = 0,
-        /// SYNCSRC [28:29]
-        /// SYNC signal source
-        SYNCSRC: u2 = 2,
-        /// unused [30:30]
-        _unused30: u1 = 0,
-        /// SYNCPOL [31:31]
-        /// SYNC polarity selection
-        SYNCPOL: u1 = 0,
-    };
-    /// configuration register
-    pub const CFGR = Register(CFGR_val).init(base_address + 0x4);
-
-    /// ISR
-    const ISR_val = packed struct {
-        /// SYNCOKF [0:0]
-        /// SYNC event OK flag
-        SYNCOKF: u1 = 0,
-        /// SYNCWARNF [1:1]
-        /// SYNC warning flag
-        SYNCWARNF: u1 = 0,
-        /// ERRF [2:2]
-        /// Error flag
-        ERRF: u1 = 0,
-        /// ESYNCF [3:3]
-        /// Expected SYNC flag
-        ESYNCF: u1 = 0,
-        /// unused [4:7]
-        _unused4: u4 = 0,
-        /// SYNCERR [8:8]
-        /// SYNC error
-        SYNCERR: u1 = 0,
-        /// SYNCMISS [9:9]
-        /// SYNC missed
-        SYNCMISS: u1 = 0,
-        /// TRIMOVF [10:10]
-        /// Trimming overflow or
-        TRIMOVF: u1 = 0,
-        /// unused [11:14]
-        _unused11: u4 = 0,
-        /// FEDIR [15:15]
-        /// Frequency error direction
-        FEDIR: u1 = 0,
-        /// FECAP [16:31]
-        /// Frequency error capture
-        FECAP: u16 = 0,
-    };
-    /// interrupt and status register
-    pub const ISR = Register(ISR_val).init(base_address + 0x8);
-
-    /// ICR
-    const ICR_val = packed struct {
-        /// SYNCOKC [0:0]
-        /// SYNC event OK clear flag
-        SYNCOKC: u1 = 0,
-        /// SYNCWARNC [1:1]
-        /// SYNC warning clear flag
-        SYNCWARNC: u1 = 0,
-        /// ERRC [2:2]
-        /// Error clear flag
-        ERRC: u1 = 0,
-        /// ESYNCC [3:3]
-        /// Expected SYNC clear flag
-        ESYNCC: u1 = 0,
-        /// unused [4:31]
-        _unused4: u4 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// interrupt flag clear register
-    pub const ICR = Register(ICR_val).init(base_address + 0xc);
-};
-
-/// Controller area network
-pub const CAN = struct {
-    const base_address = 0x40006400;
-    /// CAN_MCR
-    const CAN_MCR_val = packed struct {
-        /// INRQ [0:0]
-        /// INRQ
-        INRQ: u1 = 0,
-        /// SLEEP [1:1]
-        /// SLEEP
-        SLEEP: u1 = 0,
-        /// TXFP [2:2]
-        /// TXFP
-        TXFP: u1 = 0,
-        /// RFLM [3:3]
-        /// RFLM
-        RFLM: u1 = 0,
-        /// NART [4:4]
-        /// NART
-        NART: u1 = 0,
-        /// AWUM [5:5]
-        /// AWUM
-        AWUM: u1 = 0,
-        /// ABOM [6:6]
-        /// ABOM
-        ABOM: u1 = 0,
-        /// TTCM [7:7]
-        /// TTCM
-        TTCM: u1 = 0,
-        /// unused [8:14]
-        _unused8: u7 = 0,
-        /// RESET [15:15]
-        /// RESET
-        RESET: u1 = 0,
-        /// DBF [16:16]
-        /// DBF
-        DBF: u1 = 0,
-        /// unused [17:31]
-        _unused17: u7 = 0,
-        _unused24: u8 = 0,
-    };
-    /// CAN_MCR
-    pub const CAN_MCR = Register(CAN_MCR_val).init(base_address + 0x0);
-
-    /// CAN_MSR
-    const CAN_MSR_val = packed struct {
-        /// INAK [0:0]
-        /// INAK
-        INAK: u1 = 0,
-        /// SLAK [1:1]
-        /// SLAK
-        SLAK: u1 = 0,
-        /// ERRI [2:2]
-        /// ERRI
-        ERRI: u1 = 0,
-        /// WKUI [3:3]
-        /// WKUI
-        WKUI: u1 = 0,
-        /// SLAKI [4:4]
-        /// SLAKI
-        SLAKI: u1 = 0,
-        /// unused [5:7]
-        _unused5: u3 = 0,
-        /// TXM [8:8]
-        /// TXM
-        TXM: u1 = 0,
-        /// RXM [9:9]
-        /// RXM
-        RXM: u1 = 0,
-        /// SAMP [10:10]
-        /// SAMP
-        SAMP: u1 = 0,
-        /// RX [11:11]
-        /// RX
-        RX: u1 = 0,
-        /// unused [12:31]
-        _unused12: u4 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// CAN_MSR
-    pub const CAN_MSR = Register(CAN_MSR_val).init(base_address + 0x4);
-
-    /// CAN_TSR
-    const CAN_TSR_val = packed struct {
-        /// RQCP0 [0:0]
-        /// RQCP0
-        RQCP0: u1 = 0,
-        /// TXOK0 [1:1]
-        /// TXOK0
-        TXOK0: u1 = 0,
-        /// ALST0 [2:2]
-        /// ALST0
-        ALST0: u1 = 0,
-        /// TERR0 [3:3]
-        /// TERR0
-        TERR0: u1 = 0,
-        /// unused [4:6]
-        _unused4: u3 = 0,
-        /// ABRQ0 [7:7]
-        /// ABRQ0
-        ABRQ0: u1 = 0,
-        /// RQCP1 [8:8]
-        /// RQCP1
-        RQCP1: u1 = 0,
-        /// TXOK1 [9:9]
-        /// TXOK1
-        TXOK1: u1 = 0,
-        /// ALST1 [10:10]
-        /// ALST1
-        ALST1: u1 = 0,
-        /// TERR1 [11:11]
-        /// TERR1
-        TERR1: u1 = 0,
-        /// unused [12:14]
-        _unused12: u3 = 0,
-        /// ABRQ1 [15:15]
-        /// ABRQ1
-        ABRQ1: u1 = 0,
-        /// RQCP2 [16:16]
-        /// RQCP2
-        RQCP2: u1 = 0,
-        /// TXOK2 [17:17]
-        /// TXOK2
-        TXOK2: u1 = 0,
-        /// ALST2 [18:18]
-        /// ALST2
-        ALST2: u1 = 0,
-        /// TERR2 [19:19]
-        /// TERR2
-        TERR2: u1 = 0,
-        /// unused [20:22]
-        _unused20: u3 = 0,
-        /// ABRQ2 [23:23]
-        /// ABRQ2
-        ABRQ2: u1 = 0,
-        /// CODE [24:25]
-        /// CODE
-        CODE: u2 = 0,
-        /// TME0 [26:26]
-        /// Lowest priority flag for mailbox
-        TME0: u1 = 0,
-        /// TME1 [27:27]
-        /// Lowest priority flag for mailbox
-        TME1: u1 = 0,
-        /// TME2 [28:28]
-        /// Lowest priority flag for mailbox
-        TME2: u1 = 0,
-        /// LOW0 [29:29]
-        /// Lowest priority flag for mailbox
-        LOW0: u1 = 0,
-        /// LOW1 [30:30]
-        /// Lowest priority flag for mailbox
-        LOW1: u1 = 0,
-        /// LOW2 [31:31]
-        /// Lowest priority flag for mailbox
-        LOW2: u1 = 0,
-    };
-    /// CAN_TSR
-    pub const CAN_TSR = Register(CAN_TSR_val).init(base_address + 0x8);
-
-    /// CAN_RF0R
-    const CAN_RF0R_val = packed struct {
-        /// FMP0 [0:1]
-        /// FMP0
-        FMP0: u2 = 0,
-        /// unused [2:2]
-        _unused2: u1 = 0,
-        /// FULL0 [3:3]
-        /// FULL0
-        FULL0: u1 = 0,
-        /// FOVR0 [4:4]
-        /// FOVR0
-        FOVR0: u1 = 0,
-        /// RFOM0 [5:5]
-        /// RFOM0
-        RFOM0: u1 = 0,
-        /// unused [6:31]
-        _unused6: u2 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// CAN_RF0R
-    pub const CAN_RF0R = Register(CAN_RF0R_val).init(base_address + 0xc);
-
-    /// CAN_RF1R
-    const CAN_RF1R_val = packed struct {
-        /// FMP1 [0:1]
-        /// FMP1
-        FMP1: u2 = 0,
-        /// unused [2:2]
-        _unused2: u1 = 0,
-        /// FULL1 [3:3]
-        /// FULL1
-        FULL1: u1 = 0,
-        /// FOVR1 [4:4]
-        /// FOVR1
-        FOVR1: u1 = 0,
-        /// RFOM1 [5:5]
-        /// RFOM1
-        RFOM1: u1 = 0,
-        /// unused [6:31]
-        _unused6: u2 = 0,
-        _unused8: u8 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// CAN_RF1R
-    pub const CAN_RF1R = Register(CAN_RF1R_val).init(base_address + 0x10);
-
-    /// CAN_IER
-    const CAN_IER_val = packed struct {
-        /// TMEIE [0:0]
-        /// TMEIE
-        TMEIE: u1 = 0,
-        /// FMPIE0 [1:1]
-        /// FMPIE0
-        FMPIE0: u1 = 0,
-        /// FFIE0 [2:2]
-        /// FFIE0
-        FFIE0: u1 = 0,
-        /// FOVIE0 [3:3]
-        /// FOVIE0
-        FOVIE0: u1 = 0,
-        /// FMPIE1 [4:4]
-        /// FMPIE1
-        FMPIE1: u1 = 0,
-        /// FFIE1 [5:5]
-        /// FFIE1
-        FFIE1: u1 = 0,
-        /// FOVIE1 [6:6]
-        /// FOVIE1
-        FOVIE1: u1 = 0,
-        /// unused [7:7]
-        _unused7: u1 = 0,
-        /// EWGIE [8:8]
-        /// EWGIE
-        EWGIE: u1 = 0,
-        /// EPVIE [9:9]
-        /// EPVIE
-        EPVIE: u1 = 0,
-        /// BOFIE [10:10]
-        /// BOFIE
-        BOFIE: u1 = 0,
-        /// LECIE [11:11]
-        /// LECIE
-        LECIE: u1 = 0,
-        /// unused [12:14]
-        _unused12: u3 = 0,
-        /// ERRIE [15:15]
-        /// ERRIE
-        ERRIE: u1 = 0,
-        /// WKUIE [16:16]
-        /// WKUIE
-        WKUIE: u1 = 0,
-        /// SLKIE [17:17]
-        /// SLKIE
-        SLKIE: u1 = 0,
-        /// unused [18:31]
-        _unused18: u6 = 0,
-        _unused24: u8 = 0,
-    };
-    /// CAN_IER
-    pub const CAN_IER = Register(CAN_IER_val).init(base_address + 0x14);
-
-    /// CAN_ESR
-    const CAN_ESR_val = packed struct {
-        /// EWGF [0:0]
-        /// EWGF
-        EWGF: u1 = 0,
-        /// EPVF [1:1]
-        /// EPVF
-        EPVF: u1 = 0,
-        /// BOFF [2:2]
-        /// BOFF
-        BOFF: u1 = 0,
-        /// unused [3:3]
-        _unused3: u1 = 0,
-        /// LEC [4:6]
-        /// LEC
-        LEC: u3 = 0,
-        /// unused [7:15]
-        _unused7: u1 = 0,
-        _unused8: u8 = 0,
-        /// TEC [16:23]
-        /// TEC
-        TEC: u8 = 0,
-        /// REC [24:31]
-        /// REC
-        REC: u8 = 0,
-    };
-    /// CAN_ESR
-    pub const CAN_ESR = Register(CAN_ESR_val).init(base_address + 0x18);
-
-    /// CAN_BTR
-    const CAN_BTR_val = packed struct {
-        /// BRP [0:9]
-        /// BRP
-        BRP: u10 = 0,
-        /// unused [10:15]
-        _unused10: u6 = 0,
-        /// TS1 [16:19]
-        /// TS1
-        TS1: u4 = 0,
-        /// TS2 [20:22]
-        /// TS2
-        TS2: u3 = 0,
-        /// unused [23:23]
-        _unused23: u1 = 0,
-        /// SJW [24:25]
-        /// SJW
-        SJW: u2 = 0,
-        /// unused [26:29]
-        _unused26: u4 = 0,
-        /// LBKM [30:30]
-        /// LBKM
-        LBKM: u1 = 0,
-        /// SILM [31:31]
-        /// SILM
-        SILM: u1 = 0,
-    };
-    /// CAN_BTR
-    pub const CAN_BTR = Register(CAN_BTR_val).init(base_address + 0x1c);
-
-    /// CAN_TI0R
-    const CAN_TI0R_val = packed struct {
-        /// TXRQ [0:0]
-        /// TXRQ
-        TXRQ: u1 = 0,
-        /// RTR [1:1]
-        /// RTR
-        RTR: u1 = 0,
-        /// IDE [2:2]
-        /// IDE
-        IDE: u1 = 0,
-        /// EXID [3:20]
-        /// EXID
-        EXID: u18 = 0,
-        /// STID [21:31]
-        /// STID
-        STID: u11 = 0,
-    };
-    /// CAN_TI0R
-    pub const CAN_TI0R = Register(CAN_TI0R_val).init(base_address + 0x180);
-
-    /// CAN_TDT0R
-    const CAN_TDT0R_val = packed struct {
-        /// DLC [0:3]
-        /// DLC
-        DLC: u4 = 0,
-        /// unused [4:7]
-        _unused4: u4 = 0,
-        /// TGT [8:8]
-        /// TGT
-        TGT: u1 = 0,
-        /// unused [9:15]
-        _unused9: u7 = 0,
-        /// TIME [16:31]
-        /// TIME
-        TIME: u16 = 0,
-    };
-    /// CAN_TDT0R
-    pub const CAN_TDT0R = Register(CAN_TDT0R_val).init(base_address + 0x184);
-
-    /// CAN_TDL0R
-    const CAN_TDL0R_val = packed struct {
-        /// DATA0 [0:7]
-        /// DATA0
-        DATA0: u8 = 0,
-        /// DATA1 [8:15]
-        /// DATA1
-        DATA1: u8 = 0,
-        /// DATA2 [16:23]
-        /// DATA2
-        DATA2: u8 = 0,
-        /// DATA3 [24:31]
-        /// DATA3
-        DATA3: u8 = 0,
-    };
-    /// CAN_TDL0R
-    pub const CAN_TDL0R = Register(CAN_TDL0R_val).init(base_address + 0x188);
-
-    /// CAN_TDH0R
-    const CAN_TDH0R_val = packed struct {
-        /// DATA4 [0:7]
-        /// DATA4
-        DATA4: u8 = 0,
-        /// DATA5 [8:15]
-        /// DATA5
-        DATA5: u8 = 0,
-        /// DATA6 [16:23]
-        /// DATA6
-        DATA6: u8 = 0,
-        /// DATA7 [24:31]
-        /// DATA7
-        DATA7: u8 = 0,
-    };
-    /// CAN_TDH0R
-    pub const CAN_TDH0R = Register(CAN_TDH0R_val).init(base_address + 0x18c);
-
-    /// CAN_TI1R
-    const CAN_TI1R_val = packed struct {
-        /// TXRQ [0:0]
-        /// TXRQ
-        TXRQ: u1 = 0,
-        /// RTR [1:1]
-        /// RTR
-        RTR: u1 = 0,
-        /// IDE [2:2]
-        /// IDE
-        IDE: u1 = 0,
-        /// EXID [3:20]
-        /// EXID
-        EXID: u18 = 0,
-        /// STID [21:31]
-        /// STID
-        STID: u11 = 0,
-    };
-    /// CAN_TI1R
-    pub const CAN_TI1R = Register(CAN_TI1R_val).init(base_address + 0x190);
-
-    /// CAN_TDT1R
-    const CAN_TDT1R_val = packed struct {
-        /// DLC [0:3]
-        /// DLC
-        DLC: u4 = 0,
-        /// unused [4:7]
-        _unused4: u4 = 0,
-        /// TGT [8:8]
-        /// TGT
-        TGT: u1 = 0,
-        /// unused [9:15]
-        _unused9: u7 = 0,
-        /// TIME [16:31]
-        /// TIME
-        TIME: u16 = 0,
-    };
-    /// CAN_TDT1R
-    pub const CAN_TDT1R = Register(CAN_TDT1R_val).init(base_address + 0x194);
-
-    /// CAN_TDL1R
-    const CAN_TDL1R_val = packed struct {
-        /// DATA0 [0:7]
-        /// DATA0
-        DATA0: u8 = 0,
-        /// DATA1 [8:15]
-        /// DATA1
-        DATA1: u8 = 0,
-        /// DATA2 [16:23]
-        /// DATA2
-        DATA2: u8 = 0,
-        /// DATA3 [24:31]
-        /// DATA3
-        DATA3: u8 = 0,
-    };
-    /// CAN_TDL1R
-    pub const CAN_TDL1R = Register(CAN_TDL1R_val).init(base_address + 0x198);
-
-    /// CAN_TDH1R
-    const CAN_TDH1R_val = packed struct {
-        /// DATA4 [0:7]
-        /// DATA4
-        DATA4: u8 = 0,
-        /// DATA5 [8:15]
-        /// DATA5
-        DATA5: u8 = 0,
-        /// DATA6 [16:23]
-        /// DATA6
-        DATA6: u8 = 0,
-        /// DATA7 [24:31]
-        /// DATA7
-        DATA7: u8 = 0,
-    };
-    /// CAN_TDH1R
-    pub const CAN_TDH1R = Register(CAN_TDH1R_val).init(base_address + 0x19c);
-
-    /// CAN_TI2R
-    const CAN_TI2R_val = packed struct {
-        /// TXRQ [0:0]
-        /// TXRQ
-        TXRQ: u1 = 0,
-        /// RTR [1:1]
-        /// RTR
-        RTR: u1 = 0,
-        /// IDE [2:2]
-        /// IDE
-        IDE: u1 = 0,
-        /// EXID [3:20]
-        /// EXID
-        EXID: u18 = 0,
-        /// STID [21:31]
-        /// STID
-        STID: u11 = 0,
-    };
-    /// CAN_TI2R
-    pub const CAN_TI2R = Register(CAN_TI2R_val).init(base_address + 0x1a0);
-
-    /// CAN_TDT2R
-    const CAN_TDT2R_val = packed struct {
-        /// DLC [0:3]
-        /// DLC
-        DLC: u4 = 0,
-        /// unused [4:7]
-        _unused4: u4 = 0,
-        /// TGT [8:8]
-        /// TGT
-        TGT: u1 = 0,
-        /// unused [9:15]
-        _unused9: u7 = 0,
-        /// TIME [16:31]
-        /// TIME
-        TIME: u16 = 0,
-    };
-    /// CAN_TDT2R
-    pub const CAN_TDT2R = Register(CAN_TDT2R_val).init(base_address + 0x1a4);
-
-    /// CAN_TDL2R
-    const CAN_TDL2R_val = packed struct {
-        /// DATA0 [0:7]
-        /// DATA0
-        DATA0: u8 = 0,
-        /// DATA1 [8:15]
-        /// DATA1
-        DATA1: u8 = 0,
-        /// DATA2 [16:23]
-        /// DATA2
-        DATA2: u8 = 0,
-        /// DATA3 [24:31]
-        /// DATA3
-        DATA3: u8 = 0,
-    };
-    /// CAN_TDL2R
-    pub const CAN_TDL2R = Register(CAN_TDL2R_val).init(base_address + 0x1a8);
-
-    /// CAN_TDH2R
-    const CAN_TDH2R_val = packed struct {
-        /// DATA4 [0:7]
-        /// DATA4
-        DATA4: u8 = 0,
-        /// DATA5 [8:15]
-        /// DATA5
-        DATA5: u8 = 0,
-        /// DATA6 [16:23]
-        /// DATA6
-        DATA6: u8 = 0,
-        /// DATA7 [24:31]
-        /// DATA7
-        DATA7: u8 = 0,
-    };
-    /// CAN_TDH2R
-    pub const CAN_TDH2R = Register(CAN_TDH2R_val).init(base_address + 0x1ac);
-
-    /// CAN_RI0R
-    const CAN_RI0R_val = packed struct {
-        /// unused [0:0]
-        _unused0: u1 = 0,
-        /// RTR [1:1]
-        /// RTR
-        RTR: u1 = 0,
-        /// IDE [2:2]
-        /// IDE
-        IDE: u1 = 0,
-        /// EXID [3:20]
-        /// EXID
-        EXID: u18 = 0,
-        /// STID [21:31]
-        /// STID
-        STID: u11 = 0,
-    };
-    /// CAN_RI0R
-    pub const CAN_RI0R = Register(CAN_RI0R_val).init(base_address + 0x1b0);
-
-    /// CAN_RDT0R
-    const CAN_RDT0R_val = packed struct {
-        /// DLC [0:3]
-        /// DLC
-        DLC: u4 = 0,
-        /// unused [4:7]
-        _unused4: u4 = 0,
-        /// FMI [8:15]
-        /// FMI
-        FMI: u8 = 0,
-        /// TIME [16:31]
-        /// TIME
-        TIME: u16 = 0,
-    };
-    /// CAN_RDT0R
-    pub const CAN_RDT0R = Register(CAN_RDT0R_val).init(base_address + 0x1b4);
-
-    /// CAN_RDL0R
-    const CAN_RDL0R_val = packed struct {
-        /// DATA0 [0:7]
-        /// DATA0
-        DATA0: u8 = 0,
-        /// DATA1 [8:15]
-        /// DATA1
-        DATA1: u8 = 0,
-        /// DATA2 [16:23]
-        /// DATA2
-        DATA2: u8 = 0,
-        /// DATA3 [24:31]
-        /// DATA3
-        DATA3: u8 = 0,
-    };
-    /// CAN_RDL0R
-    pub const CAN_RDL0R = Register(CAN_RDL0R_val).init(base_address + 0x1b8);
-
-    /// CAN_RDH0R
-    const CAN_RDH0R_val = packed struct {
-        /// DATA4 [0:7]
-        /// DATA4
-        DATA4: u8 = 0,
-        /// DATA5 [8:15]
-        /// DATA5
-        DATA5: u8 = 0,
-        /// DATA6 [16:23]
-        /// DATA6
-        DATA6: u8 = 0,
-        /// DATA7 [24:31]
-        /// DATA7
-        DATA7: u8 = 0,
-    };
-    /// CAN_RDH0R
-    pub const CAN_RDH0R = Register(CAN_RDH0R_val).init(base_address + 0x1bc);
-
-    /// CAN_RI1R
-    const CAN_RI1R_val = packed struct {
-        /// unused [0:0]
-        _unused0: u1 = 0,
-        /// RTR [1:1]
-        /// RTR
-        RTR: u1 = 0,
-        /// IDE [2:2]
-        /// IDE
-        IDE: u1 = 0,
-        /// EXID [3:20]
-        /// EXID
-        EXID: u18 = 0,
-        /// STID [21:31]
-        /// STID
-        STID: u11 = 0,
-    };
-    /// CAN_RI1R
-    pub const CAN_RI1R = Register(CAN_RI1R_val).init(base_address + 0x1c0);
-
-    /// CAN_RDT1R
-    const CAN_RDT1R_val = packed struct {
-        /// DLC [0:3]
-        /// DLC
-        DLC: u4 = 0,
-        /// unused [4:7]
-        _unused4: u4 = 0,
-        /// FMI [8:15]
-        /// FMI
-        FMI: u8 = 0,
-        /// TIME [16:31]
-        /// TIME
-        TIME: u16 = 0,
-    };
-    /// CAN_RDT1R
-    pub const CAN_RDT1R = Register(CAN_RDT1R_val).init(base_address + 0x1c4);
-
-    /// CAN_RDL1R
-    const CAN_RDL1R_val = packed struct {
-        /// DATA0 [0:7]
-        /// DATA0
-        DATA0: u8 = 0,
-        /// DATA1 [8:15]
-        /// DATA1
-        DATA1: u8 = 0,
-        /// DATA2 [16:23]
-        /// DATA2
-        DATA2: u8 = 0,
-        /// DATA3 [24:31]
-        /// DATA3
-        DATA3: u8 = 0,
-    };
-    /// CAN_RDL1R
-    pub const CAN_RDL1R = Register(CAN_RDL1R_val).init(base_address + 0x1c8);
-
-    /// CAN_RDH1R
-    const CAN_RDH1R_val = packed struct {
-        /// DATA4 [0:7]
-        /// DATA4
-        DATA4: u8 = 0,
-        /// DATA5 [8:15]
-        /// DATA5
-        DATA5: u8 = 0,
-        /// DATA6 [16:23]
-        /// DATA6
-        DATA6: u8 = 0,
-        /// DATA7 [24:31]
-        /// DATA7
-        DATA7: u8 = 0,
-    };
-    /// CAN_RDH1R
-    pub const CAN_RDH1R = Register(CAN_RDH1R_val).init(base_address + 0x1cc);
-
-    /// CAN_FMR
-    const CAN_FMR_val = packed struct {
-        /// FINIT [0:0]
-        /// FINIT
-        FINIT: u1 = 0,
-        /// unused [1:7]
-        _unused1: u7 = 0,
-        /// CAN2SB [8:13]
-        /// CAN2SB
-        CAN2SB: u6 = 0,
-        /// unused [14:31]
-        _unused14: u2 = 0,
-        _unused16: u8 = 0,
-        _unused24: u8 = 0,
-    };
-    /// CAN_FMR
-    pub const CAN_FMR = Register(CAN_FMR_val).init(base_address + 0x200);
-
-    /// CAN_FM1R
-    const CAN_FM1R_val = packed struct {
-        /// FBM0 [0:0]
-        /// Filter mode
-        FBM0: u1 = 0,
-        /// FBM1 [1:1]
-        /// Filter mode
-        FBM1: u1 = 0,
-        /// FBM2 [2:2]
-        /// Filter mode
-        FBM2: u1 = 0,
-        /// FBM3 [3:3]
-        /// Filter mode
-        FBM3: u1 = 0,
-        /// FBM4 [4:4]
-        /// Filter mode
-        FBM4: u1 = 0,
-        /// FBM5 [5:5]
-        /// Filter mode
-        FBM5: u1 = 0,
-        /// FBM6 [6:6]
-        /// Filter mode
-        FBM6: u1 = 0,
-        /// FBM7 [7:7]
-        /// Filter mode
-        FBM7: u1 = 0,
-        /// FBM8 [8:8]
-        /// Filter mode
-        FBM8: u1 = 0,
-        /// FBM9 [9:9]
-        /// Filter mode
-        FBM9: u1 = 0,
-        /// FBM10 [10:10]
-        /// Filter mode
-        FBM10: u1 = 0,
-        /// FBM11 [11:11]
-        /// Filter mode
-        FBM11: u1 = 0,
-        /// FBM12 [12:12]
-        /// Filter mode
-        FBM12: u1 = 0,
-        /// FBM13 [13:13]
-        /// Filter mode
-        FBM13: u1 = 0,
-        /// FBM14 [14:14]
-        /// Filter mode
-        FBM14: u1 = 0,
-        /// FBM15 [15:15]
-        /// Filter mode
-        FBM15: u1 = 0,
-        /// FBM16 [16:16]
-        /// Filter mode
-        FBM16: u1 = 0,
-        /// FBM17 [17:17]
-        /// Filter mode
-        FBM17: u1 = 0,
-        /// FBM18 [18:18]
-        /// Filter mode
-        FBM18: u1 = 0,
-        /// FBM19 [19:19]
-        /// Filter mode
-        FBM19: u1 = 0,
-        /// FBM20 [20:20]
-        /// Filter mode
-        FBM20: u1 = 0,
-        /// FBM21 [21:21]
-        /// Filter mode
-        FBM21: u1 = 0,
-        /// FBM22 [22:22]
-        /// Filter mode
-        FBM22: u1 = 0,
-        /// FBM23 [23:23]
-        /// Filter mode
-        FBM23: u1 = 0,
-        /// FBM24 [24:24]
-        /// Filter mode
-        FBM24: u1 = 0,
-        /// FBM25 [25:25]
-        /// Filter mode
-        FBM25: u1 = 0,
-        /// FBM26 [26:26]
-        /// Filter mode
-        FBM26: u1 = 0,
-        /// FBM27 [27:27]
-        /// Filter mode
-        FBM27: u1 = 0,
-        /// unused [28:31]
-        _unused28: u4 = 0,
-    };
-    /// CAN_FM1R
-    pub const CAN_FM1R = Register(CAN_FM1R_val).init(base_address + 0x204);
-
-    /// CAN_FS1R
-    const CAN_FS1R_val = packed struct {
-        /// FSC0 [0:0]
-        /// Filter scale configuration
-        FSC0: u1 = 0,
-        /// FSC1 [1:1]
-        /// Filter scale configuration
-        FSC1: u1 = 0,
-        /// FSC2 [2:2]
-        /// Filter scale configuration
-        FSC2: u1 = 0,
-        /// FSC3 [3:3]
-        /// Filter scale configuration
-        FSC3: u1 = 0,
-        /// FSC4 [4:4]
-        /// Filter scale configuration
-        FSC4: u1 = 0,
-        /// FSC5 [5:5]
-        /// Filter scale configuration
-        FSC5: u1 = 0,
-        /// FSC6 [6:6]
-        /// Filter scale configuration
-        FSC6: u1 = 0,
-        /// FSC7 [7:7]
-        /// Filter scale configuration
-        FSC7: u1 = 0,
-        /// FSC8 [8:8]
-        /// Filter scale configuration
-        FSC8: u1 = 0,
-        /// FSC9 [9:9]
-        /// Filter scale configuration
-        FSC9: u1 = 0,
-        /// FSC10 [10:10]
-        /// Filter scale configuration
-        FSC10: u1 = 0,
-        /// FSC11 [11:11]
-        /// Filter scale configuration
-        FSC11: u1 = 0,
-        /// FSC12 [12:12]
-        /// Filter scale configuration
-        FSC12: u1 = 0,
-        /// FSC13 [13:13]
-        /// Filter scale configuration
-        FSC13: u1 = 0,
-        /// FSC14 [14:14]
-        /// Filter scale configuration
-        FSC14: u1 = 0,
-        /// FSC15 [15:15]
-        /// Filter scale configuration
-        FSC15: u1 = 0,
-        /// FSC16 [16:16]
-        /// Filter scale configuration
-        FSC16: u1 = 0,
-        /// FSC17 [17:17]
-        /// Filter scale configuration
-        FSC17: u1 = 0,
-        /// FSC18 [18:18]
-        /// Filter scale configuration
-        FSC18: u1 = 0,
-        /// FSC19 [19:19]
-        /// Filter scale configuration
-        FSC19: u1 = 0,
-        /// FSC20 [20:20]
-        /// Filter scale configuration
-        FSC20: u1 = 0,
-        /// FSC21 [21:21]
-        /// Filter scale configuration
-        FSC21: u1 = 0,
-        /// FSC22 [22:22]
-        /// Filter scale configuration
-        FSC22: u1 = 0,
-        /// FSC23 [23:23]
-        /// Filter scale configuration
-        FSC23: u1 = 0,
-        /// FSC24 [24:24]
-        /// Filter scale configuration
-        FSC24: u1 = 0,
-        /// FSC25 [25:25]
-        /// Filter scale configuration
-        FSC25: u1 = 0,
-        /// FSC26 [26:26]
-        /// Filter scale configuration
-        FSC26: u1 = 0,
-        /// FSC27 [27:27]
-        /// Filter scale configuration
-        FSC27: u1 = 0,
-        /// unused [28:31]
-        _unused28: u4 = 0,
-    };
-    /// CAN_FS1R
-    pub const CAN_FS1R = Register(CAN_FS1R_val).init(base_address + 0x20c);
-
-    /// CAN_FFA1R
-    const CAN_FFA1R_val = packed struct {
-        /// FFA0 [0:0]
-        /// Filter FIFO assignment for filter
-        FFA0: u1 = 0,
-        /// FFA1 [1:1]
-        /// Filter FIFO assignment for filter
-        FFA1: u1 = 0,
-        /// FFA2 [2:2]
-        /// Filter FIFO assignment for filter
-        FFA2: u1 = 0,
-        /// FFA3 [3:3]
-        /// Filter FIFO assignment for filter
-        FFA3: u1 = 0,
-        /// FFA4 [4:4]
-        /// Filter FIFO assignment for filter
-        FFA4: u1 = 0,
-        /// FFA5 [5:5]
-        /// Filter FIFO assignment for filter
-        FFA5: u1 = 0,
-        /// FFA6 [6:6]
-        /// Filter FIFO assignment for filter
-        FFA6: u1 = 0,
-        /// FFA7 [7:7]
-        /// Filter FIFO assignment for filter
-        FFA7: u1 = 0,
-        /// FFA8 [8:8]
-        /// Filter FIFO assignment for filter
-        FFA8: u1 = 0,
-        /// FFA9 [9:9]
-        /// Filter FIFO assignment for filter
-        FFA9: u1 = 0,
-        /// FFA10 [10:10]
-        /// Filter FIFO assignment for filter
-        FFA10: u1 = 0,
-        /// FFA11 [11:11]
-        /// Filter FIFO assignment for filter
-        FFA11: u1 = 0,
-        /// FFA12 [12:12]
-        /// Filter FIFO assignment for filter
-        FFA12: u1 = 0,
-        /// FFA13 [13:13]
-        /// Filter FIFO assignment for filter
-        FFA13: u1 = 0,
-        /// FFA14 [14:14]
-        /// Filter FIFO assignment for filter
-        FFA14: u1 = 0,
-        /// FFA15 [15:15]
-        /// Filter FIFO assignment for filter
-        FFA15: u1 = 0,
-        /// FFA16 [16:16]
-        /// Filter FIFO assignment for filter
-        FFA16: u1 = 0,
-        /// FFA17 [17:17]
-        /// Filter FIFO assignment for filter
-        FFA17: u1 = 0,
-        /// FFA18 [18:18]
-        /// Filter FIFO assignment for filter
-        FFA18: u1 = 0,
-        /// FFA19 [19:19]
-        /// Filter FIFO assignment for filter
-        FFA19: u1 = 0,
-        /// FFA20 [20:20]
-        /// Filter FIFO assignment for filter
-        FFA20: u1 = 0,
-        /// FFA21 [21:21]
-        /// Filter FIFO assignment for filter
-        FFA21: u1 = 0,
-        /// FFA22 [22:22]
-        /// Filter FIFO assignment for filter
-        FFA22: u1 = 0,
-        /// FFA23 [23:23]
-        /// Filter FIFO assignment for filter
-        FFA23: u1 = 0,
-        /// FFA24 [24:24]
-        /// Filter FIFO assignment for filter
-        FFA24: u1 = 0,
-        /// FFA25 [25:25]
-        /// Filter FIFO assignment for filter
-        FFA25: u1 = 0,
-        /// FFA26 [26:26]
-        /// Filter FIFO assignment for filter
-        FFA26: u1 = 0,
-        /// FFA27 [27:27]
-        /// Filter FIFO assignment for filter
-        FFA27: u1 = 0,
-        /// unused [28:31]
-        _unused28: u4 = 0,
-    };
-    /// CAN_FFA1R
-    pub const CAN_FFA1R = Register(CAN_FFA1R_val).init(base_address + 0x214);
-
-    /// CAN_FA1R
-    const CAN_FA1R_val = packed struct {
-        /// FACT0 [0:0]
-        /// Filter active
-        FACT0: u1 = 0,
-        /// FACT1 [1:1]
-        /// Filter active
-        FACT1: u1 = 0,
-        /// FACT2 [2:2]
-        /// Filter active
-        FACT2: u1 = 0,
-        /// FACT3 [3:3]
-        /// Filter active
-        FACT3: u1 = 0,
-        /// FACT4 [4:4]
-        /// Filter active
-        FACT4: u1 = 0,
-        /// FACT5 [5:5]
-        /// Filter active
-        FACT5: u1 = 0,
-        /// FACT6 [6:6]
-        /// Filter active
-        FACT6: u1 = 0,
-        /// FACT7 [7:7]
-        /// Filter active
-        FACT7: u1 = 0,
-        /// FACT8 [8:8]
-        /// Filter active
-        FACT8: u1 = 0,
-        /// FACT9 [9:9]
-        /// Filter active
-        FACT9: u1 = 0,
-        /// FACT10 [10:10]
-        /// Filter active
-        FACT10: u1 = 0,
-        /// FACT11 [11:11]
-        /// Filter active
-        FACT11: u1 = 0,
-        /// FACT12 [12:12]
-        /// Filter active
-        FACT12: u1 = 0,
-        /// FACT13 [13:13]
-        /// Filter active
-        FACT13: u1 = 0,
-        /// FACT14 [14:14]
-        /// Filter active
-        FACT14: u1 = 0,
-        /// FACT15 [15:15]
-        /// Filter active
-        FACT15: u1 = 0,
-        /// FACT16 [16:16]
-        /// Filter active
-        FACT16: u1 = 0,
-        /// FACT17 [17:17]
-        /// Filter active
-        FACT17: u1 = 0,
-        /// FACT18 [18:18]
-        /// Filter active
-        FACT18: u1 = 0,
-        /// FACT19 [19:19]
-        /// Filter active
-        FACT19: u1 = 0,
-        /// FACT20 [20:20]
-        /// Filter active
-        FACT20: u1 = 0,
-        /// FACT21 [21:21]
-        /// Filter active
-        FACT21: u1 = 0,
-        /// FACT22 [22:22]
-        /// Filter active
-        FACT22: u1 = 0,
-        /// FACT23 [23:23]
-        /// Filter active
-        FACT23: u1 = 0,
-        /// FACT24 [24:24]
-        /// Filter active
-        FACT24: u1 = 0,
-        /// FACT25 [25:25]
-        /// Filter active
-        FACT25: u1 = 0,
-        /// FACT26 [26:26]
-        /// Filter active
-        FACT26: u1 = 0,
-        /// FACT27 [27:27]
-        /// Filter active
-        FACT27: u1 = 0,
-        /// unused [28:31]
-        _unused28: u4 = 0,
-    };
-    /// CAN_FA1R
-    pub const CAN_FA1R = Register(CAN_FA1R_val).init(base_address + 0x21c);
-
-    /// F0R1
-    const F0R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 0 register 1
-    pub const F0R1 = Register(F0R1_val).init(base_address + 0x240);
-
-    /// F0R2
-    const F0R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 0 register 2
-    pub const F0R2 = Register(F0R2_val).init(base_address + 0x244);
-
-    /// F1R1
-    const F1R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 1 register 1
-    pub const F1R1 = Register(F1R1_val).init(base_address + 0x248);
-
-    /// F1R2
-    const F1R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 1 register 2
-    pub const F1R2 = Register(F1R2_val).init(base_address + 0x24c);
-
-    /// F2R1
-    const F2R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 2 register 1
-    pub const F2R1 = Register(F2R1_val).init(base_address + 0x250);
-
-    /// F2R2
-    const F2R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 2 register 2
-    pub const F2R2 = Register(F2R2_val).init(base_address + 0x254);
-
-    /// F3R1
-    const F3R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 3 register 1
-    pub const F3R1 = Register(F3R1_val).init(base_address + 0x258);
-
-    /// F3R2
-    const F3R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 3 register 2
-    pub const F3R2 = Register(F3R2_val).init(base_address + 0x25c);
-
-    /// F4R1
-    const F4R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 4 register 1
-    pub const F4R1 = Register(F4R1_val).init(base_address + 0x260);
-
-    /// F4R2
-    const F4R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 4 register 2
-    pub const F4R2 = Register(F4R2_val).init(base_address + 0x264);
-
-    /// F5R1
-    const F5R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 5 register 1
-    pub const F5R1 = Register(F5R1_val).init(base_address + 0x268);
-
-    /// F5R2
-    const F5R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 5 register 2
-    pub const F5R2 = Register(F5R2_val).init(base_address + 0x26c);
-
-    /// F6R1
-    const F6R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 6 register 1
-    pub const F6R1 = Register(F6R1_val).init(base_address + 0x270);
-
-    /// F6R2
-    const F6R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 6 register 2
-    pub const F6R2 = Register(F6R2_val).init(base_address + 0x274);
-
-    /// F7R1
-    const F7R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 7 register 1
-    pub const F7R1 = Register(F7R1_val).init(base_address + 0x278);
-
-    /// F7R2
-    const F7R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 7 register 2
-    pub const F7R2 = Register(F7R2_val).init(base_address + 0x27c);
-
-    /// F8R1
-    const F8R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 8 register 1
-    pub const F8R1 = Register(F8R1_val).init(base_address + 0x280);
-
-    /// F8R2
-    const F8R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 8 register 2
-    pub const F8R2 = Register(F8R2_val).init(base_address + 0x284);
-
-    /// F9R1
-    const F9R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 9 register 1
-    pub const F9R1 = Register(F9R1_val).init(base_address + 0x288);
-
-    /// F9R2
-    const F9R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 9 register 2
-    pub const F9R2 = Register(F9R2_val).init(base_address + 0x28c);
-
-    /// F10R1
-    const F10R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 10 register 1
-    pub const F10R1 = Register(F10R1_val).init(base_address + 0x290);
-
-    /// F10R2
-    const F10R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 10 register 2
-    pub const F10R2 = Register(F10R2_val).init(base_address + 0x294);
-
-    /// F11R1
-    const F11R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 11 register 1
-    pub const F11R1 = Register(F11R1_val).init(base_address + 0x298);
-
-    /// F11R2
-    const F11R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 11 register 2
-    pub const F11R2 = Register(F11R2_val).init(base_address + 0x29c);
-
-    /// F12R1
-    const F12R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 4 register 1
-    pub const F12R1 = Register(F12R1_val).init(base_address + 0x2a0);
-
-    /// F12R2
-    const F12R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 12 register 2
-    pub const F12R2 = Register(F12R2_val).init(base_address + 0x2a4);
-
-    /// F13R1
-    const F13R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 13 register 1
-    pub const F13R1 = Register(F13R1_val).init(base_address + 0x2a8);
-
-    /// F13R2
-    const F13R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 13 register 2
-    pub const F13R2 = Register(F13R2_val).init(base_address + 0x2ac);
-
-    /// F14R1
-    const F14R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 14 register 1
-    pub const F14R1 = Register(F14R1_val).init(base_address + 0x2b0);
-
-    /// F14R2
-    const F14R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 14 register 2
-    pub const F14R2 = Register(F14R2_val).init(base_address + 0x2b4);
-
-    /// F15R1
-    const F15R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 15 register 1
-    pub const F15R1 = Register(F15R1_val).init(base_address + 0x2b8);
-
-    /// F15R2
-    const F15R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 15 register 2
-    pub const F15R2 = Register(F15R2_val).init(base_address + 0x2bc);
-
-    /// F16R1
-    const F16R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 16 register 1
-    pub const F16R1 = Register(F16R1_val).init(base_address + 0x2c0);
-
-    /// F16R2
-    const F16R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 16 register 2
-    pub const F16R2 = Register(F16R2_val).init(base_address + 0x2c4);
-
-    /// F17R1
-    const F17R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 17 register 1
-    pub const F17R1 = Register(F17R1_val).init(base_address + 0x2c8);
-
-    /// F17R2
-    const F17R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 17 register 2
-    pub const F17R2 = Register(F17R2_val).init(base_address + 0x2cc);
-
-    /// F18R1
-    const F18R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 18 register 1
-    pub const F18R1 = Register(F18R1_val).init(base_address + 0x2d0);
-
-    /// F18R2
-    const F18R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 18 register 2
-    pub const F18R2 = Register(F18R2_val).init(base_address + 0x2d4);
-
-    /// F19R1
-    const F19R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 19 register 1
-    pub const F19R1 = Register(F19R1_val).init(base_address + 0x2d8);
-
-    /// F19R2
-    const F19R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 19 register 2
-    pub const F19R2 = Register(F19R2_val).init(base_address + 0x2dc);
-
-    /// F20R1
-    const F20R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 20 register 1
-    pub const F20R1 = Register(F20R1_val).init(base_address + 0x2e0);
-
-    /// F20R2
-    const F20R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 20 register 2
-    pub const F20R2 = Register(F20R2_val).init(base_address + 0x2e4);
-
-    /// F21R1
-    const F21R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 21 register 1
-    pub const F21R1 = Register(F21R1_val).init(base_address + 0x2e8);
-
-    /// F21R2
-    const F21R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 21 register 2
-    pub const F21R2 = Register(F21R2_val).init(base_address + 0x2ec);
-
-    /// F22R1
-    const F22R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 22 register 1
-    pub const F22R1 = Register(F22R1_val).init(base_address + 0x2f0);
-
-    /// F22R2
-    const F22R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 22 register 2
-    pub const F22R2 = Register(F22R2_val).init(base_address + 0x2f4);
-
-    /// F23R1
-    const F23R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 23 register 1
-    pub const F23R1 = Register(F23R1_val).init(base_address + 0x2f8);
-
-    /// F23R2
-    const F23R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 23 register 2
-    pub const F23R2 = Register(F23R2_val).init(base_address + 0x2fc);
-
-    /// F24R1
-    const F24R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 24 register 1
-    pub const F24R1 = Register(F24R1_val).init(base_address + 0x300);
-
-    /// F24R2
-    const F24R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 24 register 2
-    pub const F24R2 = Register(F24R2_val).init(base_address + 0x304);
-
-    /// F25R1
-    const F25R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 25 register 1
-    pub const F25R1 = Register(F25R1_val).init(base_address + 0x308);
-
-    /// F25R2
-    const F25R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 25 register 2
-    pub const F25R2 = Register(F25R2_val).init(base_address + 0x30c);
-
-    /// F26R1
-    const F26R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 26 register 1
-    pub const F26R1 = Register(F26R1_val).init(base_address + 0x310);
-
-    /// F26R2
-    const F26R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 26 register 2
-    pub const F26R2 = Register(F26R2_val).init(base_address + 0x314);
-
-    /// F27R1
-    const F27R1_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 27 register 1
-    pub const F27R1 = Register(F27R1_val).init(base_address + 0x318);
-
-    /// F27R2
-    const F27R2_val = packed struct {
-        /// FB0 [0:0]
-        /// Filter bits
-        FB0: u1 = 0,
-        /// FB1 [1:1]
-        /// Filter bits
-        FB1: u1 = 0,
-        /// FB2 [2:2]
-        /// Filter bits
-        FB2: u1 = 0,
-        /// FB3 [3:3]
-        /// Filter bits
-        FB3: u1 = 0,
-        /// FB4 [4:4]
-        /// Filter bits
-        FB4: u1 = 0,
-        /// FB5 [5:5]
-        /// Filter bits
-        FB5: u1 = 0,
-        /// FB6 [6:6]
-        /// Filter bits
-        FB6: u1 = 0,
-        /// FB7 [7:7]
-        /// Filter bits
-        FB7: u1 = 0,
-        /// FB8 [8:8]
-        /// Filter bits
-        FB8: u1 = 0,
-        /// FB9 [9:9]
-        /// Filter bits
-        FB9: u1 = 0,
-        /// FB10 [10:10]
-        /// Filter bits
-        FB10: u1 = 0,
-        /// FB11 [11:11]
-        /// Filter bits
-        FB11: u1 = 0,
-        /// FB12 [12:12]
-        /// Filter bits
-        FB12: u1 = 0,
-        /// FB13 [13:13]
-        /// Filter bits
-        FB13: u1 = 0,
-        /// FB14 [14:14]
-        /// Filter bits
-        FB14: u1 = 0,
-        /// FB15 [15:15]
-        /// Filter bits
-        FB15: u1 = 0,
-        /// FB16 [16:16]
-        /// Filter bits
-        FB16: u1 = 0,
-        /// FB17 [17:17]
-        /// Filter bits
-        FB17: u1 = 0,
-        /// FB18 [18:18]
-        /// Filter bits
-        FB18: u1 = 0,
-        /// FB19 [19:19]
-        /// Filter bits
-        FB19: u1 = 0,
-        /// FB20 [20:20]
-        /// Filter bits
-        FB20: u1 = 0,
-        /// FB21 [21:21]
-        /// Filter bits
-        FB21: u1 = 0,
-        /// FB22 [22:22]
-        /// Filter bits
-        FB22: u1 = 0,
-        /// FB23 [23:23]
-        /// Filter bits
-        FB23: u1 = 0,
-        /// FB24 [24:24]
-        /// Filter bits
-        FB24: u1 = 0,
-        /// FB25 [25:25]
-        /// Filter bits
-        FB25: u1 = 0,
-        /// FB26 [26:26]
-        /// Filter bits
-        FB26: u1 = 0,
-        /// FB27 [27:27]
-        /// Filter bits
-        FB27: u1 = 0,
-        /// FB28 [28:28]
-        /// Filter bits
-        FB28: u1 = 0,
-        /// FB29 [29:29]
-        /// Filter bits
-        FB29: u1 = 0,
-        /// FB30 [30:30]
-        /// Filter bits
-        FB30: u1 = 0,
-        /// FB31 [31:31]
-        /// Filter bits
-        FB31: u1 = 0,
-    };
-    /// Filter bank 27 register 2
-    pub const F27R2 = Register(F27R2_val).init(base_address + 0x31c);
+    pub const APBHFZ = Register(APBHFZ_val, u32).init(base_address + 0xc);
 };
 pub const interrupts = struct {
     pub const SPI2_IRQ = 26;
@@ -21976,13 +13435,11 @@ pub const interrupts = struct {
     pub const RTC_IRQ = 2;
     pub const TIM16_IRQ = 21;
     pub const EXTI4_15_IRQ = 7;
-    pub const CEC_CAN_IRQ = 30;
-    pub const USB = 31;
+    pub const CEC_IRQ = 30;
     pub const USART2_IRQ = 28;
     pub const ADC_COMP_IRQ = 12;
     pub const WWDG_IRQ = 0;
     pub const TIM1_CC_IRQ = 14;
-    pub const TIM7_IRQ = 18;
     pub const EXTI0_1_IRQ = 5;
     pub const TSC_IRQ = 8;
     pub const SPI1_IRQ = 25;
@@ -21990,11 +13447,10 @@ pub const interrupts = struct {
     pub const TIM15_IRQ = 20;
     pub const TIM14_IRQ = 19;
     pub const PVD_IRQ = 1;
-    pub const RCC_CRS_IRQ = 4;
+    pub const RCC_IRQ = 4;
     pub const I2C2_IRQ = 24;
-    pub const TIM1_BRK_UP_TRG_COM_IRQ = 13;
-    pub const DMA_CH4_5_6_7_IRQ = 11;
-    pub const USART3_4_IRQ = 29;
+    pub const TIM1_BRK_UP_IRQ = 13;
+    pub const DMA_CH4_5_IRQ = 11;
     pub const TIM2_IRQ = 15;
     pub const DMA_CH2_3_IRQ = 10;
 };

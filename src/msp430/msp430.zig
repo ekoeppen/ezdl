@@ -2,12 +2,8 @@ const std = @import("std");
 const ezdl = @import("../ezdl.zig");
 
 pub const mcus = @import("mcus/mcus.zig");
-pub const svd = @import("svd/svd.zig");
 
-pub const nucleo_f072rb = @import("nucleo_f072rb.zig");
-pub const nucleo_f103rb = @import("nucleo_f103rb.zig");
-pub const nucleo_l010rb = @import("nucleo_l010rb.zig");
-pub const rfm69_modem = @import("rfm69_modem.zig");
+pub const exp_msp430g2 = @import("exp_msp430g2.zig");
 
 pub fn addExecutable(
     b: *std.build.Builder,

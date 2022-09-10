@@ -1,5 +1,10 @@
-pub const mcu = @import("../mcus/stm32f072x.zig");
-pub const svd = @import("../svd/stm32f072x.zig");
+pub const mcu = @import("ezdl/src/ezdl.zig").stm32.mcus.stm32f103x;
+pub const svd = @import("ezdl/src/ezdl.zig").stm32.svd.stm32f103x;
+
+pub const memory = .{
+    .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 0x4000 },
+    .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00020000 },
+};
 
 pub const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
 pub const led2 = mcu.Gpio(svd.GPIOC, 8, .{ .output = .{} });
@@ -22,14 +27,7 @@ pub const usart = mcu.Usart(svd.USART2, .{ .speed = 115200 });
 pub const i2c = mcu.I2c(svd.I2C1);
 
 pub fn init() void {
-    svd.RCC.AHBENR.write(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1 });
-    svd.RCC.APB2ENR.write(.{ .SPI1EN = 1, .USART1EN = 1 });
-    svd.RCC.APB1ENR.write(.{ .I2C2EN = 1 });
+    svd.RCC.APB2ENR.write(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1, .SPI1EN = 1 });
 
     led.init();
 }
-
-pub const memory = .{
-    .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 0x4000 },
-    .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00020000 },
-};
