@@ -3,7 +3,7 @@ PROVIDE(_stack = ORIGIN(ram) + LENGTH(ram));
 
 SECTIONS
 {
-    .text : {
+    .vectors : {
         LONG(_stack)
         LONG(resetHandler)
         LONG(DEFINED(nmiHandler) ? nmiHandler : 0xffffffff))
@@ -20,8 +20,10 @@ SECTIONS
         LONG(0xffffffff)
         LONG(DEFINED(pendSvHandler) ? pendSvHandler : 0xffffffff))
         LONG(DEFINED(sysTickHandler) ? sysTickHandler : 0xffffffff))
-        *(.vectors)
+        KEEP(*(.vectors*))
+    } >rom
 
+    .text : {
         *(.text*)
         . = ALIGN(4);
 

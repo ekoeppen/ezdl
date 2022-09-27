@@ -31,3 +31,7 @@ pub fn init() void {
 
     led.init();
 }
+
+pub fn pkgFile() []const u8 {
+    return @src().file;
+}

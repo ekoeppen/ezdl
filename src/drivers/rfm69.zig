@@ -427,9 +427,20 @@ pub fn Rfm69(
             return length;
         }
 
-        pub fn rxAvailable() bool {
+        pub fn rxAvailableFlag() bool {
             const irqFlags = readRegister(IrqFlags1, .IrqFlags1);
             return irqFlags.payload_ready == 1;
+        }
+
+        pub fn rxAvailable() bool {
+            return irq.isSet();
+        }
+
+        pub fn waitForRx() void {
+            while (!rxAvailable()) {
+                asm volatile ("wfe");
+            }
+            clearIrq();
         }
 
         pub fn clearIrq() void {

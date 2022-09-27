@@ -1,18 +1,43 @@
-const PullMode = enum { none, up, down };
-const OutputMode = enum { push_pull, open_drain };
-const OutputSpeed = enum { low, medium, high };
+const PullMode = enum {
+    none,
+    up,
+    down,
+};
+const OutputMode = enum {
+    push_pull,
+    open_drain,
+};
+const OutputSpeed = enum {
+    low,
+    medium,
+    high,
+};
 
-const PinMode = enum(u2) { input = 0b00, output = 0b01, alternate = 0b10, analog = 0b11 };
+const PinMode = enum(u2) {
+    input = 0b00,
+    output = 0b01,
+    alternate = 0b10,
+    analog = 0b11,
+};
 const Config = union(PinMode) {
-    input: struct { pull: PullMode = .none },
-    output: struct { pull: PullMode = .none, mode: OutputMode = .push_pull, speed: OutputSpeed = .medium },
+    input: struct {
+        pull: PullMode = .none,
+    },
+    output: struct {
+        pull: PullMode = .none,
+        mode: OutputMode = .push_pull,
+        speed: OutputSpeed = .medium,
+    },
     alternate: u4,
     analog,
 };
 
-pub fn Gpio(comptime Periph: type, comptime pin: u8, comptime config: Config) type {
-    const pinBit = 1 << pin;
+pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config) type {
     return struct {
+        pub const pin_number: u4 = pin;
+        pub const port_number: u4 = @truncate(u4, (@ptrToInt(periph.CRL.raw_ptr) >> 10) - 2);
+        pub const pin_bit = 1 << pin;
+
         pub fn init() void {
             setConfig(config);
         }
@@ -27,19 +52,19 @@ pub fn Gpio(comptime Periph: type, comptime pin: u8, comptime config: Config) ty
         }
 
         pub fn isSet() bool {
-            return if (Periph.IDR.read_raw() & pinBit) true else false;
+            return periph.IDR.read_raw() & pin_bit == pin_bit;
         }
 
         pub fn set() void {
-            Periph.BSRR.write_raw(pinBit);
+            periph.BSRR.write_raw(pin_bit);
         }
 
         pub fn clear() void {
-            Periph.BRR.write_raw(pinBit);
+            periph.BRR.write_raw(pin_bit);
         }
 
         pub fn toggle() void {
-            Periph.ODR.write_raw(Periph.ODR.read_raw() ^ pinBit);
+            periph.ODR.write_raw(periph.ODR.read_raw() ^ pin_bit);
         }
     };
 }

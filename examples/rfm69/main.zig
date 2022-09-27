@@ -9,19 +9,18 @@ const radio = Rfm69(board.spi, board.csn, board.modem_irq);
 
 fn txTest() anyerror!void {
     _ = try writer.print("---- TX test ------------------------------------\n", .{});
-    // radio.setOutputPower(1);
     radio.txMode();
     radio.tx(&.{ 0xd8, 0x40, 0x01 });
     _ = try radio.printRegisters(writer);
 }
 
 fn rxTest() anyerror!void {
-    var line: [1]u8 = undefined;
     _ = try writer.print("---- RX test ------------------------------------\n", .{});
     radio.rxMode();
-    _ = try reader.read(&line);
-    //while (!board.modem_irq.isSet()) {}
     var packet: [256]u8 = undefined;
+    while (!radio.rxAvailable()) {
+        asm volatile ("wfe");
+    }
     const length = radio.rx(&packet);
     _ = try radio.printRegisters(writer);
     _ = try writer.print("     Got {d} bytes\n", .{length});
@@ -29,9 +28,19 @@ fn rxTest() anyerror!void {
 
 fn run() anyerror!void {
     board.init();
-
     board.led.set();
+    board.exti.connect(board.modem_irq);
+    board.exti.enable(board.modem_irq.pin_number, .event, .rising);
     _ = try writer.print("---- Starting -----------------------------------\n", .{});
+    const dateTime = board.rtc.read();
+    _ = try writer.print("     {d}-{d}-{d} {d}:{d}:{d}\n", .{
+        dateTime.year,
+        dateTime.month.numeric(),
+        dateTime.day,
+        dateTime.hour,
+        dateTime.minute,
+        dateTime.second,
+    });
 
     if (!radio.init()) {
         _ = try writer.print("!!!! Modem init failed\n", .{});
@@ -42,8 +51,17 @@ fn run() anyerror!void {
     }
 
     radio.setFrequency(868_000_000);
-    _ = try rxTest();
-    board.led.clear();
+    while (true) {
+        _ = try writer.print("Press r for receive test, t for transmit test\n", .{});
+        var c: [1]u8 = undefined;
+        _ = try reader.read(&c);
+        switch (c[0]) {
+            'r' => _ = try rxTest(),
+            't' => _ = try txTest(),
+            else => {},
+        }
+        board.led.clear();
+    }
 }
 
 pub export fn main() void {

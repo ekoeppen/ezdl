@@ -1,5 +1,6 @@
 const std = @import("std");
 
+pub const lib = @import("lib/lib.zig");
 pub const stm32 = @import("stm32/stm32.zig");
 pub const msp430 = @import("msp430/msp430.zig");
 pub const drivers = @import("drivers/drivers.zig");
@@ -45,7 +46,16 @@ pub fn addExecutable(
     exe.setTarget(board.mcu.target);
     exe.setLinkerScriptPath(.{ .path = linker_script_path });
     exe.setBuildMode(b.standardReleaseOptions());
-    exe.addPackagePath("ezdl", @src().file);
-    exe.addPackagePath("board", board.pkgFile());
+    const ezdl_pkg = std.build.Pkg{
+        .name = "ezdl",
+        .source = .{ .path = @src().file },
+    };
+    const board_pkg = std.build.Pkg{
+        .name = "board",
+        .source = .{ .path = board.pkgFile() },
+        .dependencies = &.{ezdl_pkg},
+    };
+    exe.addPackage(ezdl_pkg);
+    exe.addPackage(board_pkg);
     return exe;
 }
