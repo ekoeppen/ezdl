@@ -31,14 +31,27 @@ pub fn addExecutable(
     main_file: []const u8,
     comptime board: type,
 ) anyerror!*std.build.LibExeObjStep {
-    const exe = try ezdl.addExecutable(b, elf_name, main_file, board);
+    const exe = try ezdl.addExecutable(b, elf_name, ezdl.mkPath(@src(), "startup.zig"), board);
+    exe.addLibraryPath(ezdl.mkPath(@src(), ""));
+    exe.addAssemblyFile(ezdl.mkPath(@src(), "clzsi2.S"));
 
-    exe.addLibPath(ezdl.mkPath(@src(), ""));
-    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
-    startup.setTarget(board.mcu.target);
-    startup.setBuildMode(b.standardReleaseOptions());
-    startup.addPackagePath("board", board.pkgFile());
-    exe.addObject(startup);
+    const ezdl_pkg = std.build.Pkg{
+        .name = "ezdl",
+        .source = .{ .path = ezdl.mkPath(@src(), "../ezdl.zig") },
+    };
+    const board_pkg = std.build.Pkg{
+        .name = "board",
+        .source = .{ .path = board.pkgFile() },
+        .dependencies = &.{ezdl_pkg},
+    };
+    const app_pkg = std.build.Pkg{
+        .name = "app",
+        .source = .{ .path = main_file },
+        .dependencies = &.{ ezdl_pkg, board_pkg },
+    };
+    exe.addPackage(ezdl_pkg);
+    exe.addPackage(board_pkg);
+    exe.addPackage(app_pkg);
 
     const size_cmd = b.addSystemCommand(&[_][]const u8{"arm-none-eabi-size"});
     size_cmd.addArtifactArg(exe);

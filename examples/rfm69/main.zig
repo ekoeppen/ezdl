@@ -5,7 +5,7 @@ const Rfm69 = ezdl.drivers.rfm69.Rfm69;
 
 const writer = board.usart.writer();
 const reader = board.usart.reader();
-const radio = Rfm69(board.spi, board.csn, board.modem_irq);
+const radio = Rfm69(board.spi, board.csn);
 
 fn txTest() anyerror!void {
     _ = try writer.print("---- TX test ------------------------------------\n", .{});
@@ -18,7 +18,7 @@ fn rxTest() anyerror!void {
     _ = try writer.print("---- RX test ------------------------------------\n", .{});
     radio.rxMode();
     var packet: [256]u8 = undefined;
-    while (!radio.rxAvailable()) {
+    while (!radio.packetAvailable()) {
         asm volatile ("wfe");
     }
     const length = radio.rx(&packet);

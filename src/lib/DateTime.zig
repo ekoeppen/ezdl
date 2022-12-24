@@ -69,7 +69,6 @@ pub fn format(
     options: std.fmt.FormatOptions,
     writer: anytype,
 ) !void {
-    _ = options;
     switch (fmt[0]) {
         's' => {
             try addPadding(.Left, 19, options, writer);

@@ -14,9 +14,19 @@ const PinMode = enum(u2) {
     alternate = 0b10,
     analog = 0b11,
 };
+
+const TriggerMode = enum {
+    none,
+    rising,
+    falling,
+    rising_falling,
+};
+
 const Config = union(PinMode) {
     input: struct {
         pull: PullMode = .none,
+        trigger: TriggerMode = .none,
+        exti: ?type = null,
     },
     output: struct {
         pull: PullMode = .none,
@@ -41,16 +51,29 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
         pub const pin_number: u4 = pin;
         pub const port_number: u4 = @truncate(u4, @ptrToInt(periph.MODER.raw_ptr) >> 10);
         pub const pin_bit: u32 = 1 << pin;
+        pub const pin_config: Config = config;
 
         pub fn init() void {
             setConfig(config);
         }
 
-        pub fn setConfig(c: Config) void {
+        pub fn setConfig(comptime c: Config) void {
             modify(periph.MODER, pin * 2, 2, @enumToInt(c));
             switch (c) {
                 .input => |input| {
                     modify(periph.PUPDR, pin * 2, 2, @enumToInt(input.pull));
+                    if (input.trigger == .none) {
+                        return;
+                    }
+                    if (input.exti) |exti| {
+                        exti.connect(.{ .pin_number = pin_number, .port_number = port_number });
+                        switch (input.trigger) {
+                            .rising => exti.enable(pin_number, .event, .rising),
+                            .falling => exti.enable(pin_number, .event, .falling),
+                            .rising_falling => exti.enable(pin_number, .event, .rising_falling),
+                            .none => {},
+                        }
+                    }
                 },
                 .output => |output| {
                     modify(periph.OTYPER, pin, 1, @enumToInt(output.mode));
@@ -77,12 +100,34 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
             periph.BSRR.write_raw(pin_bit);
         }
 
+        pub fn get() u1 {
+            return @truncate(u1, (periph.IDR.read_raw() & pin_bit) >> pin);
+        }
+
         pub fn clear() void {
             periph.BRR.write_raw(pin_bit);
         }
 
         pub fn toggle() void {
             periph.ODR.write_raw(periph.ODR.read_raw() ^ pin_bit);
+        }
+
+        pub fn awaitValue(value: u1) void {
+            if (pin_config == .input) {
+                while (get() != value) {
+                    if (pin_config.input.exti != null) {
+                        asm volatile ("wfe");
+                    }
+                }
+            }
+        }
+
+        pub fn awaitSet() void {
+            awaitValue(1);
+        }
+
+        pub fn awaitClear() void {
+            awaitValue(0);
         }
     };
 }

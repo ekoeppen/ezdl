@@ -5,7 +5,7 @@ pub const Config = struct {
     clock_speed: u32 = 8_000_000,
 };
 
-pub fn Usart(comptime periph: anytype, config: Config) type {
+pub fn Usart(comptime periph: anytype, comptime config: Config) type {
     const Context = struct {};
     const WriteError = error{FramingError};
     const ReadError = error{ OverrunError, NoiseDetected, FramingError, ParityError };

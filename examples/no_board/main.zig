@@ -22,12 +22,10 @@ export fn resetHandler() void {
         asm volatile ("wfi");
     }
 }
+
 fn main() void {
     const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
     svd.RCC.AHBENR.write(.{ .IOPAEN = 1 });
     led.init();
     led.set();
-    while (true) {
-        asm volatile ("wfi");
-    }
 }

@@ -2,7 +2,6 @@ const epoch = @import("std").time.epoch;
 const DateTime = @import("ezdl").lib.DateTime;
 
 pub fn Rtc(comptime periph: anytype, comptime exti: anytype) type {
-    _ = periph;
     return struct {
         pub fn unlock() void {
             periph.WPR.write(.{ .KEY = 0xca });
@@ -26,9 +25,9 @@ pub fn Rtc(comptime periph: anytype, comptime exti: anytype) type {
             };
         }
 
-        pub fn set_alarm_time(dateTime: *DateTime) void {
+        pub fn setAlarmTime(dateTime: *DateTime) void {
             unlock();
-            clear_alarm();
+            clearAlarm();
             while (periph.ISR.read().ALRAWF == 0) {}
             periph.ALRMAR.write(.{
                 .MSK1 = 0,
@@ -52,10 +51,21 @@ pub fn Rtc(comptime periph: anytype, comptime exti: anytype) type {
             exti.enable(17, .event, .rising);
         }
 
-        pub fn clear_alarm() void {
+        pub fn clearAlarm() void {
             periph.CR.modify(.{ .ALRAIE = 0 });
             periph.ISR.modify(.{ .ALRAF = 0 });
             periph.CR.modify(.{ .ALRAE = 0 });
+        }
+
+        pub fn alarmRaised() bool {
+            return periph.ISR.read().ALRAF == 1;
+        }
+
+        pub fn awaitAlarm() void {
+            while (!alarmRaised()) {
+                asm volatile ("wfe");
+            }
+            periph.ISR.modify(.{ .ALRAF = 0 });
         }
     };
 }

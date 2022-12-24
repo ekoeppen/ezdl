@@ -6,8 +6,8 @@ SECTIONS
     .vectors : {
         LONG(_stack)
         LONG(resetHandler)
-        LONG(DEFINED(nmiHandler) ? nmiHandler : 0xffffffff))
-        LONG(DEFINED(hardFaultHandler) ? hardFaultHandler : 0xffffffff))
+        LONG(DEFINED(nmiHandler) ? nmiHandler : 0xffffffff)
+        LONG(DEFINED(hardFaultHandler) ? hardFaultHandler : 0xffffffff)
         LONG(0xffffffff)
         LONG(0xffffffff)
         LONG(0xffffffff)
@@ -15,11 +15,11 @@ SECTIONS
         LONG(0xffffffff)
         LONG(0xffffffff)
         LONG(0xffffffff)
-        LONG(DEFINED(svcHandler) ? svcHandler : 0xffffffff))
+        LONG(DEFINED(svcHandler) ? svcHandler : 0xffffffff)
         LONG(0xffffffff)
         LONG(0xffffffff)
-        LONG(DEFINED(pendSvHandler) ? pendSvHandler : 0xffffffff))
-        LONG(DEFINED(sysTickHandler) ? sysTickHandler : 0xffffffff))
+        LONG(DEFINED(pendSvHandler) ? pendSvHandler : 0xffffffff)
+        LONG(DEFINED(sysTickHandler) ? sysTickHandler : 0xffffffff)
         KEEP(*(.vectors*))
     } >rom
 
