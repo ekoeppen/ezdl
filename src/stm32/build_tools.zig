@@ -23,14 +23,8 @@ const ObjCopyStep = struct {
     ) !*ObjCopyStep {
         const base_name = baseName(exe.name);
         const self = builder.allocator.create(ObjCopyStep) catch unreachable;
-        const name = try std.fmt.allocPrint(builder.allocator, "{s}.{s}", .{
-            base_name,
-            if (format == .bin) "bin" else "hex",
-        });
-        const path = try std.fmt.allocPrint(builder.allocator, "{s}/{s}", .{
-            builder.cache_root,
-            name,
-        });
+        const name = builder.fmt("{s}.{s}", .{ base_name, if (format == .bin) "bin" else "hex" });
+        const path = builder.pathJoin(&.{ builder.cache_root, name });
         self.* = ObjCopyStep{
             .builder = builder,
             .exe = exe,
@@ -89,14 +83,8 @@ const JLinkFlashStep = struct {
 
     pub fn make(step: *std.build.Step) !void {
         const self = @fieldParentPtr(JLinkFlashStep, "step", step);
-        var path_buf: [std.os.PATH_MAX]u8 = undefined;
-        const path = try std.fmt.bufPrint(&path_buf, "{s}/flash.jlink", .{self.builder.cache_root});
+        const path = self.builder.pathJoin(&.{ self.builder.cache_root, "flash.jlink" });
         try self.createCommandFile(path);
-        std.debug.print("Flashing {s} to {s} via {s}...\n", .{
-            self.hex.out_path,
-            self.device,
-            path,
-        });
         try std.build.RunStep.runCommand(&[_][]const u8{
             "JLinkExe",
             path,

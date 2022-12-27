@@ -40,6 +40,10 @@ pub fn addExecutable(
     );
     exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 
+    const info_pkg = std.build.Pkg{
+        .name = "build_info",
+        .source = .{ .path = "zig-cache/build_info.zig" },
+    };
     const ezdl_pkg = std.build.Pkg{
         .name = "ezdl",
         .source = .{ .path = ezdl.mkPath(@src(), "../ezdl.zig") },
@@ -52,7 +56,7 @@ pub fn addExecutable(
     const app_pkg = std.build.Pkg{
         .name = "app",
         .source = .{ .path = main_file },
-        .dependencies = &.{ ezdl_pkg, board_pkg },
+        .dependencies = &.{ ezdl_pkg, board_pkg, info_pkg },
     };
     exe.addPackage(ezdl_pkg);
     exe.addPackage(board_pkg);

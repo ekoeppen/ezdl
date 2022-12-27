@@ -42,6 +42,60 @@ pub fn equals(self: *const DateTime, other: *const DateTime) bool {
     return dateEquals(self, other) and timeEquals(self, other);
 }
 
+pub fn set(self: *DateTime, epoch_seconds: u64) void {
+    // Converted from https://stackoverflow.com/a/11197532/1726506
+    //
+    const daysSinceJan1st: [2][13]u32 =
+        .{
+        .{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 }, // 365 days, non-leap
+        .{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }, // 366 days, leap
+    };
+
+    var sec: u64 = epoch_seconds + 11644473600;
+    const quadricentennials = sec / 12622780800;
+    sec %= 12622780800;
+    var centennials = sec / 3155673600;
+    if (centennials > 3) {
+        centennials = 3;
+    }
+    sec -= centennials * 3155673600;
+    var quadrennials = sec / 126230400;
+    if (quadrennials > 24) {
+        quadrennials = 24;
+    }
+    sec -= quadrennials * 126230400;
+    var annuals = sec / 31536000;
+    if (annuals > 3) {
+        annuals = 3;
+    }
+    sec -= annuals * 31536000;
+    const year = 1601 + quadricentennials * 400 + centennials * 100 + quadrennials * 4 + annuals;
+    const leap: u1 = if ((year % 4 == 0) and (year % 100 == 0) and (year % 400 == 0)) 1 else 0;
+
+    const yday = sec / 86400;
+    sec %= 86400;
+    const hour = sec / 3600;
+    sec %= 3600;
+    const min = sec / 60;
+    sec %= 60;
+
+    var month: u64 = 1;
+    var mday: u64 = month;
+    while (month < 13) {
+        if (yday < daysSinceJan1st[leap][month]) {
+            mday += yday - daysSinceJan1st[leap][month - 1];
+            break;
+        }
+        month += 1;
+    }
+    self.second = @truncate(u6, sec);
+    self.minute = @truncate(u6, min);
+    self.hour = @truncate(u5, hour);
+    self.day = @truncate(u5, mday);
+    self.month = @intToEnum(epoch.Month, @truncate(u4, month));
+    self.year = @truncate(u16, year);
+}
+
 fn addPadding(
     where: std.fmt.Alignment,
     width: usize,

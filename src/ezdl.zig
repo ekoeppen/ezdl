@@ -42,9 +42,12 @@ pub fn addExecutable(
 ) anyerror!*std.build.LibExeObjStep {
     const linker_script_path = "zig-cache/memory.ld";
     const exe = b.addExecutable(elf_name, main);
+    const info_tool = b.addExecutable("info_tool", mkPath(@src(), "lib/build_info.zig"));
+    const build_info = info_tool.run();
     try generateLinkerScript(linker_script_path, board);
     exe.setTarget(board.mcu.target);
     exe.setLinkerScriptPath(.{ .path = linker_script_path });
     exe.setBuildMode(b.standardReleaseOptions());
+    exe.step.dependOn(&build_info.step);
     return exe;
 }
