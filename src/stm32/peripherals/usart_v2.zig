@@ -3,6 +3,10 @@ const std = @import("std");
 pub const Config = struct {
     speed: u32 = 115200,
     clock_speed: u32 = 8_000_000,
+    rx_dma: bool = false,
+    tx_dma: bool = false,
+    rx_irq: bool = false,
+    tx_irq: bool = false,
 };
 
 pub fn Usart(comptime periph: anytype, comptime config: Config) type {
@@ -19,7 +23,17 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
                 .DIV_Fraction = ((frac_divider * 16) + 50) / 100 % 16,
                 .DIV_Mantissa = int_divider / 100,
             });
-            periph.CR1.modify(.{ .UE = 1, .TE = 1, .RE = 1 });
+            periph.CR3.write(.{
+                .DMAT = if (config.tx_dma) 1 else 0,
+                .DMAR = if (config.rx_dma) 1 else 0,
+            });
+            periph.CR1.modify(.{
+                .UE = 1,
+                .TE = 1,
+                .RE = 1,
+                .RXNEIE = if (config.rx_irq) 1 else 0,
+                .TCIE = if (config.tx_irq) 1 else 0,
+            });
             periph.ICR.modify(.{ .FECF = 1, .ORECF = 1 });
         }
 
