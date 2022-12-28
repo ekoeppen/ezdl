@@ -1,11 +1,10 @@
-const board = @import("board");
-const app = @import("app");
-
 extern const _data_loadaddr: u16;
 extern var _data: u16;
 extern const _edata: u16;
 extern var _bss: u16;
 extern const _ebss: u16;
+
+extern fn main() void;
 
 export fn abort() void {}
 
@@ -19,6 +18,6 @@ export fn resetHandler() void {
     const bss_size = @ptrToInt(&_ebss) - @ptrToInt(&_bss);
     for (bss[0..bss_size]) |*b| b.* = 0;
 
-    app.main();
+    main();
     while (true) {}
 }

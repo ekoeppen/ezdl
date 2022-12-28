@@ -1,11 +1,13 @@
-const board = @import("board");
-const app = @import("app");
+// const ezdl = @import("ezdl");
+// const board = @import("board");
 
 extern const _data_loadaddr: u32;
 extern var _data: u32;
 extern const _edata: u32;
 extern var _bss: u32;
 extern const _ebss: u32;
+
+extern fn main() void;
 
 export fn resetHandler() void {
     const data_loadaddr = @ptrCast([*]const u8, &_data_loadaddr);
@@ -19,7 +21,7 @@ export fn resetHandler() void {
 
     asm volatile ("sev");
     asm volatile ("wfe");
-    app.main();
+    main();
     while (true) {
         asm volatile ("wfi");
     }

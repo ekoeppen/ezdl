@@ -1,5 +1,6 @@
 pub const mcu = @import("mcus/stm32f051.zig");
 pub const svd = @import("svd/stm32f0xx.zig");
+pub const stm32 = @import("stm32.zig");
 
 pub const memory = .{
     .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 0x2000 },
@@ -41,6 +42,8 @@ pub const handlers = &.{
     .{ .number = svd.interrupts.EXTI2_3_IRQ, .handler = defaultHandler },
     .{ .number = svd.interrupts.EXTI4_15_IRQ, .handler = defaultHandler },
 };
+
+const vectors linksection(".vectors,_") = stm32.mkVectors(svd.interrupts, handlers);
 
 pub fn init() void {
     svd.RCC.AHBENR.write(.{ .IOPAEN = 1, .IOPBEN = 1 });
