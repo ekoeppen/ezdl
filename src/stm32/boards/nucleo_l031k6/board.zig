@@ -1,12 +1,5 @@
-pub const mcu = @import("mcus/stm32l0x1.zig");
-pub const svd = @import("svd/stm32l0x1.zig");
-
-pub const memory = .{
-    .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 8192 },
-    .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 32768 },
-};
-
-pub const device = "stm32l031k6";
+pub const mcu = @import("ezdl").stm32.mcus.stm32l0x1;
+pub const svd = @import("ezdl").stm32.svd.stm32l0x1;
 
 pub const exti = mcu.Exti(svd.EXTI, svd.SYSCFG_COMP);
 pub const rtc = mcu.Rtc(svd.RTC, exti);
@@ -70,8 +63,4 @@ pub fn init() void {
         svd.DMA1.CSELR.modify(.{ .C5S = 4 });
         svd.DMA1.CCR5.modify(.{ .EN = 1 });
     }
-}
-
-pub fn pkgFile() []const u8 {
-    return @src().file;
 }

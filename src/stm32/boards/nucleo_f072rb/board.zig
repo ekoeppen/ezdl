@@ -1,12 +1,5 @@
-pub const mcu = @import("mcus/stm32f072x.zig");
-pub const svd = @import("svd/stm32f072x.zig");
-
-pub const memory = .{
-    .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 0x4000 },
-    .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00020000 },
-};
-
-pub const device = "stm32f072rb";
+pub const mcu = @import("ezdl").stm32.mcus.stm32f072x;
+pub const svd = @import("ezdl").stm32.svd.stm32f072x;
 
 pub const exti = mcu.Exti(svd.EXTI, svd.SYSCFG);
 pub const rtc = mcu.Rtc(svd.RTC, exti);
@@ -59,8 +52,4 @@ pub fn init() void {
 
     usart.init();
     spi.init();
-}
-
-pub fn pkgFile() []const u8 {
-    return @src().file;
 }

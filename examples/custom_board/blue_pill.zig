@@ -1,12 +1,5 @@
-pub const mcu = @import("ezdl/src/ezdl.zig").stm32.mcus.stm32f103x;
-pub const svd = @import("ezdl/src/ezdl.zig").stm32.svd.stm32f103x;
-
-pub const memory = .{
-    .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 0x4000 },
-    .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00020000 },
-};
-
-pub const device = "stm32f103c8";
+pub const mcu = @import("ezdl").stm32.mcus.stm32f103x;
+pub const svd = @import("ezdl").stm32.svd.stm32f103x;
 
 pub const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
 pub const led2 = mcu.Gpio(svd.GPIOC, 8, .{ .output = .{} });
@@ -32,8 +25,4 @@ pub fn init() void {
     svd.RCC.APB2ENR.write(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1, .SPI1EN = 1 });
 
     led.init();
-}
-
-pub fn pkgFile() []const u8 {
-    return @src().file;
 }

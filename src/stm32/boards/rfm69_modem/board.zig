@@ -1,13 +1,6 @@
-pub const mcu = @import("mcus/stm32f051.zig");
-pub const svd = @import("svd/stm32f0xx.zig");
-pub const stm32 = @import("stm32.zig");
-
-pub const memory = .{
-    .{ .name = "ram", .attrs = "rwx", .start = 0x20000000, .size = 0x2000 },
-    .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00010000 },
-};
-
-pub const device = "stm32f051k8";
+pub const mcu = @import("ezdl").stm32.mcus.stm32f051;
+pub const svd = @import("ezdl").stm32.svd.stm32f0xx;
+pub const stm32 = @import("ezdl").stm32;
 
 pub const led = mcu.Gpio(svd.GPIOB, 0, .{ .output = .{} });
 pub const led2 = mcu.Gpio(svd.GPIOB, 1, .{ .output = .{} });
@@ -37,13 +30,13 @@ pub const rtc = mcu.Rtc(svd.RTC, exti);
 
 pub fn defaultHandler() void {}
 
-pub const handlers = &.{
+const handlers: []const stm32.IrqHandler = &.{
     .{ .number = svd.interrupts.EXTI0_1_IRQ, .handler = defaultHandler },
     .{ .number = svd.interrupts.EXTI2_3_IRQ, .handler = defaultHandler },
     .{ .number = svd.interrupts.EXTI4_15_IRQ, .handler = defaultHandler },
 };
 
-const vectors linksection(".vectors,_") = stm32.mkVectors(svd.interrupts, handlers);
+export const vectors linksection(".vectors") = stm32.mkVectors(svd.interrupts, handlers);
 
 pub fn init() void {
     svd.RCC.AHBENR.write(.{ .IOPAEN = 1, .IOPBEN = 1 });
@@ -70,8 +63,4 @@ pub fn init() void {
 
     usart.init();
     spi.init();
-}
-
-pub fn pkgFile() []const u8 {
-    return @src().file;
 }

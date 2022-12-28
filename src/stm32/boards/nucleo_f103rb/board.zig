@@ -1,5 +1,5 @@
-const mcu = @import("mcus/stm32f103x.zig");
-const svd = @import("svd/stm32f103x.zig");
+pub const mcu = @import("ezdl").stm32.mcus.stm32f103x;
+pub const svd = @import("ezdl").stm32.svd.stm32f103x;
 
 pub const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
 pub const spi = mcu.Spi(svd.SPI1);

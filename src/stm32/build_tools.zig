@@ -1,4 +1,5 @@
 const std = @import("std");
+const ezdl = @import("../ezdl.zig");
 
 pub fn baseName(path: []const u8) []const u8 {
     const ext_len = std.fs.path.extension(path).len;
@@ -41,9 +42,10 @@ const ObjCopyStep = struct {
         const in_path = self.exe.installed_path orelse //
             self.exe.getOutputSource().getPath(self.builder);
         try std.build.RunStep.runCommand(&[_][]const u8{
-            "arm-none-eabi-objcopy",
+            "zig",
+            "objcopy",
             "-O",
-            if (self.format == .bin) "binary" else "ihex",
+            if (self.format == .bin) "binary" else "hex",
             in_path,
             self.out_path,
         }, self.builder, null, .ignore, .ignore, .Close, null, null, false);
@@ -77,7 +79,7 @@ const FlashStep = struct {
         name: []const u8,
         tool: FlashTool,
         hex: *ObjCopyStep,
-        comptime board: type,
+        board: *const ezdl.Board,
     ) *FlashStep {
         const self = builder.allocator.create(FlashStep) catch unreachable;
         const port = if (tool == .stm32flash) //
@@ -162,7 +164,7 @@ pub fn addFlashStep(
     b: *std.build.Builder,
     hex: *ObjCopyStep,
     tool: FlashTool,
-    comptime board: type,
+    board: *const ezdl.Board,
 ) *FlashStep {
     const flash_cmd = FlashStep.create(b, "flash", tool, hex, board);
     flash_cmd.step.dependOn(&hex.step);

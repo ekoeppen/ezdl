@@ -1,5 +1,5 @@
 const epoch = @import("std").time.epoch;
-const DateTime = @import("ezdl").lib.DateTime;
+const DateTime = @import("../../lib/DateTime.zig");
 
 pub fn Rtc(comptime periph: anytype, comptime exti: anytype) type {
     return struct {
