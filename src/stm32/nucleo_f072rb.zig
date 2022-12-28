@@ -6,6 +6,8 @@ pub const memory = .{
     .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00020000 },
 };
 
+pub const device = "stm32f072rb";
+
 pub const exti = mcu.Exti(svd.EXTI, svd.SYSCFG);
 pub const rtc = mcu.Rtc(svd.RTC, exti);
 

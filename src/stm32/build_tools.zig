@@ -38,7 +38,8 @@ const ObjCopyStep = struct {
 
     pub fn make(step: *std.build.Step) !void {
         const self = @fieldParentPtr(ObjCopyStep, "step", step);
-        const in_path = self.exe.installed_path orelse self.exe.getOutputSource().getPath(self.builder);
+        const in_path = self.exe.installed_path orelse //
+            self.exe.getOutputSource().getPath(self.builder);
         try std.build.RunStep.runCommand(&[_][]const u8{
             "arm-none-eabi-objcopy",
             "-O",
@@ -59,30 +60,62 @@ pub fn addObjCopyStep(
     return objcopy_cmd;
 }
 
-const JLinkFlashStep = struct {
+const FlashTool = enum { jlink, stlink, stm32flash };
+
+const FlashStep = struct {
     builder: *std.build.Builder,
     hex: *ObjCopyStep,
     step: std.build.Step,
-    device: []const u8 = undefined,
+    tool: FlashTool,
+    name: []const u8,
+    description: []const u8,
+    device: []const u8,
+    port: ?[]const u8,
 
     pub fn create(
         builder: *std.build.Builder,
         name: []const u8,
+        tool: FlashTool,
         hex: *ObjCopyStep,
         comptime board: type,
-    ) *JLinkFlashStep {
-        const self = builder.allocator.create(JLinkFlashStep) catch unreachable;
-        self.* = JLinkFlashStep{
+    ) *FlashStep {
+        const self = builder.allocator.create(FlashStep) catch unreachable;
+        const port = if (tool == .stm32flash) //
+            builder.option([]const u8, "port", "Serial port for flashing via stm32flash") orelse //
+                "/dev/ttyUSB0"
+        else
+            null;
+        self.* = FlashStep{
             .builder = builder,
             .step = std.build.Step.init(.run, name, builder.allocator, make),
+            .tool = tool,
             .device = board.device,
             .hex = hex,
+            .port = port,
+            .name = switch (tool) {
+                .jlink => "flash-jlink",
+                .stlink => "flash-stlink",
+                .stm32flash => "stm32flash",
+            },
+            .description = switch (tool) {
+                .jlink => "Flash using JLink",
+                .stlink => "Flash using stlink",
+                .stm32flash => "Flash using stm32flash",
+            },
         };
         return self;
     }
 
-    pub fn make(step: *std.build.Step) !void {
-        const self = @fieldParentPtr(JLinkFlashStep, "step", step);
+    fn make(step: *std.build.Step) !void {
+        const self = @fieldParentPtr(FlashStep, "step", step);
+        switch (self.tool) {
+            .jlink => try self.makeJLink(),
+            .stm32flash => try self.makeStm32Flash(),
+            else => {},
+        }
+    }
+
+    fn makeJLink(self: *FlashStep) !void {
         const path = self.builder.pathJoin(&.{ self.builder.cache_root, "flash.jlink" });
         try self.createCommandFile(path);
         try std.build.RunStep.runCommand(&[_][]const u8{
@@ -91,23 +124,48 @@ const JLinkFlashStep = struct {
         }, self.builder, null, .ignore, .ignore, .Close, null, null, false);
     }
 
-    fn createCommandFile(self: *JLinkFlashStep, path: []const u8) !void {
+    fn createCommandFile(self: *FlashStep, path: []const u8) !void {
         const file = try std.fs.cwd().createFile(path, .{ .truncate = true });
         defer file.close();
-        _ = try file.writer().print("si 1\ndevice {s}\nspeed 4000\ncont\nloadfile {s}\nr\ng\nquit\n", .{
+        _ = try file.writer().print(
+            \\si 1
+            \\device {s}
+            \\speed 4000
+            \\cont
+            \\loadfile {s}
+            \\reset
+            \\go
+            \\quit
+            \\
+        , .{
             self.device,
             self.hex.out_path,
         });
     }
+
+    fn makeStm32Flash(self: *FlashStep) !void {
+        try std.build.RunStep.runCommand(
+            &[_][]const u8{ "stm32flash", "-w", self.hex.out_path, self.port.? },
+            self.builder,
+            null,
+            .ignore,
+            .ignore,
+            .Close,
+            null,
+            null,
+            true,
+        );
+    }
 };
 
-pub fn addJlinkFlashStep(
+pub fn addFlashStep(
     b: *std.build.Builder,
     hex: *ObjCopyStep,
+    tool: FlashTool,
     comptime board: type,
-) *JLinkFlashStep {
-    const flash_cmd = JLinkFlashStep.create(b, "flash-jlink", hex, board);
+) *FlashStep {
+    const flash_cmd = FlashStep.create(b, "flash", tool, hex, board);
     flash_cmd.step.dependOn(&hex.step);
-    b.step("flash-jlink", "Flash using JLink").dependOn(&flash_cmd.step);
+    b.step(flash_cmd.name, flash_cmd.description).dependOn(&flash_cmd.step);
     return flash_cmd;
 }

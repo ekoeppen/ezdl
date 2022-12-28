@@ -6,6 +6,8 @@ pub const memory = .{
     .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 0x00020000 },
 };
 
+pub const device = "stm32f103c8";
+
 pub const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
 pub const led2 = mcu.Gpio(svd.GPIOC, 8, .{ .output = .{} });
 pub const led3 = mcu.Gpio(svd.GPIOC, 6, .{ .output = .{} });

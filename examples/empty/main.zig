@@ -1,3 +1,3 @@
-pub export fn main() void {
+pub fn main() void {
     while (true) {}
 }

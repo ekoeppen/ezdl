@@ -31,6 +31,7 @@ pub fn addExecutable(
     elf_name: []const u8,
     main_file: []const u8,
     comptime board: type,
+    comptime packages: []const std.build.Pkg,
 ) anyerror!*std.build.LibExeObjStep {
     const exe = try ezdl.addExecutable(
         b,
@@ -53,10 +54,19 @@ pub fn addExecutable(
         .source = .{ .path = board.pkgFile() },
         .dependencies = &.{ezdl_pkg},
     };
+
+    const app_dependencies = init: {
+        var deps: [packages.len + 3]std.build.Pkg = undefined;
+        deps[0] = ezdl_pkg;
+        deps[1] = board_pkg;
+        deps[2] = info_pkg;
+        for (packages) |p, i| deps[3 + i] = p;
+        break :init deps;
+    };
     const app_pkg = std.build.Pkg{
         .name = "app",
         .source = .{ .path = main_file },
-        .dependencies = &.{ ezdl_pkg, board_pkg, info_pkg },
+        .dependencies = &app_dependencies,
     };
     exe.addPackage(ezdl_pkg);
     exe.addPackage(board_pkg);
@@ -67,7 +77,7 @@ pub fn addExecutable(
     b.getInstallStep().dependOn(&size_cmd.step);
 
     const hex_cmd = try build_tools.addObjCopyStep(b, exe, .hex);
-    _ = build_tools.addJlinkFlashStep(b, hex_cmd, board);
-
+    _ = build_tools.addFlashStep(b, hex_cmd, .jlink, board);
+    _ = build_tools.addFlashStep(b, hex_cmd, .stm32flash, board);
     return exe;
 }

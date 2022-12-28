@@ -1,17 +1,11 @@
 const board = @import("board");
 const app = @import("app");
-const stm32 = @import("stm32.zig");
 
 extern const _data_loadaddr: u32;
 extern var _data: u32;
 extern const _edata: u32;
 extern var _bss: u32;
 extern const _ebss: u32;
-
-//export const vectors linksection(".vectors,_") = stm32.mkVectors(
-//    board.svd.interrupts,
-//    board.handlers,
-//);
 
 export fn resetHandler() void {
     const data_loadaddr = @ptrCast([*]const u8, &_data_loadaddr);

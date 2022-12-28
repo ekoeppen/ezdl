@@ -1,6 +1,7 @@
 const std = @import("std");
 const ezdl = @import("ezdl");
 const board = @import("board");
+const build_info = @import("build_info");
 const Rfm69 = ezdl.drivers.rfm69.Rfm69;
 
 const writer = board.usart.writer();
@@ -32,6 +33,10 @@ fn run() anyerror!void {
     board.exti.connect(board.modem_irq);
     board.exti.enable(board.modem_irq.pin_number, .event, .rising);
     _ = try writer.print("---- Starting -----------------------------------\n", .{});
+    _ = try writer.print("     Built: {s} from {s}\n", .{
+        build_info.build_time,
+        build_info.commit,
+    });
     const dateTime = board.rtc.read();
     _ = try writer.print("     {d}-{d}-{d} {d}:{d}:{d}\n", .{
         dateTime.year,
