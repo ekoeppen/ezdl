@@ -1,5 +1,5 @@
 const std = @import("std");
-const ezdl = @import("../ezdl.zig");
+const ezdl = @import("ezdl.zig");
 
 pub fn baseName(path: []const u8) []const u8 {
     const ext_len = std.fs.path.extension(path).len;

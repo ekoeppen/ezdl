@@ -1,6 +1,6 @@
 const std = @import("std");
 const ezdl = @import("../ezdl.zig");
-const build_tools = @import("build_tools.zig");
+const build_tools = @import("../build_tools.zig");
 
 pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
@@ -22,7 +22,7 @@ pub fn mkVectors(
 }
 
 pub fn toCpuModel(model: []const u8) *const std.Target.Cpu.Model {
-    _ = model;
+    std.debug.print("***** TODO convert from {s}\n", .{model});
     return &std.Target.arm.cpu.cortex_m0;
 }
 
