@@ -9,6 +9,10 @@ build-examples:
   stage: build
   script:
     - apk add git binutils-arm-none-eabi binutils-msp430-elf
-    - cd ${CI_PROJECT_DIR}/examples/empty
-    - zig build -Drelease-small -Dboard=ezdl/src/stm32/boards/nucleo_f072rb
-    - zig build -Drelease-small -Dboard=ezdl/src/msp430/boards/exp_msp430g2
+    - zig run src/testing/examples.zig -- src/testing/examples.json > examples.xml
+  artifacts:
+    when: always
+    paths:
+      - examples.xml
+    reports:
+      junit: examples.xml
