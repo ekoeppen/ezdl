@@ -14,6 +14,7 @@ const stderr = std.io.getStdErr().writer();
 
 fn compile(example: *const Example, board: []const u8) !bool {
     var success = true;
+    const start = std.time.milliTimestamp();
     const case_name = if (board.len > 0) try std.mem.join(allocator, " - ", &.{
         example.name,
         std.fs.path.basename(board),
@@ -32,9 +33,10 @@ fn compile(example: *const Example, board: []const u8) !bool {
         .allocator = allocator,
         .cwd = example.path,
     });
-    _ = try stdout.print("<testcase name=\"{s}\" file=\"{s}/main.zig\">\n", .{
+    _ = try stdout.print("<testcase name=\"{s}\" file=\"{s}/main.zig\" time=\"{d:.3}\">\n", .{
         case_name,
         example.path,
+        @intToFloat(f64, std.time.milliTimestamp() - start) / 1000,
     });
     if (result.term.Exited != 0) {
         _ = try stdout.print("<failure>{s}</failure>\n", .{result.stderr});
