@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Empty",
+    "path": "examples/empty",
+    "boards": [
+      "ezdl/src/stm32/boards/nucleo_f072rb",
+      "ezdl/src/msp430/boards/exp_msp430g2"
+    ]
+  },
+  {
+    "name": "Blink",
+    "path": "examples/blink",
+    "boards": [
+      "ezdl/src/stm32/boards/nucleo_f072rb"
+    ]
+  },
+  {
+    "name": "Custom Board",
+    "path": "examples/custom_board",
+    "boards": [ ]
+  },
+  {
+    "name": "No Board",
+    "path": "examples/no_board",
+    "boards": [ ]
+  }
+]

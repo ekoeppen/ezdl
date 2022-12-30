@@ -1,11 +1,6 @@
 const std = @import("std");
 const ezdl = @import("ezdl.zig");
 
-pub fn baseName(path: []const u8) []const u8 {
-    const ext_len = std.fs.path.extension(path).len;
-    return if (ext_len == 0) path else path[0 .. path.len - ext_len];
-}
-
 pub const ObjCopyFormat = enum { bin, hex };
 
 const ObjCopyStep = struct {
@@ -22,7 +17,7 @@ const ObjCopyStep = struct {
         exe: *std.build.LibExeObjStep,
         format: ObjCopyFormat,
     ) !*ObjCopyStep {
-        const base_name = baseName(exe.name);
+        const base_name = std.fs.path.stem(exe.name);
         const self = builder.allocator.create(ObjCopyStep) catch unreachable;
         const name = builder.fmt("{s}.{s}", .{ base_name, if (format == .bin) "bin" else "hex" });
         const path = builder.pathJoin(&.{ builder.cache_root, name });
