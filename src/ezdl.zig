@@ -1,5 +1,11 @@
 const std = @import("std");
 
+pub const DeviceFamily = enum {
+    stm32,
+    msp430,
+    unknown,
+};
+
 pub const lib = @import("lib/lib.zig");
 pub const stm32 = @import("stm32/stm32.zig");
 pub const msp430 = @import("msp430/msp430.zig");
@@ -13,6 +19,12 @@ pub fn mkPath(
         const pkg_dir = @import("std").fs.path.dirname(src.file) orelse ".";
         break :blk pkg_dir ++ "/" ++ path;
     };
+}
+
+pub fn deviceFamily(device: []const u8) DeviceFamily {
+    if (device.len >= 5 and std.mem.eql(u8, device[0..5], "stm32")) return .stm32;
+    if (device.len >= 6 and std.mem.eql(u8, device[0..6], "msp430")) return .msp430;
+    return .unknown;
 }
 
 pub const MemoryRegion = struct {
