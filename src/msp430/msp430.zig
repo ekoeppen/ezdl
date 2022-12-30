@@ -2,6 +2,7 @@ const std = @import("std");
 const ezdl = @import("../ezdl.zig");
 
 pub const mcus = @import("mcus/mcus.zig");
+pub const svd = @import("svd/svd.zig");
 
 pub fn toCpuModel(model: []const u8) *const std.Target.Cpu.Model {
     std.debug.print("***** TODO convert from {s}\n", .{model});
