@@ -1,3 +1,0 @@
-device stm32f031k6
-connect
-loadfile zig-cache/accept.hex
