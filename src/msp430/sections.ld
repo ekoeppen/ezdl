@@ -15,7 +15,7 @@ SECTIONS
     .vectors : {
         . = 0xfffe;
         SHORT(resetHandler)
-    } >vectors
+    } >vectors = 0xffffffff
 
     . = ALIGN(2);
     _etext = .;
