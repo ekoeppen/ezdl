@@ -1,5 +1,6 @@
 const std = @import("std");
 const ezdl = @import("../ezdl.zig");
+const build_tools = @import("../build_tools.zig");
 
 pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
@@ -52,5 +53,8 @@ pub fn addExecutable(
     const size_cmd = b.addSystemCommand(&[_][]const u8{"msp430-elf-size"});
     size_cmd.addArtifactArg(exe);
     b.getInstallStep().dependOn(&size_cmd.step);
+
+    const hex_cmd = try build_tools.addObjCopyStep(b, exe, .hex);
+    _ = build_tools.addFlashStep(b, hex_cmd, .mspdebug, board_settings);
     return exe;
 }

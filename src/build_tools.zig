@@ -37,10 +37,9 @@ const ObjCopyStep = struct {
         const in_path = self.exe.installed_path orelse //
             self.exe.getOutputSource().getPath(self.builder);
         try std.build.RunStep.runCommand(&[_][]const u8{
-            "zig",
             "objcopy",
             "-O",
-            if (self.format == .bin) "binary" else "hex",
+            if (self.format == .bin) "binary" else "ihex",
             in_path,
             self.out_path,
         }, self.builder, null, .ignore, .ignore, .Close, null, null, false);
@@ -57,7 +56,7 @@ pub fn addObjCopyStep(
     return objcopy_cmd;
 }
 
-const FlashTool = enum { jlink, stlink, stm32flash };
+const FlashTool = enum { jlink, stlink, stm32flash, mspdebug };
 
 const FlashStep = struct {
     builder: *std.build.Builder,
@@ -77,11 +76,11 @@ const FlashStep = struct {
         board: *const ezdl.Board,
     ) *FlashStep {
         const self = builder.allocator.create(FlashStep) catch unreachable;
-        const port = if (tool == .stm32flash) //
-            builder.option([]const u8, "port", "Serial port for flashing via stm32flash") orelse //
-                "/dev/ttyUSB0"
-        else
-            null;
+        const port = switch (tool) {
+            .stm32flash => builder.option([]const u8, "port", "Serial port for flashing via stm32flash") orelse board.port,
+            .mspdebug => builder.option([]const u8, "port", "Driver for flashing via mspdebug") orelse board.port,
+            else => null,
+        };
         self.* = FlashStep{
             .builder = builder,
             .step = std.build.Step.init(.run, name, builder.allocator, make),
@@ -93,11 +92,13 @@ const FlashStep = struct {
                 .jlink => "flash-jlink",
                 .stlink => "flash-stlink",
                 .stm32flash => "stm32flash",
+                .mspdebug => "flash-mspdebug",
             },
             .description = switch (tool) {
                 .jlink => "Flash using JLink",
                 .stlink => "Flash using stlink",
                 .stm32flash => "Flash using stm32flash",
+                .mspdebug => "Flash using mspdebug",
             },
         };
         return self;
@@ -108,6 +109,7 @@ const FlashStep = struct {
         switch (self.tool) {
             .jlink => try self.makeJLink(),
             .stm32flash => try self.makeStm32Flash(),
+            .mspdebug => try self.makeMspDebugFlash(),
             else => {},
         }
     }
@@ -128,10 +130,10 @@ const FlashStep = struct {
             \\si 1
             \\device {s}
             \\speed 4000
-            \\cont
+            \\con
             \\loadfile {s}
-            \\reset
-            \\go
+            \\r
+            \\g
             \\quit
             \\
         , .{
@@ -150,7 +152,24 @@ const FlashStep = struct {
             .Close,
             null,
             null,
-            true,
+            false,
+        );
+    }
+    fn makeMspDebugFlash(self: *FlashStep) !void {
+        const command = try std.mem.join(self.builder.allocator, " ", &.{
+            "load",
+            self.hex.out_path,
+        });
+        try std.build.RunStep.runCommand(
+            &[_][]const u8{ "mspdebug", self.port.?, command },
+            self.builder,
+            null,
+            .ignore,
+            .ignore,
+            .Close,
+            null,
+            null,
+            false,
         );
     }
 };

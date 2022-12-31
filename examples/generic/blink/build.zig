@@ -8,14 +8,14 @@ pub fn build(b: *std.build.Builder) anyerror!void {
     const exe = switch (ezdl.deviceFamily(board_settings.device)) {
         .msp430 => try ezdl.msp430.addExecutable(
             b,
-            "empty.elf",
+            "blink-msp430.elf",
             "main.zig",
             b.pathJoin(&.{ board_path, "board.zig" }),
             &board_settings,
         ),
         .stm32 => try ezdl.stm32.addExecutable(
             b,
-            "empty.elf",
+            "blink-stm32.elf",
             "main.zig",
             b.pathJoin(&.{ board_path, "board.zig" }),
             &board_settings,

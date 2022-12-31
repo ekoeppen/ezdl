@@ -13,7 +13,8 @@ SECTIONS
     } >rom
 
     .vectors : {
-        LONG(resetHandler)
+        . = 0xfffe;
+        SHORT(resetHandler)
     } >vectors
 
     . = ALIGN(2);
