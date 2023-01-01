@@ -47,6 +47,33 @@ pub fn Mmio(comptime size: u8, comptime PackedT: type) type {
             addr.write_raw(addr.read_raw() & mask | bits);
         }
 
+        pub fn set_raw(
+            comptime addr: *volatile Self,
+            comptime offset: std.meta.Int(.unsigned, size),
+            comptime width: std.meta.Int(.unsigned, size),
+        ) void {
+            const bits: IntT = (@as(IntT, (1 << width) - 1)) << offset;
+            addr.raw |= bits;
+        }
+
+        pub fn clear_raw(
+            comptime addr: *volatile Self,
+            comptime offset: std.meta.Int(.unsigned, size),
+            comptime width: std.meta.Int(.unsigned, size),
+        ) void {
+            const mask: IntT = ~((@as(IntT, (1 << width) - 1)) << offset);
+            addr.raw &= mask;
+        }
+
+        pub fn toggle_raw(
+            comptime addr: *volatile Self,
+            comptime offset: std.meta.Int(.unsigned, size),
+            comptime width: std.meta.Int(.unsigned, size),
+        ) void {
+            const bits: IntT = (@as(IntT, (1 << width) - 1)) << offset;
+            addr.raw ^= bits;
+        }
+
         pub inline fn write(addr: *volatile Self, val: PackedT) void {
             // This is a workaround for a compiler bug related to miscompilation
             // If the tmp var is not used, result location will fuck things up

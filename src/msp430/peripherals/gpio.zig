@@ -1,48 +1,70 @@
 const PullMode = enum { none, up, down };
-const OutputMode = enum { push_pull, open_drain };
+const AlternateFunction = enum { none, primary, secondary };
+const Direction = enum { input, output };
 
-const PinMode = enum { input, output, alternate };
-const Config = union(PinMode) {
-    input: struct { pull: PullMode = .none },
-    output: struct { pull: PullMode = .none, mode: OutputMode = .push_pull },
-    alternate: struct { pull: PullMode = .none, mode: OutputMode = .push_pull, function: u4 = 0 },
+const Config = struct {
+    pull: PullMode = .none,
+    direction: Direction = .input,
+    function: AlternateFunction = .none,
 };
 
-fn modify(comptime reg: anytype, comptime offset: u3, comptime width: u1, value: u8) void {
-    const mask: u8 = 0xff ^ (((1 << width) - 1) << offset);
-    const bits: u8 = value << offset;
-    reg.write_raw((reg.read_raw() & mask) | bits);
-}
-
-pub fn Gpio(comptime gpio: type, comptime pin: u8, comptime config: Config) type {
-    const pinBit: u8 = 1 << pin;
+pub fn Gpio(
+    comptime periph: anytype,
+    comptime pin: u8,
+    comptime config: Config,
+) type {
     return struct {
+        const pin_bit = @as(u8, 1) << pin;
         pub fn init() void {
             setConfig(config);
         }
 
         pub fn setConfig(c: Config) void {
-            switch (c) {
-                .input => modify(gpio.DIR, pin, 1, 0),
-                .output => modify(gpio.DIR, pin, 1, 1),
-                .alternate => {},
+            switch (c.direction) {
+                .input => periph.DIR.clear_raw(pin, 1),
+                .output => periph.DIR.set_raw(pin, 1),
+            }
+            switch (c.function) {
+                .none => {
+                    periph.SEL.clear_raw(pin, 1);
+                    periph.SEL2.clear_raw(pin, 1);
+                },
+                .primary => {
+                    periph.SEL.set_raw(pin, 1);
+                    periph.SEL2.clear_raw(pin, 1);
+                },
+                .secondary => {
+                    periph.SEL.set_raw(pin, 1);
+                    periph.SEL.set_raw(pin, 1);
+                },
+            }
+            switch (c.pull) {
+                .none => periph.REN.clear_raw(pin, 1),
+                .up => {
+                    periph.REN.set_raw(pin, 1);
+                    periph.OUT.set_raw(pin, 1);
+                },
+                .down => {
+                    periph.REN.set_raw(pin, 1);
+                    periph.OUT.clear_raw(pin, 1);
+                },
             }
         }
 
         pub fn isSet() bool {
-            return if (gpio.IN.read_raw() & pinBit) true else false;
+            return periph.IN.read_raw() & pin_bit == 1;
         }
 
         pub fn set() void {
-            modify(gpio.OUT, pin, 1, 1);
+            periph.OUT.set_raw(pin, 1);
         }
 
         pub fn clear() void {
-            modify(gpio.OUT, pin, 1, 0);
+            periph.OUT.clear_raw(pin, 1);
         }
 
         pub fn toggle() void {
-            gpio.OUT.write_raw(gpio.OUT.read_raw() ^ pinBit);
+            periph.OUT.toggle_raw(pin, 1);
         }
     };
 }
