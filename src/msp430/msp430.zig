@@ -45,7 +45,7 @@ pub fn addExecutable(
     exe.addPackage(board_pkg);
     exe.addPackage(info_pkg);
 
-    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
+    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.S"));
     startup.setTarget(target);
     startup.setBuildMode(b.standardReleaseOptions());
     exe.addObject(startup);

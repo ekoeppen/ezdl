@@ -157,7 +157,7 @@ const FlashStep = struct {
     }
     fn makeMspDebugFlash(self: *FlashStep) !void {
         const command = try std.mem.join(self.builder.allocator, " ", &.{
-            "load",
+            "prog",
             self.hex.out_path,
         });
         try std.build.RunStep.runCommand(
