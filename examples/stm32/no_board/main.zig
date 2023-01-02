@@ -25,7 +25,7 @@ export fn resetHandler() void {
 
 fn main() void {
     const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
-    svd.RCC.AHBENR.write(.{ .IOPAEN = 1 });
+    svd.RCC.AHBENR.modify(.{ .IOPAEN = 1 });
     led.init();
     led.set();
 }

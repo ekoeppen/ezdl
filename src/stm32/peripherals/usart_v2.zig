@@ -23,7 +23,7 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
                 .DIV_Fraction = ((frac_divider * 16) + 50) / 100 % 16,
                 .DIV_Mantissa = int_divider / 100,
             });
-            periph.CR3.write(.{
+            periph.CR3.modify(.{
                 .DMAT = if (config.tx_dma) 1 else 0,
                 .DMAR = if (config.rx_dma) 1 else 0,
             });

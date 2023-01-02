@@ -3,6 +3,8 @@
     "name": "Empty",
     "path": "examples/generic/empty",
     "boards": [
+      "ezdl/src/stm32/boards/nucleo_l031k6",
+      "ezdl/src/stm32/boards/nucleo_f103rb",
       "ezdl/src/stm32/boards/nucleo_f072rb",
       "ezdl/src/msp430/boards/exp_msp430g2"
     ]

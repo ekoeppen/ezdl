@@ -47,14 +47,19 @@ pub fn addExecutable(
         .name = "build_info",
         .source = .{ .path = "zig-cache/build_info.zig" },
     };
+    const mmio_pkg = std.build.Pkg{
+        .name = "mmio",
+        .source = .{ .path = ezdl.mkPath(@src(), "../mmio.zig") },
+    };
     const ezdl_pkg = std.build.Pkg{
         .name = "ezdl",
         .source = .{ .path = ezdl.mkPath(@src(), "../ezdl.zig") },
+        .dependencies = &.{mmio_pkg},
     };
     const board_pkg = std.build.Pkg{
         .name = "board",
         .source = .{ .path = board_file },
-        .dependencies = &.{ezdl_pkg},
+        .dependencies = &.{ ezdl_pkg, mmio_pkg },
     };
 
     exe.addPackage(ezdl_pkg);

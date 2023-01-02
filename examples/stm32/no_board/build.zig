@@ -9,6 +9,15 @@ pub fn build(b: *std.build.Builder) anyerror!void {
     });
     exe.setLinkerScriptPath(.{ .path = "linker.ld" });
     exe.setBuildMode(b.standardReleaseOptions());
-    exe.addPackagePath("ezdl", "ezdl/src/ezdl.zig");
+    const mmio_pkg = std.build.Pkg{
+        .name = "mmio",
+        .source = .{ .path = "ezdl/src/mmio.zig" },
+    };
+    const ezdl_pkg = std.build.Pkg{
+        .name = "ezdl",
+        .source = .{ .path = "ezdl/src/ezdl.zig" },
+        .dependencies = &.{mmio_pkg},
+    };
+    exe.addPackage(ezdl_pkg);
     exe.install();
 }

@@ -1,4 +1,4 @@
-pub fn Spi(comptime Periph: type) type {
+pub fn Spi(comptime Periph: anytype) type {
     return struct {
         const DR = @ptrCast(*volatile u8, Periph.DR.raw_ptr);
 

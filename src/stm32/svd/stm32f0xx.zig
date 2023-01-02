@@ -1,13481 +1,5344 @@
-pub fn Register(comptime R: type) type {
-    return RegisterRW(R, R);
-}
+const mmio = @import("mmio");
 
-pub fn RegisterRW(comptime Read: type, comptime Write: type) type {
-    return struct {
-        raw_ptr: *volatile u32,
-
-        const Self = @This();
-
-        pub fn init(address: usize) Self {
-            return Self{ .raw_ptr = @intToPtr(*volatile u32, address) };
-        }
-
-        pub fn initRange(address: usize, comptime dim_increment: usize, comptime num_registers: usize) [num_registers]Self {
-            var registers: [num_registers]Self = undefined;
-            var i: usize = 0;
-            while (i < num_registers) : (i += 1) {
-                registers[i] = Self.init(address + (i * dim_increment));
-            }
-            return registers;
-        }
-
-        pub fn read(self: Self) Read {
-            return @bitCast(Read, self.raw_ptr.*);
-        }
-
-        pub fn write(self: Self, value: Write) void {
-            // Forcing the alignment is a workaround for stores through
-            // volatile pointers generating multiple loads and stores.
-            // This is necessary for LLVM to generate code that can successfully
-            // modify MMIO registers that only allow word-sized stores.
-            // https://github.com/ziglang/zig/issues/8981#issuecomment-854911077
-            const aligned: Write align(4) = value;
-            self.raw_ptr.* = @ptrCast(*const u32, &aligned).*;
-        }
-
-        pub fn modify(self: Self, new_value: anytype) void {
-            if (Read != Write) {
-                @compileError("Can't modify because read and write types for this register aren't the same.");
-            }
-            var old_value = self.read();
-            const info = @typeInfo(@TypeOf(new_value));
-            inline for (info.Struct.fields) |field| {
-                @field(old_value, field.name) = @field(new_value, field.name);
-            }
-            self.write(old_value);
-        }
-
-        pub fn read_raw(self: Self) u32 {
-            return self.raw_ptr.*;
-        }
-
-        pub fn write_raw(self: Self, value: u32) void {
-            self.raw_ptr.* = value;
-        }
-
-        pub fn default_read_value(_: Self) Read {
-            return Read{};
-        }
-
-        pub fn default_write_value(_: Self) Write {
-            return Write{};
-        }
+pub const devices = struct {
+    ///  STM32F0xx
+    pub const STM32F0xx = struct {
+        ///  General-purpose-timers
+        pub const TIM2 = @intToPtr(*volatile types.TIM2, 0x40000000);
+        ///  General-purpose-timers
+        pub const TIM3 = @intToPtr(*volatile types.TIM2, 0x40000400);
+        ///  Basic-timers
+        pub const TIM6 = @intToPtr(*volatile types.TIM6, 0x40001000);
+        ///  General-purpose-timers
+        pub const TIM14 = @intToPtr(*volatile types.TIM14, 0x40002000);
+        ///  Real-time clock
+        pub const RTC = @intToPtr(*volatile types.RTC, 0x40002800);
+        ///  Window watchdog
+        pub const WWDG = @intToPtr(*volatile types.WWDG, 0x40002c00);
+        ///  Independent watchdog
+        pub const IWDG = @intToPtr(*volatile types.IWDG, 0x40003000);
+        ///  Serial peripheral interface
+        pub const SPI2 = @intToPtr(*volatile types.SPI1, 0x40003800);
+        ///  Universal synchronous asynchronous receiver transmitter
+        pub const USART2 = @intToPtr(*volatile types.USART1, 0x40004400);
+        ///  Inter-integrated circuit
+        pub const I2C1 = @intToPtr(*volatile types.I2C1, 0x40005400);
+        ///  Inter-integrated circuit
+        pub const I2C2 = @intToPtr(*volatile types.I2C1, 0x40005800);
+        ///  Power control
+        pub const PWR = @intToPtr(*volatile types.PWR, 0x40007000);
+        ///  Digital-to-analog converter
+        pub const DAC = @intToPtr(*volatile types.DAC, 0x40007400);
+        ///  HDMI-CEC controller
+        pub const CEC = @intToPtr(*volatile types.CEC, 0x40007800);
+        ///  System configuration controller
+        pub const SYSCFG = @intToPtr(*volatile types.SYSCFG, 0x40010000);
+        ///  Comparator
+        pub const COMP = @intToPtr(*volatile types.COMP, 0x4001001c);
+        ///  External interrupt/event controller
+        pub const EXTI = @intToPtr(*volatile types.EXTI, 0x40010400);
+        ///  Analog-to-digital converter
+        pub const ADC = @intToPtr(*volatile types.ADC, 0x40012400);
+        ///  Advanced-timers
+        pub const TIM1 = @intToPtr(*volatile types.TIM1, 0x40012c00);
+        ///  Serial peripheral interface
+        pub const SPI1 = @intToPtr(*volatile types.SPI1, 0x40013000);
+        ///  Universal synchronous asynchronous receiver transmitter
+        pub const USART1 = @intToPtr(*volatile types.USART1, 0x40013800);
+        ///  General-purpose-timers
+        pub const TIM15 = @intToPtr(*volatile types.TIM15, 0x40014000);
+        ///  General-purpose-timers
+        pub const TIM16 = @intToPtr(*volatile types.TIM16, 0x40014400);
+        ///  General-purpose-timers
+        pub const TIM17 = @intToPtr(*volatile types.TIM16, 0x40014800);
+        ///  Debug support
+        pub const DBGMCU = @intToPtr(*volatile types.DBGMCU, 0x40015800);
+        ///  DMA controller
+        pub const DMA = @intToPtr(*volatile types.DMA, 0x40020000);
+        ///  Reset and clock control
+        pub const RCC = @intToPtr(*volatile types.RCC, 0x40021000);
+        ///  Flash
+        pub const Flash = @intToPtr(*volatile types.Flash, 0x40022000);
+        ///  cyclic redundancy check calculation unit
+        pub const CRC = @intToPtr(*volatile types.CRC, 0x40023000);
+        ///  Touch sensing controller
+        pub const TSC = @intToPtr(*volatile types.TSC, 0x40024000);
+        ///  General-purpose I/Os
+        pub const GPIOA = @intToPtr(*volatile types.GPIOA, 0x48000000);
+        ///  General-purpose I/Os
+        pub const GPIOB = @intToPtr(*volatile types.GPIOF, 0x48000400);
+        ///  General-purpose I/Os
+        pub const GPIOC = @intToPtr(*volatile types.GPIOF, 0x48000800);
+        ///  General-purpose I/Os
+        pub const GPIOD = @intToPtr(*volatile types.GPIOF, 0x48000c00);
+        ///  General-purpose I/Os
+        pub const GPIOE = @intToPtr(*volatile types.GPIOF, 0x48001000);
+        ///  General-purpose I/Os
+        pub const GPIOF = @intToPtr(*volatile types.GPIOF, 0x48001400);
+        ///  Nested Vectored Interrupt Controller
+        pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e100);
     };
-}
-
-pub const device_name = "STM32F0xx";
-pub const device_revision = "1.0";
-pub const device_description = "STM32F0xx";
-
-/// cyclic redundancy check calculation
-pub const CRC = struct {
-
-const base_address = 0x40023000;
-/// DR
-const DR_val = packed struct {
-/// DR [0:31]
-/// Data register bits
-DR: u32 = 4294967295,
-};
-/// Data register
-pub const DR = Register(DR_val).init(base_address + 0x0);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR [0:7]
-/// General-purpose 8-bit data register
-IDR: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Independent data register
-pub const IDR = Register(IDR_val).init(base_address + 0x4);
-
-/// CR
-const CR_val = packed struct {
-/// RESET [0:0]
-/// reset bit
-RESET: u1 = 0,
-/// unused [1:4]
-_unused1: u4 = 0,
-/// REV_IN [5:6]
-/// Reverse input data
-REV_IN: u2 = 0,
-/// REV_OUT [7:7]
-/// Reverse output data
-REV_OUT: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Control register
-pub const CR = Register(CR_val).init(base_address + 0x8);
-
-/// INIT
-const INIT_val = packed struct {
-/// INIT [0:31]
-/// Programmable initial CRC
-INIT: u32 = 4294967295,
-};
-/// Initial CRC value
-pub const INIT = Register(INIT_val).init(base_address + 0xc);
-};
-
-/// General-purpose I/Os
-pub const GPIOF = struct {
-
-const base_address = 0x48001400;
-/// MODER
-const MODER_val = packed struct {
-/// MODER0 [0:1]
-/// Port x configuration bits (y =
-MODER0: u2 = 0,
-/// MODER1 [2:3]
-/// Port x configuration bits (y =
-MODER1: u2 = 0,
-/// MODER2 [4:5]
-/// Port x configuration bits (y =
-MODER2: u2 = 0,
-/// MODER3 [6:7]
-/// Port x configuration bits (y =
-MODER3: u2 = 0,
-/// MODER4 [8:9]
-/// Port x configuration bits (y =
-MODER4: u2 = 0,
-/// MODER5 [10:11]
-/// Port x configuration bits (y =
-MODER5: u2 = 0,
-/// MODER6 [12:13]
-/// Port x configuration bits (y =
-MODER6: u2 = 0,
-/// MODER7 [14:15]
-/// Port x configuration bits (y =
-MODER7: u2 = 0,
-/// MODER8 [16:17]
-/// Port x configuration bits (y =
-MODER8: u2 = 0,
-/// MODER9 [18:19]
-/// Port x configuration bits (y =
-MODER9: u2 = 0,
-/// MODER10 [20:21]
-/// Port x configuration bits (y =
-MODER10: u2 = 0,
-/// MODER11 [22:23]
-/// Port x configuration bits (y =
-MODER11: u2 = 0,
-/// MODER12 [24:25]
-/// Port x configuration bits (y =
-MODER12: u2 = 0,
-/// MODER13 [26:27]
-/// Port x configuration bits (y =
-MODER13: u2 = 0,
-/// MODER14 [28:29]
-/// Port x configuration bits (y =
-MODER14: u2 = 0,
-/// MODER15 [30:31]
-/// Port x configuration bits (y =
-MODER15: u2 = 0,
-};
-/// GPIO port mode register
-pub const MODER = Register(MODER_val).init(base_address + 0x0);
-
-/// OTYPER
-const OTYPER_val = packed struct {
-/// OT0 [0:0]
-/// Port x configuration bit 0
-OT0: u1 = 0,
-/// OT1 [1:1]
-/// Port x configuration bit 1
-OT1: u1 = 0,
-/// OT2 [2:2]
-/// Port x configuration bit 2
-OT2: u1 = 0,
-/// OT3 [3:3]
-/// Port x configuration bit 3
-OT3: u1 = 0,
-/// OT4 [4:4]
-/// Port x configuration bit 4
-OT4: u1 = 0,
-/// OT5 [5:5]
-/// Port x configuration bit 5
-OT5: u1 = 0,
-/// OT6 [6:6]
-/// Port x configuration bit 6
-OT6: u1 = 0,
-/// OT7 [7:7]
-/// Port x configuration bit 7
-OT7: u1 = 0,
-/// OT8 [8:8]
-/// Port x configuration bit 8
-OT8: u1 = 0,
-/// OT9 [9:9]
-/// Port x configuration bit 9
-OT9: u1 = 0,
-/// OT10 [10:10]
-/// Port x configuration bit
-OT10: u1 = 0,
-/// OT11 [11:11]
-/// Port x configuration bit
-OT11: u1 = 0,
-/// OT12 [12:12]
-/// Port x configuration bit
-OT12: u1 = 0,
-/// OT13 [13:13]
-/// Port x configuration bit
-OT13: u1 = 0,
-/// OT14 [14:14]
-/// Port x configuration bit
-OT14: u1 = 0,
-/// OT15 [15:15]
-/// Port x configuration bit
-OT15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output type register
-pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
-
-/// OSPEEDR
-const OSPEEDR_val = packed struct {
-/// OSPEEDR0 [0:1]
-/// Port x configuration bits (y =
-OSPEEDR0: u2 = 0,
-/// OSPEEDR1 [2:3]
-/// Port x configuration bits (y =
-OSPEEDR1: u2 = 0,
-/// OSPEEDR2 [4:5]
-/// Port x configuration bits (y =
-OSPEEDR2: u2 = 0,
-/// OSPEEDR3 [6:7]
-/// Port x configuration bits (y =
-OSPEEDR3: u2 = 0,
-/// OSPEEDR4 [8:9]
-/// Port x configuration bits (y =
-OSPEEDR4: u2 = 0,
-/// OSPEEDR5 [10:11]
-/// Port x configuration bits (y =
-OSPEEDR5: u2 = 0,
-/// OSPEEDR6 [12:13]
-/// Port x configuration bits (y =
-OSPEEDR6: u2 = 0,
-/// OSPEEDR7 [14:15]
-/// Port x configuration bits (y =
-OSPEEDR7: u2 = 0,
-/// OSPEEDR8 [16:17]
-/// Port x configuration bits (y =
-OSPEEDR8: u2 = 0,
-/// OSPEEDR9 [18:19]
-/// Port x configuration bits (y =
-OSPEEDR9: u2 = 0,
-/// OSPEEDR10 [20:21]
-/// Port x configuration bits (y =
-OSPEEDR10: u2 = 0,
-/// OSPEEDR11 [22:23]
-/// Port x configuration bits (y =
-OSPEEDR11: u2 = 0,
-/// OSPEEDR12 [24:25]
-/// Port x configuration bits (y =
-OSPEEDR12: u2 = 0,
-/// OSPEEDR13 [26:27]
-/// Port x configuration bits (y =
-OSPEEDR13: u2 = 0,
-/// OSPEEDR14 [28:29]
-/// Port x configuration bits (y =
-OSPEEDR14: u2 = 0,
-/// OSPEEDR15 [30:31]
-/// Port x configuration bits (y =
-OSPEEDR15: u2 = 0,
-};
-/// GPIO port output speed
-pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
-
-/// PUPDR
-const PUPDR_val = packed struct {
-/// PUPDR0 [0:1]
-/// Port x configuration bits (y =
-PUPDR0: u2 = 0,
-/// PUPDR1 [2:3]
-/// Port x configuration bits (y =
-PUPDR1: u2 = 0,
-/// PUPDR2 [4:5]
-/// Port x configuration bits (y =
-PUPDR2: u2 = 0,
-/// PUPDR3 [6:7]
-/// Port x configuration bits (y =
-PUPDR3: u2 = 0,
-/// PUPDR4 [8:9]
-/// Port x configuration bits (y =
-PUPDR4: u2 = 0,
-/// PUPDR5 [10:11]
-/// Port x configuration bits (y =
-PUPDR5: u2 = 0,
-/// PUPDR6 [12:13]
-/// Port x configuration bits (y =
-PUPDR6: u2 = 0,
-/// PUPDR7 [14:15]
-/// Port x configuration bits (y =
-PUPDR7: u2 = 0,
-/// PUPDR8 [16:17]
-/// Port x configuration bits (y =
-PUPDR8: u2 = 0,
-/// PUPDR9 [18:19]
-/// Port x configuration bits (y =
-PUPDR9: u2 = 0,
-/// PUPDR10 [20:21]
-/// Port x configuration bits (y =
-PUPDR10: u2 = 0,
-/// PUPDR11 [22:23]
-/// Port x configuration bits (y =
-PUPDR11: u2 = 0,
-/// PUPDR12 [24:25]
-/// Port x configuration bits (y =
-PUPDR12: u2 = 0,
-/// PUPDR13 [26:27]
-/// Port x configuration bits (y =
-PUPDR13: u2 = 0,
-/// PUPDR14 [28:29]
-/// Port x configuration bits (y =
-PUPDR14: u2 = 0,
-/// PUPDR15 [30:31]
-/// Port x configuration bits (y =
-PUPDR15: u2 = 0,
-};
-/// GPIO port pull-up/pull-down
-pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR0 [0:0]
-/// Port input data (y =
-IDR0: u1 = 0,
-/// IDR1 [1:1]
-/// Port input data (y =
-IDR1: u1 = 0,
-/// IDR2 [2:2]
-/// Port input data (y =
-IDR2: u1 = 0,
-/// IDR3 [3:3]
-/// Port input data (y =
-IDR3: u1 = 0,
-/// IDR4 [4:4]
-/// Port input data (y =
-IDR4: u1 = 0,
-/// IDR5 [5:5]
-/// Port input data (y =
-IDR5: u1 = 0,
-/// IDR6 [6:6]
-/// Port input data (y =
-IDR6: u1 = 0,
-/// IDR7 [7:7]
-/// Port input data (y =
-IDR7: u1 = 0,
-/// IDR8 [8:8]
-/// Port input data (y =
-IDR8: u1 = 0,
-/// IDR9 [9:9]
-/// Port input data (y =
-IDR9: u1 = 0,
-/// IDR10 [10:10]
-/// Port input data (y =
-IDR10: u1 = 0,
-/// IDR11 [11:11]
-/// Port input data (y =
-IDR11: u1 = 0,
-/// IDR12 [12:12]
-/// Port input data (y =
-IDR12: u1 = 0,
-/// IDR13 [13:13]
-/// Port input data (y =
-IDR13: u1 = 0,
-/// IDR14 [14:14]
-/// Port input data (y =
-IDR14: u1 = 0,
-/// IDR15 [15:15]
-/// Port input data (y =
-IDR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port input data register
-pub const IDR = Register(IDR_val).init(base_address + 0x10);
-
-/// ODR
-const ODR_val = packed struct {
-/// ODR0 [0:0]
-/// Port output data (y =
-ODR0: u1 = 0,
-/// ODR1 [1:1]
-/// Port output data (y =
-ODR1: u1 = 0,
-/// ODR2 [2:2]
-/// Port output data (y =
-ODR2: u1 = 0,
-/// ODR3 [3:3]
-/// Port output data (y =
-ODR3: u1 = 0,
-/// ODR4 [4:4]
-/// Port output data (y =
-ODR4: u1 = 0,
-/// ODR5 [5:5]
-/// Port output data (y =
-ODR5: u1 = 0,
-/// ODR6 [6:6]
-/// Port output data (y =
-ODR6: u1 = 0,
-/// ODR7 [7:7]
-/// Port output data (y =
-ODR7: u1 = 0,
-/// ODR8 [8:8]
-/// Port output data (y =
-ODR8: u1 = 0,
-/// ODR9 [9:9]
-/// Port output data (y =
-ODR9: u1 = 0,
-/// ODR10 [10:10]
-/// Port output data (y =
-ODR10: u1 = 0,
-/// ODR11 [11:11]
-/// Port output data (y =
-ODR11: u1 = 0,
-/// ODR12 [12:12]
-/// Port output data (y =
-ODR12: u1 = 0,
-/// ODR13 [13:13]
-/// Port output data (y =
-ODR13: u1 = 0,
-/// ODR14 [14:14]
-/// Port output data (y =
-ODR14: u1 = 0,
-/// ODR15 [15:15]
-/// Port output data (y =
-ODR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output data register
-pub const ODR = Register(ODR_val).init(base_address + 0x14);
-
-/// BSRR
-const BSRR_val = packed struct {
-/// BS0 [0:0]
-/// Port x set bit y (y=
-BS0: u1 = 0,
-/// BS1 [1:1]
-/// Port x set bit y (y=
-BS1: u1 = 0,
-/// BS2 [2:2]
-/// Port x set bit y (y=
-BS2: u1 = 0,
-/// BS3 [3:3]
-/// Port x set bit y (y=
-BS3: u1 = 0,
-/// BS4 [4:4]
-/// Port x set bit y (y=
-BS4: u1 = 0,
-/// BS5 [5:5]
-/// Port x set bit y (y=
-BS5: u1 = 0,
-/// BS6 [6:6]
-/// Port x set bit y (y=
-BS6: u1 = 0,
-/// BS7 [7:7]
-/// Port x set bit y (y=
-BS7: u1 = 0,
-/// BS8 [8:8]
-/// Port x set bit y (y=
-BS8: u1 = 0,
-/// BS9 [9:9]
-/// Port x set bit y (y=
-BS9: u1 = 0,
-/// BS10 [10:10]
-/// Port x set bit y (y=
-BS10: u1 = 0,
-/// BS11 [11:11]
-/// Port x set bit y (y=
-BS11: u1 = 0,
-/// BS12 [12:12]
-/// Port x set bit y (y=
-BS12: u1 = 0,
-/// BS13 [13:13]
-/// Port x set bit y (y=
-BS13: u1 = 0,
-/// BS14 [14:14]
-/// Port x set bit y (y=
-BS14: u1 = 0,
-/// BS15 [15:15]
-/// Port x set bit y (y=
-BS15: u1 = 0,
-/// BR0 [16:16]
-/// Port x set bit y (y=
-BR0: u1 = 0,
-/// BR1 [17:17]
-/// Port x reset bit y (y =
-BR1: u1 = 0,
-/// BR2 [18:18]
-/// Port x reset bit y (y =
-BR2: u1 = 0,
-/// BR3 [19:19]
-/// Port x reset bit y (y =
-BR3: u1 = 0,
-/// BR4 [20:20]
-/// Port x reset bit y (y =
-BR4: u1 = 0,
-/// BR5 [21:21]
-/// Port x reset bit y (y =
-BR5: u1 = 0,
-/// BR6 [22:22]
-/// Port x reset bit y (y =
-BR6: u1 = 0,
-/// BR7 [23:23]
-/// Port x reset bit y (y =
-BR7: u1 = 0,
-/// BR8 [24:24]
-/// Port x reset bit y (y =
-BR8: u1 = 0,
-/// BR9 [25:25]
-/// Port x reset bit y (y =
-BR9: u1 = 0,
-/// BR10 [26:26]
-/// Port x reset bit y (y =
-BR10: u1 = 0,
-/// BR11 [27:27]
-/// Port x reset bit y (y =
-BR11: u1 = 0,
-/// BR12 [28:28]
-/// Port x reset bit y (y =
-BR12: u1 = 0,
-/// BR13 [29:29]
-/// Port x reset bit y (y =
-BR13: u1 = 0,
-/// BR14 [30:30]
-/// Port x reset bit y (y =
-BR14: u1 = 0,
-/// BR15 [31:31]
-/// Port x reset bit y (y =
-BR15: u1 = 0,
-};
-/// GPIO port bit set/reset
-pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
-
-/// LCKR
-const LCKR_val = packed struct {
-/// LCK0 [0:0]
-/// Port x lock bit y (y=
-LCK0: u1 = 0,
-/// LCK1 [1:1]
-/// Port x lock bit y (y=
-LCK1: u1 = 0,
-/// LCK2 [2:2]
-/// Port x lock bit y (y=
-LCK2: u1 = 0,
-/// LCK3 [3:3]
-/// Port x lock bit y (y=
-LCK3: u1 = 0,
-/// LCK4 [4:4]
-/// Port x lock bit y (y=
-LCK4: u1 = 0,
-/// LCK5 [5:5]
-/// Port x lock bit y (y=
-LCK5: u1 = 0,
-/// LCK6 [6:6]
-/// Port x lock bit y (y=
-LCK6: u1 = 0,
-/// LCK7 [7:7]
-/// Port x lock bit y (y=
-LCK7: u1 = 0,
-/// LCK8 [8:8]
-/// Port x lock bit y (y=
-LCK8: u1 = 0,
-/// LCK9 [9:9]
-/// Port x lock bit y (y=
-LCK9: u1 = 0,
-/// LCK10 [10:10]
-/// Port x lock bit y (y=
-LCK10: u1 = 0,
-/// LCK11 [11:11]
-/// Port x lock bit y (y=
-LCK11: u1 = 0,
-/// LCK12 [12:12]
-/// Port x lock bit y (y=
-LCK12: u1 = 0,
-/// LCK13 [13:13]
-/// Port x lock bit y (y=
-LCK13: u1 = 0,
-/// LCK14 [14:14]
-/// Port x lock bit y (y=
-LCK14: u1 = 0,
-/// LCK15 [15:15]
-/// Port x lock bit y (y=
-LCK15: u1 = 0,
-/// LCKK [16:16]
-/// Port x lock bit y
-LCKK: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port configuration lock
-pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
-
-/// AFRL
-const AFRL_val = packed struct {
-/// AFRL0 [0:3]
-/// Alternate function selection for port x
-AFRL0: u4 = 0,
-/// AFRL1 [4:7]
-/// Alternate function selection for port x
-AFRL1: u4 = 0,
-/// AFRL2 [8:11]
-/// Alternate function selection for port x
-AFRL2: u4 = 0,
-/// AFRL3 [12:15]
-/// Alternate function selection for port x
-AFRL3: u4 = 0,
-/// AFRL4 [16:19]
-/// Alternate function selection for port x
-AFRL4: u4 = 0,
-/// AFRL5 [20:23]
-/// Alternate function selection for port x
-AFRL5: u4 = 0,
-/// AFRL6 [24:27]
-/// Alternate function selection for port x
-AFRL6: u4 = 0,
-/// AFRL7 [28:31]
-/// Alternate function selection for port x
-AFRL7: u4 = 0,
-};
-/// GPIO alternate function low
-pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
-
-/// AFRH
-const AFRH_val = packed struct {
-/// AFRH8 [0:3]
-/// Alternate function selection for port x
-AFRH8: u4 = 0,
-/// AFRH9 [4:7]
-/// Alternate function selection for port x
-AFRH9: u4 = 0,
-/// AFRH10 [8:11]
-/// Alternate function selection for port x
-AFRH10: u4 = 0,
-/// AFRH11 [12:15]
-/// Alternate function selection for port x
-AFRH11: u4 = 0,
-/// AFRH12 [16:19]
-/// Alternate function selection for port x
-AFRH12: u4 = 0,
-/// AFRH13 [20:23]
-/// Alternate function selection for port x
-AFRH13: u4 = 0,
-/// AFRH14 [24:27]
-/// Alternate function selection for port x
-AFRH14: u4 = 0,
-/// AFRH15 [28:31]
-/// Alternate function selection for port x
-AFRH15: u4 = 0,
-};
-/// GPIO alternate function high
-pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
-
-/// BRR
-const BRR_val = packed struct {
-/// BR0 [0:0]
-/// Port x Reset bit y
-BR0: u1 = 0,
-/// BR1 [1:1]
-/// Port x Reset bit y
-BR1: u1 = 0,
-/// BR2 [2:2]
-/// Port x Reset bit y
-BR2: u1 = 0,
-/// BR3 [3:3]
-/// Port x Reset bit y
-BR3: u1 = 0,
-/// BR4 [4:4]
-/// Port x Reset bit y
-BR4: u1 = 0,
-/// BR5 [5:5]
-/// Port x Reset bit y
-BR5: u1 = 0,
-/// BR6 [6:6]
-/// Port x Reset bit y
-BR6: u1 = 0,
-/// BR7 [7:7]
-/// Port x Reset bit y
-BR7: u1 = 0,
-/// BR8 [8:8]
-/// Port x Reset bit y
-BR8: u1 = 0,
-/// BR9 [9:9]
-/// Port x Reset bit y
-BR9: u1 = 0,
-/// BR10 [10:10]
-/// Port x Reset bit y
-BR10: u1 = 0,
-/// BR11 [11:11]
-/// Port x Reset bit y
-BR11: u1 = 0,
-/// BR12 [12:12]
-/// Port x Reset bit y
-BR12: u1 = 0,
-/// BR13 [13:13]
-/// Port x Reset bit y
-BR13: u1 = 0,
-/// BR14 [14:14]
-/// Port x Reset bit y
-BR14: u1 = 0,
-/// BR15 [15:15]
-/// Port x Reset bit y
-BR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Port bit reset register
-pub const BRR = Register(BRR_val).init(base_address + 0x28);
-};
-
-/// General-purpose I/Os
-pub const GPIOD = struct {
-
-const base_address = 0x48000c00;
-/// MODER
-const MODER_val = packed struct {
-/// MODER0 [0:1]
-/// Port x configuration bits (y =
-MODER0: u2 = 0,
-/// MODER1 [2:3]
-/// Port x configuration bits (y =
-MODER1: u2 = 0,
-/// MODER2 [4:5]
-/// Port x configuration bits (y =
-MODER2: u2 = 0,
-/// MODER3 [6:7]
-/// Port x configuration bits (y =
-MODER3: u2 = 0,
-/// MODER4 [8:9]
-/// Port x configuration bits (y =
-MODER4: u2 = 0,
-/// MODER5 [10:11]
-/// Port x configuration bits (y =
-MODER5: u2 = 0,
-/// MODER6 [12:13]
-/// Port x configuration bits (y =
-MODER6: u2 = 0,
-/// MODER7 [14:15]
-/// Port x configuration bits (y =
-MODER7: u2 = 0,
-/// MODER8 [16:17]
-/// Port x configuration bits (y =
-MODER8: u2 = 0,
-/// MODER9 [18:19]
-/// Port x configuration bits (y =
-MODER9: u2 = 0,
-/// MODER10 [20:21]
-/// Port x configuration bits (y =
-MODER10: u2 = 0,
-/// MODER11 [22:23]
-/// Port x configuration bits (y =
-MODER11: u2 = 0,
-/// MODER12 [24:25]
-/// Port x configuration bits (y =
-MODER12: u2 = 0,
-/// MODER13 [26:27]
-/// Port x configuration bits (y =
-MODER13: u2 = 0,
-/// MODER14 [28:29]
-/// Port x configuration bits (y =
-MODER14: u2 = 0,
-/// MODER15 [30:31]
-/// Port x configuration bits (y =
-MODER15: u2 = 0,
-};
-/// GPIO port mode register
-pub const MODER = Register(MODER_val).init(base_address + 0x0);
-
-/// OTYPER
-const OTYPER_val = packed struct {
-/// OT0 [0:0]
-/// Port x configuration bit 0
-OT0: u1 = 0,
-/// OT1 [1:1]
-/// Port x configuration bit 1
-OT1: u1 = 0,
-/// OT2 [2:2]
-/// Port x configuration bit 2
-OT2: u1 = 0,
-/// OT3 [3:3]
-/// Port x configuration bit 3
-OT3: u1 = 0,
-/// OT4 [4:4]
-/// Port x configuration bit 4
-OT4: u1 = 0,
-/// OT5 [5:5]
-/// Port x configuration bit 5
-OT5: u1 = 0,
-/// OT6 [6:6]
-/// Port x configuration bit 6
-OT6: u1 = 0,
-/// OT7 [7:7]
-/// Port x configuration bit 7
-OT7: u1 = 0,
-/// OT8 [8:8]
-/// Port x configuration bit 8
-OT8: u1 = 0,
-/// OT9 [9:9]
-/// Port x configuration bit 9
-OT9: u1 = 0,
-/// OT10 [10:10]
-/// Port x configuration bit
-OT10: u1 = 0,
-/// OT11 [11:11]
-/// Port x configuration bit
-OT11: u1 = 0,
-/// OT12 [12:12]
-/// Port x configuration bit
-OT12: u1 = 0,
-/// OT13 [13:13]
-/// Port x configuration bit
-OT13: u1 = 0,
-/// OT14 [14:14]
-/// Port x configuration bit
-OT14: u1 = 0,
-/// OT15 [15:15]
-/// Port x configuration bit
-OT15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output type register
-pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
-
-/// OSPEEDR
-const OSPEEDR_val = packed struct {
-/// OSPEEDR0 [0:1]
-/// Port x configuration bits (y =
-OSPEEDR0: u2 = 0,
-/// OSPEEDR1 [2:3]
-/// Port x configuration bits (y =
-OSPEEDR1: u2 = 0,
-/// OSPEEDR2 [4:5]
-/// Port x configuration bits (y =
-OSPEEDR2: u2 = 0,
-/// OSPEEDR3 [6:7]
-/// Port x configuration bits (y =
-OSPEEDR3: u2 = 0,
-/// OSPEEDR4 [8:9]
-/// Port x configuration bits (y =
-OSPEEDR4: u2 = 0,
-/// OSPEEDR5 [10:11]
-/// Port x configuration bits (y =
-OSPEEDR5: u2 = 0,
-/// OSPEEDR6 [12:13]
-/// Port x configuration bits (y =
-OSPEEDR6: u2 = 0,
-/// OSPEEDR7 [14:15]
-/// Port x configuration bits (y =
-OSPEEDR7: u2 = 0,
-/// OSPEEDR8 [16:17]
-/// Port x configuration bits (y =
-OSPEEDR8: u2 = 0,
-/// OSPEEDR9 [18:19]
-/// Port x configuration bits (y =
-OSPEEDR9: u2 = 0,
-/// OSPEEDR10 [20:21]
-/// Port x configuration bits (y =
-OSPEEDR10: u2 = 0,
-/// OSPEEDR11 [22:23]
-/// Port x configuration bits (y =
-OSPEEDR11: u2 = 0,
-/// OSPEEDR12 [24:25]
-/// Port x configuration bits (y =
-OSPEEDR12: u2 = 0,
-/// OSPEEDR13 [26:27]
-/// Port x configuration bits (y =
-OSPEEDR13: u2 = 0,
-/// OSPEEDR14 [28:29]
-/// Port x configuration bits (y =
-OSPEEDR14: u2 = 0,
-/// OSPEEDR15 [30:31]
-/// Port x configuration bits (y =
-OSPEEDR15: u2 = 0,
-};
-/// GPIO port output speed
-pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
-
-/// PUPDR
-const PUPDR_val = packed struct {
-/// PUPDR0 [0:1]
-/// Port x configuration bits (y =
-PUPDR0: u2 = 0,
-/// PUPDR1 [2:3]
-/// Port x configuration bits (y =
-PUPDR1: u2 = 0,
-/// PUPDR2 [4:5]
-/// Port x configuration bits (y =
-PUPDR2: u2 = 0,
-/// PUPDR3 [6:7]
-/// Port x configuration bits (y =
-PUPDR3: u2 = 0,
-/// PUPDR4 [8:9]
-/// Port x configuration bits (y =
-PUPDR4: u2 = 0,
-/// PUPDR5 [10:11]
-/// Port x configuration bits (y =
-PUPDR5: u2 = 0,
-/// PUPDR6 [12:13]
-/// Port x configuration bits (y =
-PUPDR6: u2 = 0,
-/// PUPDR7 [14:15]
-/// Port x configuration bits (y =
-PUPDR7: u2 = 0,
-/// PUPDR8 [16:17]
-/// Port x configuration bits (y =
-PUPDR8: u2 = 0,
-/// PUPDR9 [18:19]
-/// Port x configuration bits (y =
-PUPDR9: u2 = 0,
-/// PUPDR10 [20:21]
-/// Port x configuration bits (y =
-PUPDR10: u2 = 0,
-/// PUPDR11 [22:23]
-/// Port x configuration bits (y =
-PUPDR11: u2 = 0,
-/// PUPDR12 [24:25]
-/// Port x configuration bits (y =
-PUPDR12: u2 = 0,
-/// PUPDR13 [26:27]
-/// Port x configuration bits (y =
-PUPDR13: u2 = 0,
-/// PUPDR14 [28:29]
-/// Port x configuration bits (y =
-PUPDR14: u2 = 0,
-/// PUPDR15 [30:31]
-/// Port x configuration bits (y =
-PUPDR15: u2 = 0,
-};
-/// GPIO port pull-up/pull-down
-pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR0 [0:0]
-/// Port input data (y =
-IDR0: u1 = 0,
-/// IDR1 [1:1]
-/// Port input data (y =
-IDR1: u1 = 0,
-/// IDR2 [2:2]
-/// Port input data (y =
-IDR2: u1 = 0,
-/// IDR3 [3:3]
-/// Port input data (y =
-IDR3: u1 = 0,
-/// IDR4 [4:4]
-/// Port input data (y =
-IDR4: u1 = 0,
-/// IDR5 [5:5]
-/// Port input data (y =
-IDR5: u1 = 0,
-/// IDR6 [6:6]
-/// Port input data (y =
-IDR6: u1 = 0,
-/// IDR7 [7:7]
-/// Port input data (y =
-IDR7: u1 = 0,
-/// IDR8 [8:8]
-/// Port input data (y =
-IDR8: u1 = 0,
-/// IDR9 [9:9]
-/// Port input data (y =
-IDR9: u1 = 0,
-/// IDR10 [10:10]
-/// Port input data (y =
-IDR10: u1 = 0,
-/// IDR11 [11:11]
-/// Port input data (y =
-IDR11: u1 = 0,
-/// IDR12 [12:12]
-/// Port input data (y =
-IDR12: u1 = 0,
-/// IDR13 [13:13]
-/// Port input data (y =
-IDR13: u1 = 0,
-/// IDR14 [14:14]
-/// Port input data (y =
-IDR14: u1 = 0,
-/// IDR15 [15:15]
-/// Port input data (y =
-IDR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port input data register
-pub const IDR = Register(IDR_val).init(base_address + 0x10);
-
-/// ODR
-const ODR_val = packed struct {
-/// ODR0 [0:0]
-/// Port output data (y =
-ODR0: u1 = 0,
-/// ODR1 [1:1]
-/// Port output data (y =
-ODR1: u1 = 0,
-/// ODR2 [2:2]
-/// Port output data (y =
-ODR2: u1 = 0,
-/// ODR3 [3:3]
-/// Port output data (y =
-ODR3: u1 = 0,
-/// ODR4 [4:4]
-/// Port output data (y =
-ODR4: u1 = 0,
-/// ODR5 [5:5]
-/// Port output data (y =
-ODR5: u1 = 0,
-/// ODR6 [6:6]
-/// Port output data (y =
-ODR6: u1 = 0,
-/// ODR7 [7:7]
-/// Port output data (y =
-ODR7: u1 = 0,
-/// ODR8 [8:8]
-/// Port output data (y =
-ODR8: u1 = 0,
-/// ODR9 [9:9]
-/// Port output data (y =
-ODR9: u1 = 0,
-/// ODR10 [10:10]
-/// Port output data (y =
-ODR10: u1 = 0,
-/// ODR11 [11:11]
-/// Port output data (y =
-ODR11: u1 = 0,
-/// ODR12 [12:12]
-/// Port output data (y =
-ODR12: u1 = 0,
-/// ODR13 [13:13]
-/// Port output data (y =
-ODR13: u1 = 0,
-/// ODR14 [14:14]
-/// Port output data (y =
-ODR14: u1 = 0,
-/// ODR15 [15:15]
-/// Port output data (y =
-ODR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output data register
-pub const ODR = Register(ODR_val).init(base_address + 0x14);
-
-/// BSRR
-const BSRR_val = packed struct {
-/// BS0 [0:0]
-/// Port x set bit y (y=
-BS0: u1 = 0,
-/// BS1 [1:1]
-/// Port x set bit y (y=
-BS1: u1 = 0,
-/// BS2 [2:2]
-/// Port x set bit y (y=
-BS2: u1 = 0,
-/// BS3 [3:3]
-/// Port x set bit y (y=
-BS3: u1 = 0,
-/// BS4 [4:4]
-/// Port x set bit y (y=
-BS4: u1 = 0,
-/// BS5 [5:5]
-/// Port x set bit y (y=
-BS5: u1 = 0,
-/// BS6 [6:6]
-/// Port x set bit y (y=
-BS6: u1 = 0,
-/// BS7 [7:7]
-/// Port x set bit y (y=
-BS7: u1 = 0,
-/// BS8 [8:8]
-/// Port x set bit y (y=
-BS8: u1 = 0,
-/// BS9 [9:9]
-/// Port x set bit y (y=
-BS9: u1 = 0,
-/// BS10 [10:10]
-/// Port x set bit y (y=
-BS10: u1 = 0,
-/// BS11 [11:11]
-/// Port x set bit y (y=
-BS11: u1 = 0,
-/// BS12 [12:12]
-/// Port x set bit y (y=
-BS12: u1 = 0,
-/// BS13 [13:13]
-/// Port x set bit y (y=
-BS13: u1 = 0,
-/// BS14 [14:14]
-/// Port x set bit y (y=
-BS14: u1 = 0,
-/// BS15 [15:15]
-/// Port x set bit y (y=
-BS15: u1 = 0,
-/// BR0 [16:16]
-/// Port x set bit y (y=
-BR0: u1 = 0,
-/// BR1 [17:17]
-/// Port x reset bit y (y =
-BR1: u1 = 0,
-/// BR2 [18:18]
-/// Port x reset bit y (y =
-BR2: u1 = 0,
-/// BR3 [19:19]
-/// Port x reset bit y (y =
-BR3: u1 = 0,
-/// BR4 [20:20]
-/// Port x reset bit y (y =
-BR4: u1 = 0,
-/// BR5 [21:21]
-/// Port x reset bit y (y =
-BR5: u1 = 0,
-/// BR6 [22:22]
-/// Port x reset bit y (y =
-BR6: u1 = 0,
-/// BR7 [23:23]
-/// Port x reset bit y (y =
-BR7: u1 = 0,
-/// BR8 [24:24]
-/// Port x reset bit y (y =
-BR8: u1 = 0,
-/// BR9 [25:25]
-/// Port x reset bit y (y =
-BR9: u1 = 0,
-/// BR10 [26:26]
-/// Port x reset bit y (y =
-BR10: u1 = 0,
-/// BR11 [27:27]
-/// Port x reset bit y (y =
-BR11: u1 = 0,
-/// BR12 [28:28]
-/// Port x reset bit y (y =
-BR12: u1 = 0,
-/// BR13 [29:29]
-/// Port x reset bit y (y =
-BR13: u1 = 0,
-/// BR14 [30:30]
-/// Port x reset bit y (y =
-BR14: u1 = 0,
-/// BR15 [31:31]
-/// Port x reset bit y (y =
-BR15: u1 = 0,
-};
-/// GPIO port bit set/reset
-pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
-
-/// LCKR
-const LCKR_val = packed struct {
-/// LCK0 [0:0]
-/// Port x lock bit y (y=
-LCK0: u1 = 0,
-/// LCK1 [1:1]
-/// Port x lock bit y (y=
-LCK1: u1 = 0,
-/// LCK2 [2:2]
-/// Port x lock bit y (y=
-LCK2: u1 = 0,
-/// LCK3 [3:3]
-/// Port x lock bit y (y=
-LCK3: u1 = 0,
-/// LCK4 [4:4]
-/// Port x lock bit y (y=
-LCK4: u1 = 0,
-/// LCK5 [5:5]
-/// Port x lock bit y (y=
-LCK5: u1 = 0,
-/// LCK6 [6:6]
-/// Port x lock bit y (y=
-LCK6: u1 = 0,
-/// LCK7 [7:7]
-/// Port x lock bit y (y=
-LCK7: u1 = 0,
-/// LCK8 [8:8]
-/// Port x lock bit y (y=
-LCK8: u1 = 0,
-/// LCK9 [9:9]
-/// Port x lock bit y (y=
-LCK9: u1 = 0,
-/// LCK10 [10:10]
-/// Port x lock bit y (y=
-LCK10: u1 = 0,
-/// LCK11 [11:11]
-/// Port x lock bit y (y=
-LCK11: u1 = 0,
-/// LCK12 [12:12]
-/// Port x lock bit y (y=
-LCK12: u1 = 0,
-/// LCK13 [13:13]
-/// Port x lock bit y (y=
-LCK13: u1 = 0,
-/// LCK14 [14:14]
-/// Port x lock bit y (y=
-LCK14: u1 = 0,
-/// LCK15 [15:15]
-/// Port x lock bit y (y=
-LCK15: u1 = 0,
-/// LCKK [16:16]
-/// Port x lock bit y
-LCKK: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port configuration lock
-pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
-
-/// AFRL
-const AFRL_val = packed struct {
-/// AFRL0 [0:3]
-/// Alternate function selection for port x
-AFRL0: u4 = 0,
-/// AFRL1 [4:7]
-/// Alternate function selection for port x
-AFRL1: u4 = 0,
-/// AFRL2 [8:11]
-/// Alternate function selection for port x
-AFRL2: u4 = 0,
-/// AFRL3 [12:15]
-/// Alternate function selection for port x
-AFRL3: u4 = 0,
-/// AFRL4 [16:19]
-/// Alternate function selection for port x
-AFRL4: u4 = 0,
-/// AFRL5 [20:23]
-/// Alternate function selection for port x
-AFRL5: u4 = 0,
-/// AFRL6 [24:27]
-/// Alternate function selection for port x
-AFRL6: u4 = 0,
-/// AFRL7 [28:31]
-/// Alternate function selection for port x
-AFRL7: u4 = 0,
-};
-/// GPIO alternate function low
-pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
-
-/// AFRH
-const AFRH_val = packed struct {
-/// AFRH8 [0:3]
-/// Alternate function selection for port x
-AFRH8: u4 = 0,
-/// AFRH9 [4:7]
-/// Alternate function selection for port x
-AFRH9: u4 = 0,
-/// AFRH10 [8:11]
-/// Alternate function selection for port x
-AFRH10: u4 = 0,
-/// AFRH11 [12:15]
-/// Alternate function selection for port x
-AFRH11: u4 = 0,
-/// AFRH12 [16:19]
-/// Alternate function selection for port x
-AFRH12: u4 = 0,
-/// AFRH13 [20:23]
-/// Alternate function selection for port x
-AFRH13: u4 = 0,
-/// AFRH14 [24:27]
-/// Alternate function selection for port x
-AFRH14: u4 = 0,
-/// AFRH15 [28:31]
-/// Alternate function selection for port x
-AFRH15: u4 = 0,
-};
-/// GPIO alternate function high
-pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
-
-/// BRR
-const BRR_val = packed struct {
-/// BR0 [0:0]
-/// Port x Reset bit y
-BR0: u1 = 0,
-/// BR1 [1:1]
-/// Port x Reset bit y
-BR1: u1 = 0,
-/// BR2 [2:2]
-/// Port x Reset bit y
-BR2: u1 = 0,
-/// BR3 [3:3]
-/// Port x Reset bit y
-BR3: u1 = 0,
-/// BR4 [4:4]
-/// Port x Reset bit y
-BR4: u1 = 0,
-/// BR5 [5:5]
-/// Port x Reset bit y
-BR5: u1 = 0,
-/// BR6 [6:6]
-/// Port x Reset bit y
-BR6: u1 = 0,
-/// BR7 [7:7]
-/// Port x Reset bit y
-BR7: u1 = 0,
-/// BR8 [8:8]
-/// Port x Reset bit y
-BR8: u1 = 0,
-/// BR9 [9:9]
-/// Port x Reset bit y
-BR9: u1 = 0,
-/// BR10 [10:10]
-/// Port x Reset bit y
-BR10: u1 = 0,
-/// BR11 [11:11]
-/// Port x Reset bit y
-BR11: u1 = 0,
-/// BR12 [12:12]
-/// Port x Reset bit y
-BR12: u1 = 0,
-/// BR13 [13:13]
-/// Port x Reset bit y
-BR13: u1 = 0,
-/// BR14 [14:14]
-/// Port x Reset bit y
-BR14: u1 = 0,
-/// BR15 [15:15]
-/// Port x Reset bit y
-BR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Port bit reset register
-pub const BRR = Register(BRR_val).init(base_address + 0x28);
-};
-
-/// General-purpose I/Os
-pub const GPIOC = struct {
-
-const base_address = 0x48000800;
-/// MODER
-const MODER_val = packed struct {
-/// MODER0 [0:1]
-/// Port x configuration bits (y =
-MODER0: u2 = 0,
-/// MODER1 [2:3]
-/// Port x configuration bits (y =
-MODER1: u2 = 0,
-/// MODER2 [4:5]
-/// Port x configuration bits (y =
-MODER2: u2 = 0,
-/// MODER3 [6:7]
-/// Port x configuration bits (y =
-MODER3: u2 = 0,
-/// MODER4 [8:9]
-/// Port x configuration bits (y =
-MODER4: u2 = 0,
-/// MODER5 [10:11]
-/// Port x configuration bits (y =
-MODER5: u2 = 0,
-/// MODER6 [12:13]
-/// Port x configuration bits (y =
-MODER6: u2 = 0,
-/// MODER7 [14:15]
-/// Port x configuration bits (y =
-MODER7: u2 = 0,
-/// MODER8 [16:17]
-/// Port x configuration bits (y =
-MODER8: u2 = 0,
-/// MODER9 [18:19]
-/// Port x configuration bits (y =
-MODER9: u2 = 0,
-/// MODER10 [20:21]
-/// Port x configuration bits (y =
-MODER10: u2 = 0,
-/// MODER11 [22:23]
-/// Port x configuration bits (y =
-MODER11: u2 = 0,
-/// MODER12 [24:25]
-/// Port x configuration bits (y =
-MODER12: u2 = 0,
-/// MODER13 [26:27]
-/// Port x configuration bits (y =
-MODER13: u2 = 0,
-/// MODER14 [28:29]
-/// Port x configuration bits (y =
-MODER14: u2 = 0,
-/// MODER15 [30:31]
-/// Port x configuration bits (y =
-MODER15: u2 = 0,
-};
-/// GPIO port mode register
-pub const MODER = Register(MODER_val).init(base_address + 0x0);
-
-/// OTYPER
-const OTYPER_val = packed struct {
-/// OT0 [0:0]
-/// Port x configuration bit 0
-OT0: u1 = 0,
-/// OT1 [1:1]
-/// Port x configuration bit 1
-OT1: u1 = 0,
-/// OT2 [2:2]
-/// Port x configuration bit 2
-OT2: u1 = 0,
-/// OT3 [3:3]
-/// Port x configuration bit 3
-OT3: u1 = 0,
-/// OT4 [4:4]
-/// Port x configuration bit 4
-OT4: u1 = 0,
-/// OT5 [5:5]
-/// Port x configuration bit 5
-OT5: u1 = 0,
-/// OT6 [6:6]
-/// Port x configuration bit 6
-OT6: u1 = 0,
-/// OT7 [7:7]
-/// Port x configuration bit 7
-OT7: u1 = 0,
-/// OT8 [8:8]
-/// Port x configuration bit 8
-OT8: u1 = 0,
-/// OT9 [9:9]
-/// Port x configuration bit 9
-OT9: u1 = 0,
-/// OT10 [10:10]
-/// Port x configuration bit
-OT10: u1 = 0,
-/// OT11 [11:11]
-/// Port x configuration bit
-OT11: u1 = 0,
-/// OT12 [12:12]
-/// Port x configuration bit
-OT12: u1 = 0,
-/// OT13 [13:13]
-/// Port x configuration bit
-OT13: u1 = 0,
-/// OT14 [14:14]
-/// Port x configuration bit
-OT14: u1 = 0,
-/// OT15 [15:15]
-/// Port x configuration bit
-OT15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output type register
-pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
-
-/// OSPEEDR
-const OSPEEDR_val = packed struct {
-/// OSPEEDR0 [0:1]
-/// Port x configuration bits (y =
-OSPEEDR0: u2 = 0,
-/// OSPEEDR1 [2:3]
-/// Port x configuration bits (y =
-OSPEEDR1: u2 = 0,
-/// OSPEEDR2 [4:5]
-/// Port x configuration bits (y =
-OSPEEDR2: u2 = 0,
-/// OSPEEDR3 [6:7]
-/// Port x configuration bits (y =
-OSPEEDR3: u2 = 0,
-/// OSPEEDR4 [8:9]
-/// Port x configuration bits (y =
-OSPEEDR4: u2 = 0,
-/// OSPEEDR5 [10:11]
-/// Port x configuration bits (y =
-OSPEEDR5: u2 = 0,
-/// OSPEEDR6 [12:13]
-/// Port x configuration bits (y =
-OSPEEDR6: u2 = 0,
-/// OSPEEDR7 [14:15]
-/// Port x configuration bits (y =
-OSPEEDR7: u2 = 0,
-/// OSPEEDR8 [16:17]
-/// Port x configuration bits (y =
-OSPEEDR8: u2 = 0,
-/// OSPEEDR9 [18:19]
-/// Port x configuration bits (y =
-OSPEEDR9: u2 = 0,
-/// OSPEEDR10 [20:21]
-/// Port x configuration bits (y =
-OSPEEDR10: u2 = 0,
-/// OSPEEDR11 [22:23]
-/// Port x configuration bits (y =
-OSPEEDR11: u2 = 0,
-/// OSPEEDR12 [24:25]
-/// Port x configuration bits (y =
-OSPEEDR12: u2 = 0,
-/// OSPEEDR13 [26:27]
-/// Port x configuration bits (y =
-OSPEEDR13: u2 = 0,
-/// OSPEEDR14 [28:29]
-/// Port x configuration bits (y =
-OSPEEDR14: u2 = 0,
-/// OSPEEDR15 [30:31]
-/// Port x configuration bits (y =
-OSPEEDR15: u2 = 0,
-};
-/// GPIO port output speed
-pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
-
-/// PUPDR
-const PUPDR_val = packed struct {
-/// PUPDR0 [0:1]
-/// Port x configuration bits (y =
-PUPDR0: u2 = 0,
-/// PUPDR1 [2:3]
-/// Port x configuration bits (y =
-PUPDR1: u2 = 0,
-/// PUPDR2 [4:5]
-/// Port x configuration bits (y =
-PUPDR2: u2 = 0,
-/// PUPDR3 [6:7]
-/// Port x configuration bits (y =
-PUPDR3: u2 = 0,
-/// PUPDR4 [8:9]
-/// Port x configuration bits (y =
-PUPDR4: u2 = 0,
-/// PUPDR5 [10:11]
-/// Port x configuration bits (y =
-PUPDR5: u2 = 0,
-/// PUPDR6 [12:13]
-/// Port x configuration bits (y =
-PUPDR6: u2 = 0,
-/// PUPDR7 [14:15]
-/// Port x configuration bits (y =
-PUPDR7: u2 = 0,
-/// PUPDR8 [16:17]
-/// Port x configuration bits (y =
-PUPDR8: u2 = 0,
-/// PUPDR9 [18:19]
-/// Port x configuration bits (y =
-PUPDR9: u2 = 0,
-/// PUPDR10 [20:21]
-/// Port x configuration bits (y =
-PUPDR10: u2 = 0,
-/// PUPDR11 [22:23]
-/// Port x configuration bits (y =
-PUPDR11: u2 = 0,
-/// PUPDR12 [24:25]
-/// Port x configuration bits (y =
-PUPDR12: u2 = 0,
-/// PUPDR13 [26:27]
-/// Port x configuration bits (y =
-PUPDR13: u2 = 0,
-/// PUPDR14 [28:29]
-/// Port x configuration bits (y =
-PUPDR14: u2 = 0,
-/// PUPDR15 [30:31]
-/// Port x configuration bits (y =
-PUPDR15: u2 = 0,
-};
-/// GPIO port pull-up/pull-down
-pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR0 [0:0]
-/// Port input data (y =
-IDR0: u1 = 0,
-/// IDR1 [1:1]
-/// Port input data (y =
-IDR1: u1 = 0,
-/// IDR2 [2:2]
-/// Port input data (y =
-IDR2: u1 = 0,
-/// IDR3 [3:3]
-/// Port input data (y =
-IDR3: u1 = 0,
-/// IDR4 [4:4]
-/// Port input data (y =
-IDR4: u1 = 0,
-/// IDR5 [5:5]
-/// Port input data (y =
-IDR5: u1 = 0,
-/// IDR6 [6:6]
-/// Port input data (y =
-IDR6: u1 = 0,
-/// IDR7 [7:7]
-/// Port input data (y =
-IDR7: u1 = 0,
-/// IDR8 [8:8]
-/// Port input data (y =
-IDR8: u1 = 0,
-/// IDR9 [9:9]
-/// Port input data (y =
-IDR9: u1 = 0,
-/// IDR10 [10:10]
-/// Port input data (y =
-IDR10: u1 = 0,
-/// IDR11 [11:11]
-/// Port input data (y =
-IDR11: u1 = 0,
-/// IDR12 [12:12]
-/// Port input data (y =
-IDR12: u1 = 0,
-/// IDR13 [13:13]
-/// Port input data (y =
-IDR13: u1 = 0,
-/// IDR14 [14:14]
-/// Port input data (y =
-IDR14: u1 = 0,
-/// IDR15 [15:15]
-/// Port input data (y =
-IDR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port input data register
-pub const IDR = Register(IDR_val).init(base_address + 0x10);
-
-/// ODR
-const ODR_val = packed struct {
-/// ODR0 [0:0]
-/// Port output data (y =
-ODR0: u1 = 0,
-/// ODR1 [1:1]
-/// Port output data (y =
-ODR1: u1 = 0,
-/// ODR2 [2:2]
-/// Port output data (y =
-ODR2: u1 = 0,
-/// ODR3 [3:3]
-/// Port output data (y =
-ODR3: u1 = 0,
-/// ODR4 [4:4]
-/// Port output data (y =
-ODR4: u1 = 0,
-/// ODR5 [5:5]
-/// Port output data (y =
-ODR5: u1 = 0,
-/// ODR6 [6:6]
-/// Port output data (y =
-ODR6: u1 = 0,
-/// ODR7 [7:7]
-/// Port output data (y =
-ODR7: u1 = 0,
-/// ODR8 [8:8]
-/// Port output data (y =
-ODR8: u1 = 0,
-/// ODR9 [9:9]
-/// Port output data (y =
-ODR9: u1 = 0,
-/// ODR10 [10:10]
-/// Port output data (y =
-ODR10: u1 = 0,
-/// ODR11 [11:11]
-/// Port output data (y =
-ODR11: u1 = 0,
-/// ODR12 [12:12]
-/// Port output data (y =
-ODR12: u1 = 0,
-/// ODR13 [13:13]
-/// Port output data (y =
-ODR13: u1 = 0,
-/// ODR14 [14:14]
-/// Port output data (y =
-ODR14: u1 = 0,
-/// ODR15 [15:15]
-/// Port output data (y =
-ODR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output data register
-pub const ODR = Register(ODR_val).init(base_address + 0x14);
-
-/// BSRR
-const BSRR_val = packed struct {
-/// BS0 [0:0]
-/// Port x set bit y (y=
-BS0: u1 = 0,
-/// BS1 [1:1]
-/// Port x set bit y (y=
-BS1: u1 = 0,
-/// BS2 [2:2]
-/// Port x set bit y (y=
-BS2: u1 = 0,
-/// BS3 [3:3]
-/// Port x set bit y (y=
-BS3: u1 = 0,
-/// BS4 [4:4]
-/// Port x set bit y (y=
-BS4: u1 = 0,
-/// BS5 [5:5]
-/// Port x set bit y (y=
-BS5: u1 = 0,
-/// BS6 [6:6]
-/// Port x set bit y (y=
-BS6: u1 = 0,
-/// BS7 [7:7]
-/// Port x set bit y (y=
-BS7: u1 = 0,
-/// BS8 [8:8]
-/// Port x set bit y (y=
-BS8: u1 = 0,
-/// BS9 [9:9]
-/// Port x set bit y (y=
-BS9: u1 = 0,
-/// BS10 [10:10]
-/// Port x set bit y (y=
-BS10: u1 = 0,
-/// BS11 [11:11]
-/// Port x set bit y (y=
-BS11: u1 = 0,
-/// BS12 [12:12]
-/// Port x set bit y (y=
-BS12: u1 = 0,
-/// BS13 [13:13]
-/// Port x set bit y (y=
-BS13: u1 = 0,
-/// BS14 [14:14]
-/// Port x set bit y (y=
-BS14: u1 = 0,
-/// BS15 [15:15]
-/// Port x set bit y (y=
-BS15: u1 = 0,
-/// BR0 [16:16]
-/// Port x set bit y (y=
-BR0: u1 = 0,
-/// BR1 [17:17]
-/// Port x reset bit y (y =
-BR1: u1 = 0,
-/// BR2 [18:18]
-/// Port x reset bit y (y =
-BR2: u1 = 0,
-/// BR3 [19:19]
-/// Port x reset bit y (y =
-BR3: u1 = 0,
-/// BR4 [20:20]
-/// Port x reset bit y (y =
-BR4: u1 = 0,
-/// BR5 [21:21]
-/// Port x reset bit y (y =
-BR5: u1 = 0,
-/// BR6 [22:22]
-/// Port x reset bit y (y =
-BR6: u1 = 0,
-/// BR7 [23:23]
-/// Port x reset bit y (y =
-BR7: u1 = 0,
-/// BR8 [24:24]
-/// Port x reset bit y (y =
-BR8: u1 = 0,
-/// BR9 [25:25]
-/// Port x reset bit y (y =
-BR9: u1 = 0,
-/// BR10 [26:26]
-/// Port x reset bit y (y =
-BR10: u1 = 0,
-/// BR11 [27:27]
-/// Port x reset bit y (y =
-BR11: u1 = 0,
-/// BR12 [28:28]
-/// Port x reset bit y (y =
-BR12: u1 = 0,
-/// BR13 [29:29]
-/// Port x reset bit y (y =
-BR13: u1 = 0,
-/// BR14 [30:30]
-/// Port x reset bit y (y =
-BR14: u1 = 0,
-/// BR15 [31:31]
-/// Port x reset bit y (y =
-BR15: u1 = 0,
-};
-/// GPIO port bit set/reset
-pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
-
-/// LCKR
-const LCKR_val = packed struct {
-/// LCK0 [0:0]
-/// Port x lock bit y (y=
-LCK0: u1 = 0,
-/// LCK1 [1:1]
-/// Port x lock bit y (y=
-LCK1: u1 = 0,
-/// LCK2 [2:2]
-/// Port x lock bit y (y=
-LCK2: u1 = 0,
-/// LCK3 [3:3]
-/// Port x lock bit y (y=
-LCK3: u1 = 0,
-/// LCK4 [4:4]
-/// Port x lock bit y (y=
-LCK4: u1 = 0,
-/// LCK5 [5:5]
-/// Port x lock bit y (y=
-LCK5: u1 = 0,
-/// LCK6 [6:6]
-/// Port x lock bit y (y=
-LCK6: u1 = 0,
-/// LCK7 [7:7]
-/// Port x lock bit y (y=
-LCK7: u1 = 0,
-/// LCK8 [8:8]
-/// Port x lock bit y (y=
-LCK8: u1 = 0,
-/// LCK9 [9:9]
-/// Port x lock bit y (y=
-LCK9: u1 = 0,
-/// LCK10 [10:10]
-/// Port x lock bit y (y=
-LCK10: u1 = 0,
-/// LCK11 [11:11]
-/// Port x lock bit y (y=
-LCK11: u1 = 0,
-/// LCK12 [12:12]
-/// Port x lock bit y (y=
-LCK12: u1 = 0,
-/// LCK13 [13:13]
-/// Port x lock bit y (y=
-LCK13: u1 = 0,
-/// LCK14 [14:14]
-/// Port x lock bit y (y=
-LCK14: u1 = 0,
-/// LCK15 [15:15]
-/// Port x lock bit y (y=
-LCK15: u1 = 0,
-/// LCKK [16:16]
-/// Port x lock bit y
-LCKK: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port configuration lock
-pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
-
-/// AFRL
-const AFRL_val = packed struct {
-/// AFRL0 [0:3]
-/// Alternate function selection for port x
-AFRL0: u4 = 0,
-/// AFRL1 [4:7]
-/// Alternate function selection for port x
-AFRL1: u4 = 0,
-/// AFRL2 [8:11]
-/// Alternate function selection for port x
-AFRL2: u4 = 0,
-/// AFRL3 [12:15]
-/// Alternate function selection for port x
-AFRL3: u4 = 0,
-/// AFRL4 [16:19]
-/// Alternate function selection for port x
-AFRL4: u4 = 0,
-/// AFRL5 [20:23]
-/// Alternate function selection for port x
-AFRL5: u4 = 0,
-/// AFRL6 [24:27]
-/// Alternate function selection for port x
-AFRL6: u4 = 0,
-/// AFRL7 [28:31]
-/// Alternate function selection for port x
-AFRL7: u4 = 0,
-};
-/// GPIO alternate function low
-pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
-
-/// AFRH
-const AFRH_val = packed struct {
-/// AFRH8 [0:3]
-/// Alternate function selection for port x
-AFRH8: u4 = 0,
-/// AFRH9 [4:7]
-/// Alternate function selection for port x
-AFRH9: u4 = 0,
-/// AFRH10 [8:11]
-/// Alternate function selection for port x
-AFRH10: u4 = 0,
-/// AFRH11 [12:15]
-/// Alternate function selection for port x
-AFRH11: u4 = 0,
-/// AFRH12 [16:19]
-/// Alternate function selection for port x
-AFRH12: u4 = 0,
-/// AFRH13 [20:23]
-/// Alternate function selection for port x
-AFRH13: u4 = 0,
-/// AFRH14 [24:27]
-/// Alternate function selection for port x
-AFRH14: u4 = 0,
-/// AFRH15 [28:31]
-/// Alternate function selection for port x
-AFRH15: u4 = 0,
-};
-/// GPIO alternate function high
-pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
-
-/// BRR
-const BRR_val = packed struct {
-/// BR0 [0:0]
-/// Port x Reset bit y
-BR0: u1 = 0,
-/// BR1 [1:1]
-/// Port x Reset bit y
-BR1: u1 = 0,
-/// BR2 [2:2]
-/// Port x Reset bit y
-BR2: u1 = 0,
-/// BR3 [3:3]
-/// Port x Reset bit y
-BR3: u1 = 0,
-/// BR4 [4:4]
-/// Port x Reset bit y
-BR4: u1 = 0,
-/// BR5 [5:5]
-/// Port x Reset bit y
-BR5: u1 = 0,
-/// BR6 [6:6]
-/// Port x Reset bit y
-BR6: u1 = 0,
-/// BR7 [7:7]
-/// Port x Reset bit y
-BR7: u1 = 0,
-/// BR8 [8:8]
-/// Port x Reset bit y
-BR8: u1 = 0,
-/// BR9 [9:9]
-/// Port x Reset bit y
-BR9: u1 = 0,
-/// BR10 [10:10]
-/// Port x Reset bit y
-BR10: u1 = 0,
-/// BR11 [11:11]
-/// Port x Reset bit y
-BR11: u1 = 0,
-/// BR12 [12:12]
-/// Port x Reset bit y
-BR12: u1 = 0,
-/// BR13 [13:13]
-/// Port x Reset bit y
-BR13: u1 = 0,
-/// BR14 [14:14]
-/// Port x Reset bit y
-BR14: u1 = 0,
-/// BR15 [15:15]
-/// Port x Reset bit y
-BR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Port bit reset register
-pub const BRR = Register(BRR_val).init(base_address + 0x28);
-};
-
-/// General-purpose I/Os
-pub const GPIOB = struct {
-
-const base_address = 0x48000400;
-/// MODER
-const MODER_val = packed struct {
-/// MODER0 [0:1]
-/// Port x configuration bits (y =
-MODER0: u2 = 0,
-/// MODER1 [2:3]
-/// Port x configuration bits (y =
-MODER1: u2 = 0,
-/// MODER2 [4:5]
-/// Port x configuration bits (y =
-MODER2: u2 = 0,
-/// MODER3 [6:7]
-/// Port x configuration bits (y =
-MODER3: u2 = 0,
-/// MODER4 [8:9]
-/// Port x configuration bits (y =
-MODER4: u2 = 0,
-/// MODER5 [10:11]
-/// Port x configuration bits (y =
-MODER5: u2 = 0,
-/// MODER6 [12:13]
-/// Port x configuration bits (y =
-MODER6: u2 = 0,
-/// MODER7 [14:15]
-/// Port x configuration bits (y =
-MODER7: u2 = 0,
-/// MODER8 [16:17]
-/// Port x configuration bits (y =
-MODER8: u2 = 0,
-/// MODER9 [18:19]
-/// Port x configuration bits (y =
-MODER9: u2 = 0,
-/// MODER10 [20:21]
-/// Port x configuration bits (y =
-MODER10: u2 = 0,
-/// MODER11 [22:23]
-/// Port x configuration bits (y =
-MODER11: u2 = 0,
-/// MODER12 [24:25]
-/// Port x configuration bits (y =
-MODER12: u2 = 0,
-/// MODER13 [26:27]
-/// Port x configuration bits (y =
-MODER13: u2 = 0,
-/// MODER14 [28:29]
-/// Port x configuration bits (y =
-MODER14: u2 = 0,
-/// MODER15 [30:31]
-/// Port x configuration bits (y =
-MODER15: u2 = 0,
-};
-/// GPIO port mode register
-pub const MODER = Register(MODER_val).init(base_address + 0x0);
-
-/// OTYPER
-const OTYPER_val = packed struct {
-/// OT0 [0:0]
-/// Port x configuration bit 0
-OT0: u1 = 0,
-/// OT1 [1:1]
-/// Port x configuration bit 1
-OT1: u1 = 0,
-/// OT2 [2:2]
-/// Port x configuration bit 2
-OT2: u1 = 0,
-/// OT3 [3:3]
-/// Port x configuration bit 3
-OT3: u1 = 0,
-/// OT4 [4:4]
-/// Port x configuration bit 4
-OT4: u1 = 0,
-/// OT5 [5:5]
-/// Port x configuration bit 5
-OT5: u1 = 0,
-/// OT6 [6:6]
-/// Port x configuration bit 6
-OT6: u1 = 0,
-/// OT7 [7:7]
-/// Port x configuration bit 7
-OT7: u1 = 0,
-/// OT8 [8:8]
-/// Port x configuration bit 8
-OT8: u1 = 0,
-/// OT9 [9:9]
-/// Port x configuration bit 9
-OT9: u1 = 0,
-/// OT10 [10:10]
-/// Port x configuration bit
-OT10: u1 = 0,
-/// OT11 [11:11]
-/// Port x configuration bit
-OT11: u1 = 0,
-/// OT12 [12:12]
-/// Port x configuration bit
-OT12: u1 = 0,
-/// OT13 [13:13]
-/// Port x configuration bit
-OT13: u1 = 0,
-/// OT14 [14:14]
-/// Port x configuration bit
-OT14: u1 = 0,
-/// OT15 [15:15]
-/// Port x configuration bit
-OT15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output type register
-pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
-
-/// OSPEEDR
-const OSPEEDR_val = packed struct {
-/// OSPEEDR0 [0:1]
-/// Port x configuration bits (y =
-OSPEEDR0: u2 = 0,
-/// OSPEEDR1 [2:3]
-/// Port x configuration bits (y =
-OSPEEDR1: u2 = 0,
-/// OSPEEDR2 [4:5]
-/// Port x configuration bits (y =
-OSPEEDR2: u2 = 0,
-/// OSPEEDR3 [6:7]
-/// Port x configuration bits (y =
-OSPEEDR3: u2 = 0,
-/// OSPEEDR4 [8:9]
-/// Port x configuration bits (y =
-OSPEEDR4: u2 = 0,
-/// OSPEEDR5 [10:11]
-/// Port x configuration bits (y =
-OSPEEDR5: u2 = 0,
-/// OSPEEDR6 [12:13]
-/// Port x configuration bits (y =
-OSPEEDR6: u2 = 0,
-/// OSPEEDR7 [14:15]
-/// Port x configuration bits (y =
-OSPEEDR7: u2 = 0,
-/// OSPEEDR8 [16:17]
-/// Port x configuration bits (y =
-OSPEEDR8: u2 = 0,
-/// OSPEEDR9 [18:19]
-/// Port x configuration bits (y =
-OSPEEDR9: u2 = 0,
-/// OSPEEDR10 [20:21]
-/// Port x configuration bits (y =
-OSPEEDR10: u2 = 0,
-/// OSPEEDR11 [22:23]
-/// Port x configuration bits (y =
-OSPEEDR11: u2 = 0,
-/// OSPEEDR12 [24:25]
-/// Port x configuration bits (y =
-OSPEEDR12: u2 = 0,
-/// OSPEEDR13 [26:27]
-/// Port x configuration bits (y =
-OSPEEDR13: u2 = 0,
-/// OSPEEDR14 [28:29]
-/// Port x configuration bits (y =
-OSPEEDR14: u2 = 0,
-/// OSPEEDR15 [30:31]
-/// Port x configuration bits (y =
-OSPEEDR15: u2 = 0,
-};
-/// GPIO port output speed
-pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
-
-/// PUPDR
-const PUPDR_val = packed struct {
-/// PUPDR0 [0:1]
-/// Port x configuration bits (y =
-PUPDR0: u2 = 0,
-/// PUPDR1 [2:3]
-/// Port x configuration bits (y =
-PUPDR1: u2 = 0,
-/// PUPDR2 [4:5]
-/// Port x configuration bits (y =
-PUPDR2: u2 = 0,
-/// PUPDR3 [6:7]
-/// Port x configuration bits (y =
-PUPDR3: u2 = 0,
-/// PUPDR4 [8:9]
-/// Port x configuration bits (y =
-PUPDR4: u2 = 0,
-/// PUPDR5 [10:11]
-/// Port x configuration bits (y =
-PUPDR5: u2 = 0,
-/// PUPDR6 [12:13]
-/// Port x configuration bits (y =
-PUPDR6: u2 = 0,
-/// PUPDR7 [14:15]
-/// Port x configuration bits (y =
-PUPDR7: u2 = 0,
-/// PUPDR8 [16:17]
-/// Port x configuration bits (y =
-PUPDR8: u2 = 0,
-/// PUPDR9 [18:19]
-/// Port x configuration bits (y =
-PUPDR9: u2 = 0,
-/// PUPDR10 [20:21]
-/// Port x configuration bits (y =
-PUPDR10: u2 = 0,
-/// PUPDR11 [22:23]
-/// Port x configuration bits (y =
-PUPDR11: u2 = 0,
-/// PUPDR12 [24:25]
-/// Port x configuration bits (y =
-PUPDR12: u2 = 0,
-/// PUPDR13 [26:27]
-/// Port x configuration bits (y =
-PUPDR13: u2 = 0,
-/// PUPDR14 [28:29]
-/// Port x configuration bits (y =
-PUPDR14: u2 = 0,
-/// PUPDR15 [30:31]
-/// Port x configuration bits (y =
-PUPDR15: u2 = 0,
-};
-/// GPIO port pull-up/pull-down
-pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR0 [0:0]
-/// Port input data (y =
-IDR0: u1 = 0,
-/// IDR1 [1:1]
-/// Port input data (y =
-IDR1: u1 = 0,
-/// IDR2 [2:2]
-/// Port input data (y =
-IDR2: u1 = 0,
-/// IDR3 [3:3]
-/// Port input data (y =
-IDR3: u1 = 0,
-/// IDR4 [4:4]
-/// Port input data (y =
-IDR4: u1 = 0,
-/// IDR5 [5:5]
-/// Port input data (y =
-IDR5: u1 = 0,
-/// IDR6 [6:6]
-/// Port input data (y =
-IDR6: u1 = 0,
-/// IDR7 [7:7]
-/// Port input data (y =
-IDR7: u1 = 0,
-/// IDR8 [8:8]
-/// Port input data (y =
-IDR8: u1 = 0,
-/// IDR9 [9:9]
-/// Port input data (y =
-IDR9: u1 = 0,
-/// IDR10 [10:10]
-/// Port input data (y =
-IDR10: u1 = 0,
-/// IDR11 [11:11]
-/// Port input data (y =
-IDR11: u1 = 0,
-/// IDR12 [12:12]
-/// Port input data (y =
-IDR12: u1 = 0,
-/// IDR13 [13:13]
-/// Port input data (y =
-IDR13: u1 = 0,
-/// IDR14 [14:14]
-/// Port input data (y =
-IDR14: u1 = 0,
-/// IDR15 [15:15]
-/// Port input data (y =
-IDR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port input data register
-pub const IDR = Register(IDR_val).init(base_address + 0x10);
-
-/// ODR
-const ODR_val = packed struct {
-/// ODR0 [0:0]
-/// Port output data (y =
-ODR0: u1 = 0,
-/// ODR1 [1:1]
-/// Port output data (y =
-ODR1: u1 = 0,
-/// ODR2 [2:2]
-/// Port output data (y =
-ODR2: u1 = 0,
-/// ODR3 [3:3]
-/// Port output data (y =
-ODR3: u1 = 0,
-/// ODR4 [4:4]
-/// Port output data (y =
-ODR4: u1 = 0,
-/// ODR5 [5:5]
-/// Port output data (y =
-ODR5: u1 = 0,
-/// ODR6 [6:6]
-/// Port output data (y =
-ODR6: u1 = 0,
-/// ODR7 [7:7]
-/// Port output data (y =
-ODR7: u1 = 0,
-/// ODR8 [8:8]
-/// Port output data (y =
-ODR8: u1 = 0,
-/// ODR9 [9:9]
-/// Port output data (y =
-ODR9: u1 = 0,
-/// ODR10 [10:10]
-/// Port output data (y =
-ODR10: u1 = 0,
-/// ODR11 [11:11]
-/// Port output data (y =
-ODR11: u1 = 0,
-/// ODR12 [12:12]
-/// Port output data (y =
-ODR12: u1 = 0,
-/// ODR13 [13:13]
-/// Port output data (y =
-ODR13: u1 = 0,
-/// ODR14 [14:14]
-/// Port output data (y =
-ODR14: u1 = 0,
-/// ODR15 [15:15]
-/// Port output data (y =
-ODR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output data register
-pub const ODR = Register(ODR_val).init(base_address + 0x14);
-
-/// BSRR
-const BSRR_val = packed struct {
-/// BS0 [0:0]
-/// Port x set bit y (y=
-BS0: u1 = 0,
-/// BS1 [1:1]
-/// Port x set bit y (y=
-BS1: u1 = 0,
-/// BS2 [2:2]
-/// Port x set bit y (y=
-BS2: u1 = 0,
-/// BS3 [3:3]
-/// Port x set bit y (y=
-BS3: u1 = 0,
-/// BS4 [4:4]
-/// Port x set bit y (y=
-BS4: u1 = 0,
-/// BS5 [5:5]
-/// Port x set bit y (y=
-BS5: u1 = 0,
-/// BS6 [6:6]
-/// Port x set bit y (y=
-BS6: u1 = 0,
-/// BS7 [7:7]
-/// Port x set bit y (y=
-BS7: u1 = 0,
-/// BS8 [8:8]
-/// Port x set bit y (y=
-BS8: u1 = 0,
-/// BS9 [9:9]
-/// Port x set bit y (y=
-BS9: u1 = 0,
-/// BS10 [10:10]
-/// Port x set bit y (y=
-BS10: u1 = 0,
-/// BS11 [11:11]
-/// Port x set bit y (y=
-BS11: u1 = 0,
-/// BS12 [12:12]
-/// Port x set bit y (y=
-BS12: u1 = 0,
-/// BS13 [13:13]
-/// Port x set bit y (y=
-BS13: u1 = 0,
-/// BS14 [14:14]
-/// Port x set bit y (y=
-BS14: u1 = 0,
-/// BS15 [15:15]
-/// Port x set bit y (y=
-BS15: u1 = 0,
-/// BR0 [16:16]
-/// Port x set bit y (y=
-BR0: u1 = 0,
-/// BR1 [17:17]
-/// Port x reset bit y (y =
-BR1: u1 = 0,
-/// BR2 [18:18]
-/// Port x reset bit y (y =
-BR2: u1 = 0,
-/// BR3 [19:19]
-/// Port x reset bit y (y =
-BR3: u1 = 0,
-/// BR4 [20:20]
-/// Port x reset bit y (y =
-BR4: u1 = 0,
-/// BR5 [21:21]
-/// Port x reset bit y (y =
-BR5: u1 = 0,
-/// BR6 [22:22]
-/// Port x reset bit y (y =
-BR6: u1 = 0,
-/// BR7 [23:23]
-/// Port x reset bit y (y =
-BR7: u1 = 0,
-/// BR8 [24:24]
-/// Port x reset bit y (y =
-BR8: u1 = 0,
-/// BR9 [25:25]
-/// Port x reset bit y (y =
-BR9: u1 = 0,
-/// BR10 [26:26]
-/// Port x reset bit y (y =
-BR10: u1 = 0,
-/// BR11 [27:27]
-/// Port x reset bit y (y =
-BR11: u1 = 0,
-/// BR12 [28:28]
-/// Port x reset bit y (y =
-BR12: u1 = 0,
-/// BR13 [29:29]
-/// Port x reset bit y (y =
-BR13: u1 = 0,
-/// BR14 [30:30]
-/// Port x reset bit y (y =
-BR14: u1 = 0,
-/// BR15 [31:31]
-/// Port x reset bit y (y =
-BR15: u1 = 0,
-};
-/// GPIO port bit set/reset
-pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
-
-/// LCKR
-const LCKR_val = packed struct {
-/// LCK0 [0:0]
-/// Port x lock bit y (y=
-LCK0: u1 = 0,
-/// LCK1 [1:1]
-/// Port x lock bit y (y=
-LCK1: u1 = 0,
-/// LCK2 [2:2]
-/// Port x lock bit y (y=
-LCK2: u1 = 0,
-/// LCK3 [3:3]
-/// Port x lock bit y (y=
-LCK3: u1 = 0,
-/// LCK4 [4:4]
-/// Port x lock bit y (y=
-LCK4: u1 = 0,
-/// LCK5 [5:5]
-/// Port x lock bit y (y=
-LCK5: u1 = 0,
-/// LCK6 [6:6]
-/// Port x lock bit y (y=
-LCK6: u1 = 0,
-/// LCK7 [7:7]
-/// Port x lock bit y (y=
-LCK7: u1 = 0,
-/// LCK8 [8:8]
-/// Port x lock bit y (y=
-LCK8: u1 = 0,
-/// LCK9 [9:9]
-/// Port x lock bit y (y=
-LCK9: u1 = 0,
-/// LCK10 [10:10]
-/// Port x lock bit y (y=
-LCK10: u1 = 0,
-/// LCK11 [11:11]
-/// Port x lock bit y (y=
-LCK11: u1 = 0,
-/// LCK12 [12:12]
-/// Port x lock bit y (y=
-LCK12: u1 = 0,
-/// LCK13 [13:13]
-/// Port x lock bit y (y=
-LCK13: u1 = 0,
-/// LCK14 [14:14]
-/// Port x lock bit y (y=
-LCK14: u1 = 0,
-/// LCK15 [15:15]
-/// Port x lock bit y (y=
-LCK15: u1 = 0,
-/// LCKK [16:16]
-/// Port x lock bit y
-LCKK: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port configuration lock
-pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
-
-/// AFRL
-const AFRL_val = packed struct {
-/// AFRL0 [0:3]
-/// Alternate function selection for port x
-AFRL0: u4 = 0,
-/// AFRL1 [4:7]
-/// Alternate function selection for port x
-AFRL1: u4 = 0,
-/// AFRL2 [8:11]
-/// Alternate function selection for port x
-AFRL2: u4 = 0,
-/// AFRL3 [12:15]
-/// Alternate function selection for port x
-AFRL3: u4 = 0,
-/// AFRL4 [16:19]
-/// Alternate function selection for port x
-AFRL4: u4 = 0,
-/// AFRL5 [20:23]
-/// Alternate function selection for port x
-AFRL5: u4 = 0,
-/// AFRL6 [24:27]
-/// Alternate function selection for port x
-AFRL6: u4 = 0,
-/// AFRL7 [28:31]
-/// Alternate function selection for port x
-AFRL7: u4 = 0,
-};
-/// GPIO alternate function low
-pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
-
-/// AFRH
-const AFRH_val = packed struct {
-/// AFRH8 [0:3]
-/// Alternate function selection for port x
-AFRH8: u4 = 0,
-/// AFRH9 [4:7]
-/// Alternate function selection for port x
-AFRH9: u4 = 0,
-/// AFRH10 [8:11]
-/// Alternate function selection for port x
-AFRH10: u4 = 0,
-/// AFRH11 [12:15]
-/// Alternate function selection for port x
-AFRH11: u4 = 0,
-/// AFRH12 [16:19]
-/// Alternate function selection for port x
-AFRH12: u4 = 0,
-/// AFRH13 [20:23]
-/// Alternate function selection for port x
-AFRH13: u4 = 0,
-/// AFRH14 [24:27]
-/// Alternate function selection for port x
-AFRH14: u4 = 0,
-/// AFRH15 [28:31]
-/// Alternate function selection for port x
-AFRH15: u4 = 0,
-};
-/// GPIO alternate function high
-pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
-
-/// BRR
-const BRR_val = packed struct {
-/// BR0 [0:0]
-/// Port x Reset bit y
-BR0: u1 = 0,
-/// BR1 [1:1]
-/// Port x Reset bit y
-BR1: u1 = 0,
-/// BR2 [2:2]
-/// Port x Reset bit y
-BR2: u1 = 0,
-/// BR3 [3:3]
-/// Port x Reset bit y
-BR3: u1 = 0,
-/// BR4 [4:4]
-/// Port x Reset bit y
-BR4: u1 = 0,
-/// BR5 [5:5]
-/// Port x Reset bit y
-BR5: u1 = 0,
-/// BR6 [6:6]
-/// Port x Reset bit y
-BR6: u1 = 0,
-/// BR7 [7:7]
-/// Port x Reset bit y
-BR7: u1 = 0,
-/// BR8 [8:8]
-/// Port x Reset bit y
-BR8: u1 = 0,
-/// BR9 [9:9]
-/// Port x Reset bit y
-BR9: u1 = 0,
-/// BR10 [10:10]
-/// Port x Reset bit y
-BR10: u1 = 0,
-/// BR11 [11:11]
-/// Port x Reset bit y
-BR11: u1 = 0,
-/// BR12 [12:12]
-/// Port x Reset bit y
-BR12: u1 = 0,
-/// BR13 [13:13]
-/// Port x Reset bit y
-BR13: u1 = 0,
-/// BR14 [14:14]
-/// Port x Reset bit y
-BR14: u1 = 0,
-/// BR15 [15:15]
-/// Port x Reset bit y
-BR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Port bit reset register
-pub const BRR = Register(BRR_val).init(base_address + 0x28);
-};
-
-/// General-purpose I/Os
-pub const GPIOE = struct {
-
-const base_address = 0x48001000;
-/// MODER
-const MODER_val = packed struct {
-/// MODER0 [0:1]
-/// Port x configuration bits (y =
-MODER0: u2 = 0,
-/// MODER1 [2:3]
-/// Port x configuration bits (y =
-MODER1: u2 = 0,
-/// MODER2 [4:5]
-/// Port x configuration bits (y =
-MODER2: u2 = 0,
-/// MODER3 [6:7]
-/// Port x configuration bits (y =
-MODER3: u2 = 0,
-/// MODER4 [8:9]
-/// Port x configuration bits (y =
-MODER4: u2 = 0,
-/// MODER5 [10:11]
-/// Port x configuration bits (y =
-MODER5: u2 = 0,
-/// MODER6 [12:13]
-/// Port x configuration bits (y =
-MODER6: u2 = 0,
-/// MODER7 [14:15]
-/// Port x configuration bits (y =
-MODER7: u2 = 0,
-/// MODER8 [16:17]
-/// Port x configuration bits (y =
-MODER8: u2 = 0,
-/// MODER9 [18:19]
-/// Port x configuration bits (y =
-MODER9: u2 = 0,
-/// MODER10 [20:21]
-/// Port x configuration bits (y =
-MODER10: u2 = 0,
-/// MODER11 [22:23]
-/// Port x configuration bits (y =
-MODER11: u2 = 0,
-/// MODER12 [24:25]
-/// Port x configuration bits (y =
-MODER12: u2 = 0,
-/// MODER13 [26:27]
-/// Port x configuration bits (y =
-MODER13: u2 = 0,
-/// MODER14 [28:29]
-/// Port x configuration bits (y =
-MODER14: u2 = 0,
-/// MODER15 [30:31]
-/// Port x configuration bits (y =
-MODER15: u2 = 0,
-};
-/// GPIO port mode register
-pub const MODER = Register(MODER_val).init(base_address + 0x0);
-
-/// OTYPER
-const OTYPER_val = packed struct {
-/// OT0 [0:0]
-/// Port x configuration bit 0
-OT0: u1 = 0,
-/// OT1 [1:1]
-/// Port x configuration bit 1
-OT1: u1 = 0,
-/// OT2 [2:2]
-/// Port x configuration bit 2
-OT2: u1 = 0,
-/// OT3 [3:3]
-/// Port x configuration bit 3
-OT3: u1 = 0,
-/// OT4 [4:4]
-/// Port x configuration bit 4
-OT4: u1 = 0,
-/// OT5 [5:5]
-/// Port x configuration bit 5
-OT5: u1 = 0,
-/// OT6 [6:6]
-/// Port x configuration bit 6
-OT6: u1 = 0,
-/// OT7 [7:7]
-/// Port x configuration bit 7
-OT7: u1 = 0,
-/// OT8 [8:8]
-/// Port x configuration bit 8
-OT8: u1 = 0,
-/// OT9 [9:9]
-/// Port x configuration bit 9
-OT9: u1 = 0,
-/// OT10 [10:10]
-/// Port x configuration bit
-OT10: u1 = 0,
-/// OT11 [11:11]
-/// Port x configuration bit
-OT11: u1 = 0,
-/// OT12 [12:12]
-/// Port x configuration bit
-OT12: u1 = 0,
-/// OT13 [13:13]
-/// Port x configuration bit
-OT13: u1 = 0,
-/// OT14 [14:14]
-/// Port x configuration bit
-OT14: u1 = 0,
-/// OT15 [15:15]
-/// Port x configuration bit
-OT15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output type register
-pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
-
-/// OSPEEDR
-const OSPEEDR_val = packed struct {
-/// OSPEEDR0 [0:1]
-/// Port x configuration bits (y =
-OSPEEDR0: u2 = 0,
-/// OSPEEDR1 [2:3]
-/// Port x configuration bits (y =
-OSPEEDR1: u2 = 0,
-/// OSPEEDR2 [4:5]
-/// Port x configuration bits (y =
-OSPEEDR2: u2 = 0,
-/// OSPEEDR3 [6:7]
-/// Port x configuration bits (y =
-OSPEEDR3: u2 = 0,
-/// OSPEEDR4 [8:9]
-/// Port x configuration bits (y =
-OSPEEDR4: u2 = 0,
-/// OSPEEDR5 [10:11]
-/// Port x configuration bits (y =
-OSPEEDR5: u2 = 0,
-/// OSPEEDR6 [12:13]
-/// Port x configuration bits (y =
-OSPEEDR6: u2 = 0,
-/// OSPEEDR7 [14:15]
-/// Port x configuration bits (y =
-OSPEEDR7: u2 = 0,
-/// OSPEEDR8 [16:17]
-/// Port x configuration bits (y =
-OSPEEDR8: u2 = 0,
-/// OSPEEDR9 [18:19]
-/// Port x configuration bits (y =
-OSPEEDR9: u2 = 0,
-/// OSPEEDR10 [20:21]
-/// Port x configuration bits (y =
-OSPEEDR10: u2 = 0,
-/// OSPEEDR11 [22:23]
-/// Port x configuration bits (y =
-OSPEEDR11: u2 = 0,
-/// OSPEEDR12 [24:25]
-/// Port x configuration bits (y =
-OSPEEDR12: u2 = 0,
-/// OSPEEDR13 [26:27]
-/// Port x configuration bits (y =
-OSPEEDR13: u2 = 0,
-/// OSPEEDR14 [28:29]
-/// Port x configuration bits (y =
-OSPEEDR14: u2 = 0,
-/// OSPEEDR15 [30:31]
-/// Port x configuration bits (y =
-OSPEEDR15: u2 = 0,
-};
-/// GPIO port output speed
-pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
-
-/// PUPDR
-const PUPDR_val = packed struct {
-/// PUPDR0 [0:1]
-/// Port x configuration bits (y =
-PUPDR0: u2 = 0,
-/// PUPDR1 [2:3]
-/// Port x configuration bits (y =
-PUPDR1: u2 = 0,
-/// PUPDR2 [4:5]
-/// Port x configuration bits (y =
-PUPDR2: u2 = 0,
-/// PUPDR3 [6:7]
-/// Port x configuration bits (y =
-PUPDR3: u2 = 0,
-/// PUPDR4 [8:9]
-/// Port x configuration bits (y =
-PUPDR4: u2 = 0,
-/// PUPDR5 [10:11]
-/// Port x configuration bits (y =
-PUPDR5: u2 = 0,
-/// PUPDR6 [12:13]
-/// Port x configuration bits (y =
-PUPDR6: u2 = 0,
-/// PUPDR7 [14:15]
-/// Port x configuration bits (y =
-PUPDR7: u2 = 0,
-/// PUPDR8 [16:17]
-/// Port x configuration bits (y =
-PUPDR8: u2 = 0,
-/// PUPDR9 [18:19]
-/// Port x configuration bits (y =
-PUPDR9: u2 = 0,
-/// PUPDR10 [20:21]
-/// Port x configuration bits (y =
-PUPDR10: u2 = 0,
-/// PUPDR11 [22:23]
-/// Port x configuration bits (y =
-PUPDR11: u2 = 0,
-/// PUPDR12 [24:25]
-/// Port x configuration bits (y =
-PUPDR12: u2 = 0,
-/// PUPDR13 [26:27]
-/// Port x configuration bits (y =
-PUPDR13: u2 = 0,
-/// PUPDR14 [28:29]
-/// Port x configuration bits (y =
-PUPDR14: u2 = 0,
-/// PUPDR15 [30:31]
-/// Port x configuration bits (y =
-PUPDR15: u2 = 0,
-};
-/// GPIO port pull-up/pull-down
-pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR0 [0:0]
-/// Port input data (y =
-IDR0: u1 = 0,
-/// IDR1 [1:1]
-/// Port input data (y =
-IDR1: u1 = 0,
-/// IDR2 [2:2]
-/// Port input data (y =
-IDR2: u1 = 0,
-/// IDR3 [3:3]
-/// Port input data (y =
-IDR3: u1 = 0,
-/// IDR4 [4:4]
-/// Port input data (y =
-IDR4: u1 = 0,
-/// IDR5 [5:5]
-/// Port input data (y =
-IDR5: u1 = 0,
-/// IDR6 [6:6]
-/// Port input data (y =
-IDR6: u1 = 0,
-/// IDR7 [7:7]
-/// Port input data (y =
-IDR7: u1 = 0,
-/// IDR8 [8:8]
-/// Port input data (y =
-IDR8: u1 = 0,
-/// IDR9 [9:9]
-/// Port input data (y =
-IDR9: u1 = 0,
-/// IDR10 [10:10]
-/// Port input data (y =
-IDR10: u1 = 0,
-/// IDR11 [11:11]
-/// Port input data (y =
-IDR11: u1 = 0,
-/// IDR12 [12:12]
-/// Port input data (y =
-IDR12: u1 = 0,
-/// IDR13 [13:13]
-/// Port input data (y =
-IDR13: u1 = 0,
-/// IDR14 [14:14]
-/// Port input data (y =
-IDR14: u1 = 0,
-/// IDR15 [15:15]
-/// Port input data (y =
-IDR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port input data register
-pub const IDR = Register(IDR_val).init(base_address + 0x10);
-
-/// ODR
-const ODR_val = packed struct {
-/// ODR0 [0:0]
-/// Port output data (y =
-ODR0: u1 = 0,
-/// ODR1 [1:1]
-/// Port output data (y =
-ODR1: u1 = 0,
-/// ODR2 [2:2]
-/// Port output data (y =
-ODR2: u1 = 0,
-/// ODR3 [3:3]
-/// Port output data (y =
-ODR3: u1 = 0,
-/// ODR4 [4:4]
-/// Port output data (y =
-ODR4: u1 = 0,
-/// ODR5 [5:5]
-/// Port output data (y =
-ODR5: u1 = 0,
-/// ODR6 [6:6]
-/// Port output data (y =
-ODR6: u1 = 0,
-/// ODR7 [7:7]
-/// Port output data (y =
-ODR7: u1 = 0,
-/// ODR8 [8:8]
-/// Port output data (y =
-ODR8: u1 = 0,
-/// ODR9 [9:9]
-/// Port output data (y =
-ODR9: u1 = 0,
-/// ODR10 [10:10]
-/// Port output data (y =
-ODR10: u1 = 0,
-/// ODR11 [11:11]
-/// Port output data (y =
-ODR11: u1 = 0,
-/// ODR12 [12:12]
-/// Port output data (y =
-ODR12: u1 = 0,
-/// ODR13 [13:13]
-/// Port output data (y =
-ODR13: u1 = 0,
-/// ODR14 [14:14]
-/// Port output data (y =
-ODR14: u1 = 0,
-/// ODR15 [15:15]
-/// Port output data (y =
-ODR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output data register
-pub const ODR = Register(ODR_val).init(base_address + 0x14);
-
-/// BSRR
-const BSRR_val = packed struct {
-/// BS0 [0:0]
-/// Port x set bit y (y=
-BS0: u1 = 0,
-/// BS1 [1:1]
-/// Port x set bit y (y=
-BS1: u1 = 0,
-/// BS2 [2:2]
-/// Port x set bit y (y=
-BS2: u1 = 0,
-/// BS3 [3:3]
-/// Port x set bit y (y=
-BS3: u1 = 0,
-/// BS4 [4:4]
-/// Port x set bit y (y=
-BS4: u1 = 0,
-/// BS5 [5:5]
-/// Port x set bit y (y=
-BS5: u1 = 0,
-/// BS6 [6:6]
-/// Port x set bit y (y=
-BS6: u1 = 0,
-/// BS7 [7:7]
-/// Port x set bit y (y=
-BS7: u1 = 0,
-/// BS8 [8:8]
-/// Port x set bit y (y=
-BS8: u1 = 0,
-/// BS9 [9:9]
-/// Port x set bit y (y=
-BS9: u1 = 0,
-/// BS10 [10:10]
-/// Port x set bit y (y=
-BS10: u1 = 0,
-/// BS11 [11:11]
-/// Port x set bit y (y=
-BS11: u1 = 0,
-/// BS12 [12:12]
-/// Port x set bit y (y=
-BS12: u1 = 0,
-/// BS13 [13:13]
-/// Port x set bit y (y=
-BS13: u1 = 0,
-/// BS14 [14:14]
-/// Port x set bit y (y=
-BS14: u1 = 0,
-/// BS15 [15:15]
-/// Port x set bit y (y=
-BS15: u1 = 0,
-/// BR0 [16:16]
-/// Port x set bit y (y=
-BR0: u1 = 0,
-/// BR1 [17:17]
-/// Port x reset bit y (y =
-BR1: u1 = 0,
-/// BR2 [18:18]
-/// Port x reset bit y (y =
-BR2: u1 = 0,
-/// BR3 [19:19]
-/// Port x reset bit y (y =
-BR3: u1 = 0,
-/// BR4 [20:20]
-/// Port x reset bit y (y =
-BR4: u1 = 0,
-/// BR5 [21:21]
-/// Port x reset bit y (y =
-BR5: u1 = 0,
-/// BR6 [22:22]
-/// Port x reset bit y (y =
-BR6: u1 = 0,
-/// BR7 [23:23]
-/// Port x reset bit y (y =
-BR7: u1 = 0,
-/// BR8 [24:24]
-/// Port x reset bit y (y =
-BR8: u1 = 0,
-/// BR9 [25:25]
-/// Port x reset bit y (y =
-BR9: u1 = 0,
-/// BR10 [26:26]
-/// Port x reset bit y (y =
-BR10: u1 = 0,
-/// BR11 [27:27]
-/// Port x reset bit y (y =
-BR11: u1 = 0,
-/// BR12 [28:28]
-/// Port x reset bit y (y =
-BR12: u1 = 0,
-/// BR13 [29:29]
-/// Port x reset bit y (y =
-BR13: u1 = 0,
-/// BR14 [30:30]
-/// Port x reset bit y (y =
-BR14: u1 = 0,
-/// BR15 [31:31]
-/// Port x reset bit y (y =
-BR15: u1 = 0,
-};
-/// GPIO port bit set/reset
-pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
-
-/// LCKR
-const LCKR_val = packed struct {
-/// LCK0 [0:0]
-/// Port x lock bit y (y=
-LCK0: u1 = 0,
-/// LCK1 [1:1]
-/// Port x lock bit y (y=
-LCK1: u1 = 0,
-/// LCK2 [2:2]
-/// Port x lock bit y (y=
-LCK2: u1 = 0,
-/// LCK3 [3:3]
-/// Port x lock bit y (y=
-LCK3: u1 = 0,
-/// LCK4 [4:4]
-/// Port x lock bit y (y=
-LCK4: u1 = 0,
-/// LCK5 [5:5]
-/// Port x lock bit y (y=
-LCK5: u1 = 0,
-/// LCK6 [6:6]
-/// Port x lock bit y (y=
-LCK6: u1 = 0,
-/// LCK7 [7:7]
-/// Port x lock bit y (y=
-LCK7: u1 = 0,
-/// LCK8 [8:8]
-/// Port x lock bit y (y=
-LCK8: u1 = 0,
-/// LCK9 [9:9]
-/// Port x lock bit y (y=
-LCK9: u1 = 0,
-/// LCK10 [10:10]
-/// Port x lock bit y (y=
-LCK10: u1 = 0,
-/// LCK11 [11:11]
-/// Port x lock bit y (y=
-LCK11: u1 = 0,
-/// LCK12 [12:12]
-/// Port x lock bit y (y=
-LCK12: u1 = 0,
-/// LCK13 [13:13]
-/// Port x lock bit y (y=
-LCK13: u1 = 0,
-/// LCK14 [14:14]
-/// Port x lock bit y (y=
-LCK14: u1 = 0,
-/// LCK15 [15:15]
-/// Port x lock bit y (y=
-LCK15: u1 = 0,
-/// LCKK [16:16]
-/// Port x lock bit y
-LCKK: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port configuration lock
-pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
-
-/// AFRL
-const AFRL_val = packed struct {
-/// AFRL0 [0:3]
-/// Alternate function selection for port x
-AFRL0: u4 = 0,
-/// AFRL1 [4:7]
-/// Alternate function selection for port x
-AFRL1: u4 = 0,
-/// AFRL2 [8:11]
-/// Alternate function selection for port x
-AFRL2: u4 = 0,
-/// AFRL3 [12:15]
-/// Alternate function selection for port x
-AFRL3: u4 = 0,
-/// AFRL4 [16:19]
-/// Alternate function selection for port x
-AFRL4: u4 = 0,
-/// AFRL5 [20:23]
-/// Alternate function selection for port x
-AFRL5: u4 = 0,
-/// AFRL6 [24:27]
-/// Alternate function selection for port x
-AFRL6: u4 = 0,
-/// AFRL7 [28:31]
-/// Alternate function selection for port x
-AFRL7: u4 = 0,
-};
-/// GPIO alternate function low
-pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
-
-/// AFRH
-const AFRH_val = packed struct {
-/// AFRH8 [0:3]
-/// Alternate function selection for port x
-AFRH8: u4 = 0,
-/// AFRH9 [4:7]
-/// Alternate function selection for port x
-AFRH9: u4 = 0,
-/// AFRH10 [8:11]
-/// Alternate function selection for port x
-AFRH10: u4 = 0,
-/// AFRH11 [12:15]
-/// Alternate function selection for port x
-AFRH11: u4 = 0,
-/// AFRH12 [16:19]
-/// Alternate function selection for port x
-AFRH12: u4 = 0,
-/// AFRH13 [20:23]
-/// Alternate function selection for port x
-AFRH13: u4 = 0,
-/// AFRH14 [24:27]
-/// Alternate function selection for port x
-AFRH14: u4 = 0,
-/// AFRH15 [28:31]
-/// Alternate function selection for port x
-AFRH15: u4 = 0,
-};
-/// GPIO alternate function high
-pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
-
-/// BRR
-const BRR_val = packed struct {
-/// BR0 [0:0]
-/// Port x Reset bit y
-BR0: u1 = 0,
-/// BR1 [1:1]
-/// Port x Reset bit y
-BR1: u1 = 0,
-/// BR2 [2:2]
-/// Port x Reset bit y
-BR2: u1 = 0,
-/// BR3 [3:3]
-/// Port x Reset bit y
-BR3: u1 = 0,
-/// BR4 [4:4]
-/// Port x Reset bit y
-BR4: u1 = 0,
-/// BR5 [5:5]
-/// Port x Reset bit y
-BR5: u1 = 0,
-/// BR6 [6:6]
-/// Port x Reset bit y
-BR6: u1 = 0,
-/// BR7 [7:7]
-/// Port x Reset bit y
-BR7: u1 = 0,
-/// BR8 [8:8]
-/// Port x Reset bit y
-BR8: u1 = 0,
-/// BR9 [9:9]
-/// Port x Reset bit y
-BR9: u1 = 0,
-/// BR10 [10:10]
-/// Port x Reset bit y
-BR10: u1 = 0,
-/// BR11 [11:11]
-/// Port x Reset bit y
-BR11: u1 = 0,
-/// BR12 [12:12]
-/// Port x Reset bit y
-BR12: u1 = 0,
-/// BR13 [13:13]
-/// Port x Reset bit y
-BR13: u1 = 0,
-/// BR14 [14:14]
-/// Port x Reset bit y
-BR14: u1 = 0,
-/// BR15 [15:15]
-/// Port x Reset bit y
-BR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Port bit reset register
-pub const BRR = Register(BRR_val).init(base_address + 0x28);
-};
-
-/// General-purpose I/Os
-pub const GPIOA = struct {
-
-const base_address = 0x48000000;
-/// MODER
-const MODER_val = packed struct {
-/// MODER0 [0:1]
-/// Port x configuration bits (y =
-MODER0: u2 = 0,
-/// MODER1 [2:3]
-/// Port x configuration bits (y =
-MODER1: u2 = 0,
-/// MODER2 [4:5]
-/// Port x configuration bits (y =
-MODER2: u2 = 0,
-/// MODER3 [6:7]
-/// Port x configuration bits (y =
-MODER3: u2 = 0,
-/// MODER4 [8:9]
-/// Port x configuration bits (y =
-MODER4: u2 = 0,
-/// MODER5 [10:11]
-/// Port x configuration bits (y =
-MODER5: u2 = 0,
-/// MODER6 [12:13]
-/// Port x configuration bits (y =
-MODER6: u2 = 0,
-/// MODER7 [14:15]
-/// Port x configuration bits (y =
-MODER7: u2 = 0,
-/// MODER8 [16:17]
-/// Port x configuration bits (y =
-MODER8: u2 = 0,
-/// MODER9 [18:19]
-/// Port x configuration bits (y =
-MODER9: u2 = 0,
-/// MODER10 [20:21]
-/// Port x configuration bits (y =
-MODER10: u2 = 0,
-/// MODER11 [22:23]
-/// Port x configuration bits (y =
-MODER11: u2 = 0,
-/// MODER12 [24:25]
-/// Port x configuration bits (y =
-MODER12: u2 = 0,
-/// MODER13 [26:27]
-/// Port x configuration bits (y =
-MODER13: u2 = 2,
-/// MODER14 [28:29]
-/// Port x configuration bits (y =
-MODER14: u2 = 2,
-/// MODER15 [30:31]
-/// Port x configuration bits (y =
-MODER15: u2 = 0,
-};
-/// GPIO port mode register
-pub const MODER = Register(MODER_val).init(base_address + 0x0);
-
-/// OTYPER
-const OTYPER_val = packed struct {
-/// OT0 [0:0]
-/// Port x configuration bits (y =
-OT0: u1 = 0,
-/// OT1 [1:1]
-/// Port x configuration bits (y =
-OT1: u1 = 0,
-/// OT2 [2:2]
-/// Port x configuration bits (y =
-OT2: u1 = 0,
-/// OT3 [3:3]
-/// Port x configuration bits (y =
-OT3: u1 = 0,
-/// OT4 [4:4]
-/// Port x configuration bits (y =
-OT4: u1 = 0,
-/// OT5 [5:5]
-/// Port x configuration bits (y =
-OT5: u1 = 0,
-/// OT6 [6:6]
-/// Port x configuration bits (y =
-OT6: u1 = 0,
-/// OT7 [7:7]
-/// Port x configuration bits (y =
-OT7: u1 = 0,
-/// OT8 [8:8]
-/// Port x configuration bits (y =
-OT8: u1 = 0,
-/// OT9 [9:9]
-/// Port x configuration bits (y =
-OT9: u1 = 0,
-/// OT10 [10:10]
-/// Port x configuration bits (y =
-OT10: u1 = 0,
-/// OT11 [11:11]
-/// Port x configuration bits (y =
-OT11: u1 = 0,
-/// OT12 [12:12]
-/// Port x configuration bits (y =
-OT12: u1 = 0,
-/// OT13 [13:13]
-/// Port x configuration bits (y =
-OT13: u1 = 0,
-/// OT14 [14:14]
-/// Port x configuration bits (y =
-OT14: u1 = 0,
-/// OT15 [15:15]
-/// Port x configuration bits (y =
-OT15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output type register
-pub const OTYPER = Register(OTYPER_val).init(base_address + 0x4);
-
-/// OSPEEDR
-const OSPEEDR_val = packed struct {
-/// OSPEEDR0 [0:1]
-/// Port x configuration bits (y =
-OSPEEDR0: u2 = 0,
-/// OSPEEDR1 [2:3]
-/// Port x configuration bits (y =
-OSPEEDR1: u2 = 0,
-/// OSPEEDR2 [4:5]
-/// Port x configuration bits (y =
-OSPEEDR2: u2 = 0,
-/// OSPEEDR3 [6:7]
-/// Port x configuration bits (y =
-OSPEEDR3: u2 = 0,
-/// OSPEEDR4 [8:9]
-/// Port x configuration bits (y =
-OSPEEDR4: u2 = 0,
-/// OSPEEDR5 [10:11]
-/// Port x configuration bits (y =
-OSPEEDR5: u2 = 0,
-/// OSPEEDR6 [12:13]
-/// Port x configuration bits (y =
-OSPEEDR6: u2 = 0,
-/// OSPEEDR7 [14:15]
-/// Port x configuration bits (y =
-OSPEEDR7: u2 = 0,
-/// OSPEEDR8 [16:17]
-/// Port x configuration bits (y =
-OSPEEDR8: u2 = 0,
-/// OSPEEDR9 [18:19]
-/// Port x configuration bits (y =
-OSPEEDR9: u2 = 0,
-/// OSPEEDR10 [20:21]
-/// Port x configuration bits (y =
-OSPEEDR10: u2 = 0,
-/// OSPEEDR11 [22:23]
-/// Port x configuration bits (y =
-OSPEEDR11: u2 = 0,
-/// OSPEEDR12 [24:25]
-/// Port x configuration bits (y =
-OSPEEDR12: u2 = 0,
-/// OSPEEDR13 [26:27]
-/// Port x configuration bits (y =
-OSPEEDR13: u2 = 0,
-/// OSPEEDR14 [28:29]
-/// Port x configuration bits (y =
-OSPEEDR14: u2 = 0,
-/// OSPEEDR15 [30:31]
-/// Port x configuration bits (y =
-OSPEEDR15: u2 = 0,
-};
-/// GPIO port output speed
-pub const OSPEEDR = Register(OSPEEDR_val).init(base_address + 0x8);
-
-/// PUPDR
-const PUPDR_val = packed struct {
-/// PUPDR0 [0:1]
-/// Port x configuration bits (y =
-PUPDR0: u2 = 0,
-/// PUPDR1 [2:3]
-/// Port x configuration bits (y =
-PUPDR1: u2 = 0,
-/// PUPDR2 [4:5]
-/// Port x configuration bits (y =
-PUPDR2: u2 = 0,
-/// PUPDR3 [6:7]
-/// Port x configuration bits (y =
-PUPDR3: u2 = 0,
-/// PUPDR4 [8:9]
-/// Port x configuration bits (y =
-PUPDR4: u2 = 0,
-/// PUPDR5 [10:11]
-/// Port x configuration bits (y =
-PUPDR5: u2 = 0,
-/// PUPDR6 [12:13]
-/// Port x configuration bits (y =
-PUPDR6: u2 = 0,
-/// PUPDR7 [14:15]
-/// Port x configuration bits (y =
-PUPDR7: u2 = 0,
-/// PUPDR8 [16:17]
-/// Port x configuration bits (y =
-PUPDR8: u2 = 0,
-/// PUPDR9 [18:19]
-/// Port x configuration bits (y =
-PUPDR9: u2 = 0,
-/// PUPDR10 [20:21]
-/// Port x configuration bits (y =
-PUPDR10: u2 = 0,
-/// PUPDR11 [22:23]
-/// Port x configuration bits (y =
-PUPDR11: u2 = 0,
-/// PUPDR12 [24:25]
-/// Port x configuration bits (y =
-PUPDR12: u2 = 0,
-/// PUPDR13 [26:27]
-/// Port x configuration bits (y =
-PUPDR13: u2 = 1,
-/// PUPDR14 [28:29]
-/// Port x configuration bits (y =
-PUPDR14: u2 = 2,
-/// PUPDR15 [30:31]
-/// Port x configuration bits (y =
-PUPDR15: u2 = 0,
-};
-/// GPIO port pull-up/pull-down
-pub const PUPDR = Register(PUPDR_val).init(base_address + 0xc);
-
-/// IDR
-const IDR_val = packed struct {
-/// IDR0 [0:0]
-/// Port input data (y =
-IDR0: u1 = 0,
-/// IDR1 [1:1]
-/// Port input data (y =
-IDR1: u1 = 0,
-/// IDR2 [2:2]
-/// Port input data (y =
-IDR2: u1 = 0,
-/// IDR3 [3:3]
-/// Port input data (y =
-IDR3: u1 = 0,
-/// IDR4 [4:4]
-/// Port input data (y =
-IDR4: u1 = 0,
-/// IDR5 [5:5]
-/// Port input data (y =
-IDR5: u1 = 0,
-/// IDR6 [6:6]
-/// Port input data (y =
-IDR6: u1 = 0,
-/// IDR7 [7:7]
-/// Port input data (y =
-IDR7: u1 = 0,
-/// IDR8 [8:8]
-/// Port input data (y =
-IDR8: u1 = 0,
-/// IDR9 [9:9]
-/// Port input data (y =
-IDR9: u1 = 0,
-/// IDR10 [10:10]
-/// Port input data (y =
-IDR10: u1 = 0,
-/// IDR11 [11:11]
-/// Port input data (y =
-IDR11: u1 = 0,
-/// IDR12 [12:12]
-/// Port input data (y =
-IDR12: u1 = 0,
-/// IDR13 [13:13]
-/// Port input data (y =
-IDR13: u1 = 0,
-/// IDR14 [14:14]
-/// Port input data (y =
-IDR14: u1 = 0,
-/// IDR15 [15:15]
-/// Port input data (y =
-IDR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port input data register
-pub const IDR = Register(IDR_val).init(base_address + 0x10);
-
-/// ODR
-const ODR_val = packed struct {
-/// ODR0 [0:0]
-/// Port output data (y =
-ODR0: u1 = 0,
-/// ODR1 [1:1]
-/// Port output data (y =
-ODR1: u1 = 0,
-/// ODR2 [2:2]
-/// Port output data (y =
-ODR2: u1 = 0,
-/// ODR3 [3:3]
-/// Port output data (y =
-ODR3: u1 = 0,
-/// ODR4 [4:4]
-/// Port output data (y =
-ODR4: u1 = 0,
-/// ODR5 [5:5]
-/// Port output data (y =
-ODR5: u1 = 0,
-/// ODR6 [6:6]
-/// Port output data (y =
-ODR6: u1 = 0,
-/// ODR7 [7:7]
-/// Port output data (y =
-ODR7: u1 = 0,
-/// ODR8 [8:8]
-/// Port output data (y =
-ODR8: u1 = 0,
-/// ODR9 [9:9]
-/// Port output data (y =
-ODR9: u1 = 0,
-/// ODR10 [10:10]
-/// Port output data (y =
-ODR10: u1 = 0,
-/// ODR11 [11:11]
-/// Port output data (y =
-ODR11: u1 = 0,
-/// ODR12 [12:12]
-/// Port output data (y =
-ODR12: u1 = 0,
-/// ODR13 [13:13]
-/// Port output data (y =
-ODR13: u1 = 0,
-/// ODR14 [14:14]
-/// Port output data (y =
-ODR14: u1 = 0,
-/// ODR15 [15:15]
-/// Port output data (y =
-ODR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port output data register
-pub const ODR = Register(ODR_val).init(base_address + 0x14);
-
-/// BSRR
-const BSRR_val = packed struct {
-/// BS0 [0:0]
-/// Port x set bit y (y=
-BS0: u1 = 0,
-/// BS1 [1:1]
-/// Port x set bit y (y=
-BS1: u1 = 0,
-/// BS2 [2:2]
-/// Port x set bit y (y=
-BS2: u1 = 0,
-/// BS3 [3:3]
-/// Port x set bit y (y=
-BS3: u1 = 0,
-/// BS4 [4:4]
-/// Port x set bit y (y=
-BS4: u1 = 0,
-/// BS5 [5:5]
-/// Port x set bit y (y=
-BS5: u1 = 0,
-/// BS6 [6:6]
-/// Port x set bit y (y=
-BS6: u1 = 0,
-/// BS7 [7:7]
-/// Port x set bit y (y=
-BS7: u1 = 0,
-/// BS8 [8:8]
-/// Port x set bit y (y=
-BS8: u1 = 0,
-/// BS9 [9:9]
-/// Port x set bit y (y=
-BS9: u1 = 0,
-/// BS10 [10:10]
-/// Port x set bit y (y=
-BS10: u1 = 0,
-/// BS11 [11:11]
-/// Port x set bit y (y=
-BS11: u1 = 0,
-/// BS12 [12:12]
-/// Port x set bit y (y=
-BS12: u1 = 0,
-/// BS13 [13:13]
-/// Port x set bit y (y=
-BS13: u1 = 0,
-/// BS14 [14:14]
-/// Port x set bit y (y=
-BS14: u1 = 0,
-/// BS15 [15:15]
-/// Port x set bit y (y=
-BS15: u1 = 0,
-/// BR0 [16:16]
-/// Port x set bit y (y=
-BR0: u1 = 0,
-/// BR1 [17:17]
-/// Port x reset bit y (y =
-BR1: u1 = 0,
-/// BR2 [18:18]
-/// Port x reset bit y (y =
-BR2: u1 = 0,
-/// BR3 [19:19]
-/// Port x reset bit y (y =
-BR3: u1 = 0,
-/// BR4 [20:20]
-/// Port x reset bit y (y =
-BR4: u1 = 0,
-/// BR5 [21:21]
-/// Port x reset bit y (y =
-BR5: u1 = 0,
-/// BR6 [22:22]
-/// Port x reset bit y (y =
-BR6: u1 = 0,
-/// BR7 [23:23]
-/// Port x reset bit y (y =
-BR7: u1 = 0,
-/// BR8 [24:24]
-/// Port x reset bit y (y =
-BR8: u1 = 0,
-/// BR9 [25:25]
-/// Port x reset bit y (y =
-BR9: u1 = 0,
-/// BR10 [26:26]
-/// Port x reset bit y (y =
-BR10: u1 = 0,
-/// BR11 [27:27]
-/// Port x reset bit y (y =
-BR11: u1 = 0,
-/// BR12 [28:28]
-/// Port x reset bit y (y =
-BR12: u1 = 0,
-/// BR13 [29:29]
-/// Port x reset bit y (y =
-BR13: u1 = 0,
-/// BR14 [30:30]
-/// Port x reset bit y (y =
-BR14: u1 = 0,
-/// BR15 [31:31]
-/// Port x reset bit y (y =
-BR15: u1 = 0,
-};
-/// GPIO port bit set/reset
-pub const BSRR = Register(BSRR_val).init(base_address + 0x18);
-
-/// LCKR
-const LCKR_val = packed struct {
-/// LCK0 [0:0]
-/// Port x lock bit y (y=
-LCK0: u1 = 0,
-/// LCK1 [1:1]
-/// Port x lock bit y (y=
-LCK1: u1 = 0,
-/// LCK2 [2:2]
-/// Port x lock bit y (y=
-LCK2: u1 = 0,
-/// LCK3 [3:3]
-/// Port x lock bit y (y=
-LCK3: u1 = 0,
-/// LCK4 [4:4]
-/// Port x lock bit y (y=
-LCK4: u1 = 0,
-/// LCK5 [5:5]
-/// Port x lock bit y (y=
-LCK5: u1 = 0,
-/// LCK6 [6:6]
-/// Port x lock bit y (y=
-LCK6: u1 = 0,
-/// LCK7 [7:7]
-/// Port x lock bit y (y=
-LCK7: u1 = 0,
-/// LCK8 [8:8]
-/// Port x lock bit y (y=
-LCK8: u1 = 0,
-/// LCK9 [9:9]
-/// Port x lock bit y (y=
-LCK9: u1 = 0,
-/// LCK10 [10:10]
-/// Port x lock bit y (y=
-LCK10: u1 = 0,
-/// LCK11 [11:11]
-/// Port x lock bit y (y=
-LCK11: u1 = 0,
-/// LCK12 [12:12]
-/// Port x lock bit y (y=
-LCK12: u1 = 0,
-/// LCK13 [13:13]
-/// Port x lock bit y (y=
-LCK13: u1 = 0,
-/// LCK14 [14:14]
-/// Port x lock bit y (y=
-LCK14: u1 = 0,
-/// LCK15 [15:15]
-/// Port x lock bit y (y=
-LCK15: u1 = 0,
-/// LCKK [16:16]
-/// Port x lock bit y (y=
-LCKK: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// GPIO port configuration lock
-pub const LCKR = Register(LCKR_val).init(base_address + 0x1c);
-
-/// AFRL
-const AFRL_val = packed struct {
-/// AFRL0 [0:3]
-/// Alternate function selection for port x
-AFRL0: u4 = 0,
-/// AFRL1 [4:7]
-/// Alternate function selection for port x
-AFRL1: u4 = 0,
-/// AFRL2 [8:11]
-/// Alternate function selection for port x
-AFRL2: u4 = 0,
-/// AFRL3 [12:15]
-/// Alternate function selection for port x
-AFRL3: u4 = 0,
-/// AFRL4 [16:19]
-/// Alternate function selection for port x
-AFRL4: u4 = 0,
-/// AFRL5 [20:23]
-/// Alternate function selection for port x
-AFRL5: u4 = 0,
-/// AFRL6 [24:27]
-/// Alternate function selection for port x
-AFRL6: u4 = 0,
-/// AFRL7 [28:31]
-/// Alternate function selection for port x
-AFRL7: u4 = 0,
-};
-/// GPIO alternate function low
-pub const AFRL = Register(AFRL_val).init(base_address + 0x20);
-
-/// AFRH
-const AFRH_val = packed struct {
-/// AFRH8 [0:3]
-/// Alternate function selection for port x
-AFRH8: u4 = 0,
-/// AFRH9 [4:7]
-/// Alternate function selection for port x
-AFRH9: u4 = 0,
-/// AFRH10 [8:11]
-/// Alternate function selection for port x
-AFRH10: u4 = 0,
-/// AFRH11 [12:15]
-/// Alternate function selection for port x
-AFRH11: u4 = 0,
-/// AFRH12 [16:19]
-/// Alternate function selection for port x
-AFRH12: u4 = 0,
-/// AFRH13 [20:23]
-/// Alternate function selection for port x
-AFRH13: u4 = 0,
-/// AFRH14 [24:27]
-/// Alternate function selection for port x
-AFRH14: u4 = 0,
-/// AFRH15 [28:31]
-/// Alternate function selection for port x
-AFRH15: u4 = 0,
-};
-/// GPIO alternate function high
-pub const AFRH = Register(AFRH_val).init(base_address + 0x24);
-
-/// BRR
-const BRR_val = packed struct {
-/// BR0 [0:0]
-/// Port x Reset bit y
-BR0: u1 = 0,
-/// BR1 [1:1]
-/// Port x Reset bit y
-BR1: u1 = 0,
-/// BR2 [2:2]
-/// Port x Reset bit y
-BR2: u1 = 0,
-/// BR3 [3:3]
-/// Port x Reset bit y
-BR3: u1 = 0,
-/// BR4 [4:4]
-/// Port x Reset bit y
-BR4: u1 = 0,
-/// BR5 [5:5]
-/// Port x Reset bit y
-BR5: u1 = 0,
-/// BR6 [6:6]
-/// Port x Reset bit y
-BR6: u1 = 0,
-/// BR7 [7:7]
-/// Port x Reset bit y
-BR7: u1 = 0,
-/// BR8 [8:8]
-/// Port x Reset bit y
-BR8: u1 = 0,
-/// BR9 [9:9]
-/// Port x Reset bit y
-BR9: u1 = 0,
-/// BR10 [10:10]
-/// Port x Reset bit y
-BR10: u1 = 0,
-/// BR11 [11:11]
-/// Port x Reset bit y
-BR11: u1 = 0,
-/// BR12 [12:12]
-/// Port x Reset bit y
-BR12: u1 = 0,
-/// BR13 [13:13]
-/// Port x Reset bit y
-BR13: u1 = 0,
-/// BR14 [14:14]
-/// Port x Reset bit y
-BR14: u1 = 0,
-/// BR15 [15:15]
-/// Port x Reset bit y
-BR15: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Port bit reset register
-pub const BRR = Register(BRR_val).init(base_address + 0x28);
-};
-
-/// Serial peripheral interface
-pub const SPI1 = struct {
-
-const base_address = 0x40013000;
-/// CR1
-const CR1_val = packed struct {
-/// CPHA [0:0]
-/// Clock phase
-CPHA: u1 = 0,
-/// CPOL [1:1]
-/// Clock polarity
-CPOL: u1 = 0,
-/// MSTR [2:2]
-/// Master selection
-MSTR: u1 = 0,
-/// BR [3:5]
-/// Baud rate control
-BR: u3 = 0,
-/// SPE [6:6]
-/// SPI enable
-SPE: u1 = 0,
-/// LSBFIRST [7:7]
-/// Frame format
-LSBFIRST: u1 = 0,
-/// SSI [8:8]
-/// Internal slave select
-SSI: u1 = 0,
-/// SSM [9:9]
-/// Software slave management
-SSM: u1 = 0,
-/// RXONLY [10:10]
-/// Receive only
-RXONLY: u1 = 0,
-/// DFF [11:11]
-/// Data frame format
-DFF: u1 = 0,
-/// CRCNEXT [12:12]
-/// CRC transfer next
-CRCNEXT: u1 = 0,
-/// CRCEN [13:13]
-/// Hardware CRC calculation
-CRCEN: u1 = 0,
-/// BIDIOE [14:14]
-/// Output enable in bidirectional
-BIDIOE: u1 = 0,
-/// BIDIMODE [15:15]
-/// Bidirectional data mode
-BIDIMODE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// RXDMAEN [0:0]
-/// Rx buffer DMA enable
-RXDMAEN: u1 = 0,
-/// TXDMAEN [1:1]
-/// Tx buffer DMA enable
-TXDMAEN: u1 = 0,
-/// SSOE [2:2]
-/// SS output enable
-SSOE: u1 = 0,
-/// NSSP [3:3]
-/// NSS pulse management
-NSSP: u1 = 0,
-/// FRF [4:4]
-/// Frame format
-FRF: u1 = 0,
-/// ERRIE [5:5]
-/// Error interrupt enable
-ERRIE: u1 = 0,
-/// RXNEIE [6:6]
-/// RX buffer not empty interrupt
-RXNEIE: u1 = 0,
-/// TXEIE [7:7]
-/// Tx buffer empty interrupt
-TXEIE: u1 = 0,
-/// DS [8:11]
-/// Data size
-DS: u4 = 0,
-/// FRXTH [12:12]
-/// FIFO reception threshold
-FRXTH: u1 = 0,
-/// LDMA_RX [13:13]
-/// Last DMA transfer for
-LDMA_RX: u1 = 0,
-/// LDMA_TX [14:14]
-/// Last DMA transfer for
-LDMA_TX: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// SR
-const SR_val = packed struct {
-/// RXNE [0:0]
-/// Receive buffer not empty
-RXNE: u1 = 0,
-/// TXE [1:1]
-/// Transmit buffer empty
-TXE: u1 = 1,
-/// CHSIDE [2:2]
-/// Channel side
-CHSIDE: u1 = 0,
-/// UDR [3:3]
-/// Underrun flag
-UDR: u1 = 0,
-/// CRCERR [4:4]
-/// CRC error flag
-CRCERR: u1 = 0,
-/// MODF [5:5]
-/// Mode fault
-MODF: u1 = 0,
-/// OVR [6:6]
-/// Overrun flag
-OVR: u1 = 0,
-/// BSY [7:7]
-/// Busy flag
-BSY: u1 = 0,
-/// TIFRFE [8:8]
-/// TI frame format error
-TIFRFE: u1 = 0,
-/// FRLVL [9:10]
-/// FIFO reception level
-FRLVL: u2 = 0,
-/// FTLVL [11:12]
-/// FIFO transmission level
-FTLVL: u2 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x8);
-
-/// DR
-const DR_val = packed struct {
-/// DR [0:15]
-/// Data register
-DR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// data register
-pub const DR = Register(DR_val).init(base_address + 0xc);
-
-/// CRCPR
-const CRCPR_val = packed struct {
-/// CRCPOLY [0:15]
-/// CRC polynomial register
-CRCPOLY: u16 = 7,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// CRC polynomial register
-pub const CRCPR = Register(CRCPR_val).init(base_address + 0x10);
-
-/// RXCRCR
-const RXCRCR_val = packed struct {
-/// RxCRC [0:15]
-/// Rx CRC register
-RxCRC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// RX CRC register
-pub const RXCRCR = Register(RXCRCR_val).init(base_address + 0x14);
-
-/// TXCRCR
-const TXCRCR_val = packed struct {
-/// TxCRC [0:15]
-/// Tx CRC register
-TxCRC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// TX CRC register
-pub const TXCRCR = Register(TXCRCR_val).init(base_address + 0x18);
-
-/// I2SCFGR
-const I2SCFGR_val = packed struct {
-/// CHLEN [0:0]
-/// Channel length (number of bits per audio
-CHLEN: u1 = 0,
-/// DATLEN [1:2]
-/// Data length to be
-DATLEN: u2 = 0,
-/// CKPOL [3:3]
-/// Steady state clock
-CKPOL: u1 = 0,
-/// I2SSTD [4:5]
-/// I2S standard selection
-I2SSTD: u2 = 0,
-/// unused [6:6]
-_unused6: u1 = 0,
-/// PCMSYNC [7:7]
-/// PCM frame synchronization
-PCMSYNC: u1 = 0,
-/// I2SCFG [8:9]
-/// I2S configuration mode
-I2SCFG: u2 = 0,
-/// I2SE [10:10]
-/// I2S Enable
-I2SE: u1 = 0,
-/// I2SMOD [11:11]
-/// I2S mode selection
-I2SMOD: u1 = 0,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I2S configuration register
-pub const I2SCFGR = Register(I2SCFGR_val).init(base_address + 0x1c);
-
-/// I2SPR
-const I2SPR_val = packed struct {
-/// I2SDIV [0:7]
-/// I2S Linear prescaler
-I2SDIV: u8 = 16,
-/// ODD [8:8]
-/// Odd factor for the
-ODD: u1 = 0,
-/// MCKOE [9:9]
-/// Master clock output enable
-MCKOE: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I2S prescaler register
-pub const I2SPR = Register(I2SPR_val).init(base_address + 0x20);
-};
-
-/// Serial peripheral interface
-pub const SPI2 = struct {
-
-const base_address = 0x40003800;
-/// CR1
-const CR1_val = packed struct {
-/// CPHA [0:0]
-/// Clock phase
-CPHA: u1 = 0,
-/// CPOL [1:1]
-/// Clock polarity
-CPOL: u1 = 0,
-/// MSTR [2:2]
-/// Master selection
-MSTR: u1 = 0,
-/// BR [3:5]
-/// Baud rate control
-BR: u3 = 0,
-/// SPE [6:6]
-/// SPI enable
-SPE: u1 = 0,
-/// LSBFIRST [7:7]
-/// Frame format
-LSBFIRST: u1 = 0,
-/// SSI [8:8]
-/// Internal slave select
-SSI: u1 = 0,
-/// SSM [9:9]
-/// Software slave management
-SSM: u1 = 0,
-/// RXONLY [10:10]
-/// Receive only
-RXONLY: u1 = 0,
-/// DFF [11:11]
-/// Data frame format
-DFF: u1 = 0,
-/// CRCNEXT [12:12]
-/// CRC transfer next
-CRCNEXT: u1 = 0,
-/// CRCEN [13:13]
-/// Hardware CRC calculation
-CRCEN: u1 = 0,
-/// BIDIOE [14:14]
-/// Output enable in bidirectional
-BIDIOE: u1 = 0,
-/// BIDIMODE [15:15]
-/// Bidirectional data mode
-BIDIMODE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// RXDMAEN [0:0]
-/// Rx buffer DMA enable
-RXDMAEN: u1 = 0,
-/// TXDMAEN [1:1]
-/// Tx buffer DMA enable
-TXDMAEN: u1 = 0,
-/// SSOE [2:2]
-/// SS output enable
-SSOE: u1 = 0,
-/// NSSP [3:3]
-/// NSS pulse management
-NSSP: u1 = 0,
-/// FRF [4:4]
-/// Frame format
-FRF: u1 = 0,
-/// ERRIE [5:5]
-/// Error interrupt enable
-ERRIE: u1 = 0,
-/// RXNEIE [6:6]
-/// RX buffer not empty interrupt
-RXNEIE: u1 = 0,
-/// TXEIE [7:7]
-/// Tx buffer empty interrupt
-TXEIE: u1 = 0,
-/// DS [8:11]
-/// Data size
-DS: u4 = 0,
-/// FRXTH [12:12]
-/// FIFO reception threshold
-FRXTH: u1 = 0,
-/// LDMA_RX [13:13]
-/// Last DMA transfer for
-LDMA_RX: u1 = 0,
-/// LDMA_TX [14:14]
-/// Last DMA transfer for
-LDMA_TX: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// SR
-const SR_val = packed struct {
-/// RXNE [0:0]
-/// Receive buffer not empty
-RXNE: u1 = 0,
-/// TXE [1:1]
-/// Transmit buffer empty
-TXE: u1 = 1,
-/// CHSIDE [2:2]
-/// Channel side
-CHSIDE: u1 = 0,
-/// UDR [3:3]
-/// Underrun flag
-UDR: u1 = 0,
-/// CRCERR [4:4]
-/// CRC error flag
-CRCERR: u1 = 0,
-/// MODF [5:5]
-/// Mode fault
-MODF: u1 = 0,
-/// OVR [6:6]
-/// Overrun flag
-OVR: u1 = 0,
-/// BSY [7:7]
-/// Busy flag
-BSY: u1 = 0,
-/// TIFRFE [8:8]
-/// TI frame format error
-TIFRFE: u1 = 0,
-/// FRLVL [9:10]
-/// FIFO reception level
-FRLVL: u2 = 0,
-/// FTLVL [11:12]
-/// FIFO transmission level
-FTLVL: u2 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x8);
-
-/// DR
-const DR_val = packed struct {
-/// DR [0:15]
-/// Data register
-DR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// data register
-pub const DR = Register(DR_val).init(base_address + 0xc);
-
-/// CRCPR
-const CRCPR_val = packed struct {
-/// CRCPOLY [0:15]
-/// CRC polynomial register
-CRCPOLY: u16 = 7,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// CRC polynomial register
-pub const CRCPR = Register(CRCPR_val).init(base_address + 0x10);
-
-/// RXCRCR
-const RXCRCR_val = packed struct {
-/// RxCRC [0:15]
-/// Rx CRC register
-RxCRC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// RX CRC register
-pub const RXCRCR = Register(RXCRCR_val).init(base_address + 0x14);
-
-/// TXCRCR
-const TXCRCR_val = packed struct {
-/// TxCRC [0:15]
-/// Tx CRC register
-TxCRC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// TX CRC register
-pub const TXCRCR = Register(TXCRCR_val).init(base_address + 0x18);
-
-/// I2SCFGR
-const I2SCFGR_val = packed struct {
-/// CHLEN [0:0]
-/// Channel length (number of bits per audio
-CHLEN: u1 = 0,
-/// DATLEN [1:2]
-/// Data length to be
-DATLEN: u2 = 0,
-/// CKPOL [3:3]
-/// Steady state clock
-CKPOL: u1 = 0,
-/// I2SSTD [4:5]
-/// I2S standard selection
-I2SSTD: u2 = 0,
-/// unused [6:6]
-_unused6: u1 = 0,
-/// PCMSYNC [7:7]
-/// PCM frame synchronization
-PCMSYNC: u1 = 0,
-/// I2SCFG [8:9]
-/// I2S configuration mode
-I2SCFG: u2 = 0,
-/// I2SE [10:10]
-/// I2S Enable
-I2SE: u1 = 0,
-/// I2SMOD [11:11]
-/// I2S mode selection
-I2SMOD: u1 = 0,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I2S configuration register
-pub const I2SCFGR = Register(I2SCFGR_val).init(base_address + 0x1c);
-
-/// I2SPR
-const I2SPR_val = packed struct {
-/// I2SDIV [0:7]
-/// I2S Linear prescaler
-I2SDIV: u8 = 16,
-/// ODD [8:8]
-/// Odd factor for the
-ODD: u1 = 0,
-/// MCKOE [9:9]
-/// Master clock output enable
-MCKOE: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I2S prescaler register
-pub const I2SPR = Register(I2SPR_val).init(base_address + 0x20);
-};
-
-/// Digital-to-analog converter
-pub const DAC = struct {
-
-const base_address = 0x40007400;
-/// CR
-const CR_val = packed struct {
-/// EN1 [0:0]
-/// DAC channel1 enable
-EN1: u1 = 0,
-/// BOFF1 [1:1]
-/// DAC channel1 output buffer
-BOFF1: u1 = 0,
-/// TEN1 [2:2]
-/// DAC channel1 trigger
-TEN1: u1 = 0,
-/// TSEL10 [3:3]
-/// DAC channel1 trigger
-TSEL10: u1 = 0,
-/// TSEL11 [4:4]
-/// DAC channel1 trigger
-TSEL11: u1 = 0,
-/// TSEL12 [5:5]
-/// DAC channel1 trigger
-TSEL12: u1 = 0,
-/// unused [6:11]
-_unused6: u2 = 0,
-_unused8: u4 = 0,
-/// DMAEN1 [12:12]
-/// DAC channel1 DMA enable
-DMAEN1: u1 = 0,
-/// DMAUDRIE1 [13:13]
-/// DAC channel1 DMA Underrun Interrupt
-DMAUDRIE1: u1 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register
-pub const CR = Register(CR_val).init(base_address + 0x0);
-
-/// SWTRIGR
-const SWTRIGR_val = packed struct {
-/// SWTRIG1 [0:0]
-/// DAC channel1 software
-SWTRIG1: u1 = 0,
-/// unused [1:31]
-_unused1: u7 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// software trigger register
-pub const SWTRIGR = Register(SWTRIGR_val).init(base_address + 0x4);
-
-/// DHR12R1
-const DHR12R1_val = packed struct {
-/// DACC1DHR [0:11]
-/// DAC channel1 12-bit right-aligned
-DACC1DHR: u12 = 0,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// channel1 12-bit right-aligned data holding
-pub const DHR12R1 = Register(DHR12R1_val).init(base_address + 0x8);
-
-/// DHR12L1
-const DHR12L1_val = packed struct {
-/// unused [0:3]
-_unused0: u4 = 0,
-/// DACC1DHR [4:15]
-/// DAC channel1 12-bit left-aligned
-DACC1DHR: u12 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// channel1 12-bit left aligned data holding
-pub const DHR12L1 = Register(DHR12L1_val).init(base_address + 0xc);
-
-/// DHR8R1
-const DHR8R1_val = packed struct {
-/// DACC1DHR [0:7]
-/// DAC channel1 8-bit right-aligned
-DACC1DHR: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// channel1 8-bit right aligned data holding
-pub const DHR8R1 = Register(DHR8R1_val).init(base_address + 0x10);
-
-/// DOR1
-const DOR1_val = packed struct {
-/// DACC1DOR [0:11]
-/// DAC channel1 data output
-DACC1DOR: u12 = 0,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// channel1 data output register
-pub const DOR1 = Register(DOR1_val).init(base_address + 0x2c);
-
-/// SR
-const SR_val = packed struct {
-/// unused [0:12]
-_unused0: u8 = 0,
-_unused8: u5 = 0,
-/// DMAUDR1 [13:13]
-/// DAC channel1 DMA underrun
-DMAUDR1: u1 = 0,
-/// unused [14:28]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u5 = 0,
-/// DMAUDR2 [29:29]
-/// DAC channel2 DMA underrun
-DMAUDR2: u1 = 0,
-/// unused [30:31]
-_unused30: u2 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x34);
-};
-
-/// Power control
-pub const PWR = struct {
-
-const base_address = 0x40007000;
-/// CR
-const CR_val = packed struct {
-/// LPDS [0:0]
-/// Low-power deep sleep
-LPDS: u1 = 0,
-/// PDDS [1:1]
-/// Power down deepsleep
-PDDS: u1 = 0,
-/// CWUF [2:2]
-/// Clear wakeup flag
-CWUF: u1 = 0,
-/// CSBF [3:3]
-/// Clear standby flag
-CSBF: u1 = 0,
-/// PVDE [4:4]
-/// Power voltage detector
-PVDE: u1 = 0,
-/// PLS [5:7]
-/// PVD level selection
-PLS: u3 = 0,
-/// DBP [8:8]
-/// Disable backup domain write
-DBP: u1 = 0,
-/// FPDS [9:9]
-/// Flash power down in Stop
-FPDS: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// power control register
-pub const CR = Register(CR_val).init(base_address + 0x0);
-
-/// CSR
-const CSR_val = packed struct {
-/// WUF [0:0]
-/// Wakeup flag
-WUF: u1 = 0,
-/// SBF [1:1]
-/// Standby flag
-SBF: u1 = 0,
-/// PVDO [2:2]
-/// PVD output
-PVDO: u1 = 0,
-/// BRR [3:3]
-/// Backup regulator ready
-BRR: u1 = 0,
-/// unused [4:7]
-_unused4: u4 = 0,
-/// EWUP [8:8]
-/// Enable WKUP pin
-EWUP: u1 = 0,
-/// BRE [9:9]
-/// Backup regulator enable
-BRE: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// power control/status register
-pub const CSR = Register(CSR_val).init(base_address + 0x4);
-};
-
-/// Inter-integrated circuit
-pub const I2C1 = struct {
-
-const base_address = 0x40005400;
-/// CR1
-const CR1_val = packed struct {
-/// PE [0:0]
-/// Peripheral enable
-PE: u1 = 0,
-/// TXIE [1:1]
-/// TX Interrupt enable
-TXIE: u1 = 0,
-/// RXIE [2:2]
-/// RX Interrupt enable
-RXIE: u1 = 0,
-/// ADDRIE [3:3]
-/// Address match interrupt enable (slave
-ADDRIE: u1 = 0,
-/// NACKIE [4:4]
-/// Not acknowledge received interrupt
-NACKIE: u1 = 0,
-/// STOPIE [5:5]
-/// STOP detection Interrupt
-STOPIE: u1 = 0,
-/// TCIE [6:6]
-/// Transfer Complete interrupt
-TCIE: u1 = 0,
-/// ERRIE [7:7]
-/// Error interrupts enable
-ERRIE: u1 = 0,
-/// DNF [8:11]
-/// Digital noise filter
-DNF: u4 = 0,
-/// ANFOFF [12:12]
-/// Analog noise filter OFF
-ANFOFF: u1 = 0,
-/// SWRST [13:13]
-/// Software reset
-SWRST: u1 = 0,
-/// TXDMAEN [14:14]
-/// DMA transmission requests
-TXDMAEN: u1 = 0,
-/// RXDMAEN [15:15]
-/// DMA reception requests
-RXDMAEN: u1 = 0,
-/// SBC [16:16]
-/// Slave byte control
-SBC: u1 = 0,
-/// NOSTRETCH [17:17]
-/// Clock stretching disable
-NOSTRETCH: u1 = 0,
-/// WUPEN [18:18]
-/// Wakeup from STOP enable
-WUPEN: u1 = 0,
-/// GCEN [19:19]
-/// General call enable
-GCEN: u1 = 0,
-/// SMBHEN [20:20]
-/// SMBus Host address enable
-SMBHEN: u1 = 0,
-/// SMBDEN [21:21]
-/// SMBus Device Default address
-SMBDEN: u1 = 0,
-/// ALERTEN [22:22]
-/// SMBUS alert enable
-ALERTEN: u1 = 0,
-/// PECEN [23:23]
-/// PEC enable
-PECEN: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// Control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// SADD0 [0:0]
-/// Slave address bit 0 (master
-SADD0: u1 = 0,
-/// SADD1 [1:7]
-/// Slave address bit 7:1 (master
-SADD1: u7 = 0,
-/// SADD8 [8:9]
-/// Slave address bit 9:8 (master
-SADD8: u2 = 0,
-/// RD_WRN [10:10]
-/// Transfer direction (master
-RD_WRN: u1 = 0,
-/// ADD10 [11:11]
-/// 10-bit addressing mode (master
-ADD10: u1 = 0,
-/// HEAD10R [12:12]
-/// 10-bit address header only read
-HEAD10R: u1 = 0,
-/// START [13:13]
-/// Start generation
-START: u1 = 0,
-/// STOP [14:14]
-/// Stop generation (master
-STOP: u1 = 0,
-/// NACK [15:15]
-/// NACK generation (slave
-NACK: u1 = 0,
-/// NBYTES [16:23]
-/// Number of bytes
-NBYTES: u8 = 0,
-/// RELOAD [24:24]
-/// NBYTES reload mode
-RELOAD: u1 = 0,
-/// AUTOEND [25:25]
-/// Automatic end mode (master
-AUTOEND: u1 = 0,
-/// PECBYTE [26:26]
-/// Packet error checking byte
-PECBYTE: u1 = 0,
-/// unused [27:31]
-_unused27: u5 = 0,
-};
-/// Control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// OAR1
-const OAR1_val = packed struct {
-/// OA1_0 [0:0]
-/// Interface address
-OA1_0: u1 = 0,
-/// OA1_1 [1:7]
-/// Interface address
-OA1_1: u7 = 0,
-/// OA1_8 [8:9]
-/// Interface address
-OA1_8: u2 = 0,
-/// OA1MODE [10:10]
-/// Own Address 1 10-bit mode
-OA1MODE: u1 = 0,
-/// unused [11:14]
-_unused11: u4 = 0,
-/// OA1EN [15:15]
-/// Own Address 1 enable
-OA1EN: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Own address register 1
-pub const OAR1 = Register(OAR1_val).init(base_address + 0x8);
-
-/// OAR2
-const OAR2_val = packed struct {
-/// unused [0:0]
-_unused0: u1 = 0,
-/// OA2 [1:7]
-/// Interface address
-OA2: u7 = 0,
-/// OA2MSK [8:10]
-/// Own Address 2 masks
-OA2MSK: u3 = 0,
-/// unused [11:14]
-_unused11: u4 = 0,
-/// OA2EN [15:15]
-/// Own Address 2 enable
-OA2EN: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Own address register 2
-pub const OAR2 = Register(OAR2_val).init(base_address + 0xc);
-
-/// TIMINGR
-const TIMINGR_val = packed struct {
-/// SCLL [0:7]
-/// SCL low period (master
-SCLL: u8 = 0,
-/// SCLH [8:15]
-/// SCL high period (master
-SCLH: u8 = 0,
-/// SDADEL [16:19]
-/// Data hold time
-SDADEL: u4 = 0,
-/// SCLDEL [20:23]
-/// Data setup time
-SCLDEL: u4 = 0,
-/// unused [24:27]
-_unused24: u4 = 0,
-/// PRESC [28:31]
-/// Timing prescaler
-PRESC: u4 = 0,
-};
-/// Timing register
-pub const TIMINGR = Register(TIMINGR_val).init(base_address + 0x10);
-
-/// TIMEOUTR
-const TIMEOUTR_val = packed struct {
-/// TIMEOUTA [0:11]
-/// Bus timeout A
-TIMEOUTA: u12 = 0,
-/// TIDLE [12:12]
-/// Idle clock timeout
-TIDLE: u1 = 0,
-/// unused [13:14]
-_unused13: u2 = 0,
-/// TIMOUTEN [15:15]
-/// Clock timeout enable
-TIMOUTEN: u1 = 0,
-/// TIMEOUTB [16:27]
-/// Bus timeout B
-TIMEOUTB: u12 = 0,
-/// unused [28:30]
-_unused28: u3 = 0,
-/// TEXTEN [31:31]
-/// Extended clock timeout
-TEXTEN: u1 = 0,
-};
-/// Status register 1
-pub const TIMEOUTR = Register(TIMEOUTR_val).init(base_address + 0x14);
-
-/// ISR
-const ISR_val = packed struct {
-/// TXE [0:0]
-/// Transmit data register empty
-TXE: u1 = 1,
-/// TXIS [1:1]
-/// Transmit interrupt status
-TXIS: u1 = 0,
-/// RXNE [2:2]
-/// Receive data register not empty
-RXNE: u1 = 0,
-/// ADDR [3:3]
-/// Address matched (slave
-ADDR: u1 = 0,
-/// NACKF [4:4]
-/// Not acknowledge received
-NACKF: u1 = 0,
-/// STOPF [5:5]
-/// Stop detection flag
-STOPF: u1 = 0,
-/// TC [6:6]
-/// Transfer Complete (master
-TC: u1 = 0,
-/// TCR [7:7]
-/// Transfer Complete Reload
-TCR: u1 = 0,
-/// BERR [8:8]
-/// Bus error
-BERR: u1 = 0,
-/// ARLO [9:9]
-/// Arbitration lost
-ARLO: u1 = 0,
-/// OVR [10:10]
-/// Overrun/Underrun (slave
-OVR: u1 = 0,
-/// PECERR [11:11]
-/// PEC Error in reception
-PECERR: u1 = 0,
-/// TIMEOUT [12:12]
-/// Timeout or t_low detection
-TIMEOUT: u1 = 0,
-/// ALERT [13:13]
-/// SMBus alert
-ALERT: u1 = 0,
-/// unused [14:14]
-_unused14: u1 = 0,
-/// BUSY [15:15]
-/// Bus busy
-BUSY: u1 = 0,
-/// DIR [16:16]
-/// Transfer direction (Slave
-DIR: u1 = 0,
-/// ADDCODE [17:23]
-/// Address match code (Slave
-ADDCODE: u7 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// Interrupt and Status register
-pub const ISR = Register(ISR_val).init(base_address + 0x18);
-
-/// ICR
-const ICR_val = packed struct {
-/// unused [0:2]
-_unused0: u3 = 0,
-/// ADDRCF [3:3]
-/// Address Matched flag clear
-ADDRCF: u1 = 0,
-/// NACKCF [4:4]
-/// Not Acknowledge flag clear
-NACKCF: u1 = 0,
-/// STOPCF [5:5]
-/// Stop detection flag clear
-STOPCF: u1 = 0,
-/// unused [6:7]
-_unused6: u2 = 0,
-/// BERRCF [8:8]
-/// Bus error flag clear
-BERRCF: u1 = 0,
-/// ARLOCF [9:9]
-/// Arbitration lost flag
-ARLOCF: u1 = 0,
-/// OVRCF [10:10]
-/// Overrun/Underrun flag
-OVRCF: u1 = 0,
-/// PECCF [11:11]
-/// PEC Error flag clear
-PECCF: u1 = 0,
-/// TIMOUTCF [12:12]
-/// Timeout detection flag
-TIMOUTCF: u1 = 0,
-/// ALERTCF [13:13]
-/// Alert flag clear
-ALERTCF: u1 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt clear register
-pub const ICR = Register(ICR_val).init(base_address + 0x1c);
-
-/// PECR
-const PECR_val = packed struct {
-/// PEC [0:7]
-/// Packet error checking
-PEC: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// PEC register
-pub const PECR = Register(PECR_val).init(base_address + 0x20);
-
-/// RXDR
-const RXDR_val = packed struct {
-/// RXDATA [0:7]
-/// 8-bit receive data
-RXDATA: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Receive data register
-pub const RXDR = Register(RXDR_val).init(base_address + 0x24);
-
-/// TXDR
-const TXDR_val = packed struct {
-/// TXDATA [0:7]
-/// 8-bit transmit data
-TXDATA: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Transmit data register
-pub const TXDR = Register(TXDR_val).init(base_address + 0x28);
-};
-
-/// Inter-integrated circuit
-pub const I2C2 = struct {
-
-const base_address = 0x40005800;
-/// CR1
-const CR1_val = packed struct {
-/// PE [0:0]
-/// Peripheral enable
-PE: u1 = 0,
-/// TXIE [1:1]
-/// TX Interrupt enable
-TXIE: u1 = 0,
-/// RXIE [2:2]
-/// RX Interrupt enable
-RXIE: u1 = 0,
-/// ADDRIE [3:3]
-/// Address match interrupt enable (slave
-ADDRIE: u1 = 0,
-/// NACKIE [4:4]
-/// Not acknowledge received interrupt
-NACKIE: u1 = 0,
-/// STOPIE [5:5]
-/// STOP detection Interrupt
-STOPIE: u1 = 0,
-/// TCIE [6:6]
-/// Transfer Complete interrupt
-TCIE: u1 = 0,
-/// ERRIE [7:7]
-/// Error interrupts enable
-ERRIE: u1 = 0,
-/// DNF [8:11]
-/// Digital noise filter
-DNF: u4 = 0,
-/// ANFOFF [12:12]
-/// Analog noise filter OFF
-ANFOFF: u1 = 0,
-/// SWRST [13:13]
-/// Software reset
-SWRST: u1 = 0,
-/// TXDMAEN [14:14]
-/// DMA transmission requests
-TXDMAEN: u1 = 0,
-/// RXDMAEN [15:15]
-/// DMA reception requests
-RXDMAEN: u1 = 0,
-/// SBC [16:16]
-/// Slave byte control
-SBC: u1 = 0,
-/// NOSTRETCH [17:17]
-/// Clock stretching disable
-NOSTRETCH: u1 = 0,
-/// WUPEN [18:18]
-/// Wakeup from STOP enable
-WUPEN: u1 = 0,
-/// GCEN [19:19]
-/// General call enable
-GCEN: u1 = 0,
-/// SMBHEN [20:20]
-/// SMBus Host address enable
-SMBHEN: u1 = 0,
-/// SMBDEN [21:21]
-/// SMBus Device Default address
-SMBDEN: u1 = 0,
-/// ALERTEN [22:22]
-/// SMBUS alert enable
-ALERTEN: u1 = 0,
-/// PECEN [23:23]
-/// PEC enable
-PECEN: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// Control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// SADD0 [0:0]
-/// Slave address bit 0 (master
-SADD0: u1 = 0,
-/// SADD1 [1:7]
-/// Slave address bit 7:1 (master
-SADD1: u7 = 0,
-/// SADD8 [8:9]
-/// Slave address bit 9:8 (master
-SADD8: u2 = 0,
-/// RD_WRN [10:10]
-/// Transfer direction (master
-RD_WRN: u1 = 0,
-/// ADD10 [11:11]
-/// 10-bit addressing mode (master
-ADD10: u1 = 0,
-/// HEAD10R [12:12]
-/// 10-bit address header only read
-HEAD10R: u1 = 0,
-/// START [13:13]
-/// Start generation
-START: u1 = 0,
-/// STOP [14:14]
-/// Stop generation (master
-STOP: u1 = 0,
-/// NACK [15:15]
-/// NACK generation (slave
-NACK: u1 = 0,
-/// NBYTES [16:23]
-/// Number of bytes
-NBYTES: u8 = 0,
-/// RELOAD [24:24]
-/// NBYTES reload mode
-RELOAD: u1 = 0,
-/// AUTOEND [25:25]
-/// Automatic end mode (master
-AUTOEND: u1 = 0,
-/// PECBYTE [26:26]
-/// Packet error checking byte
-PECBYTE: u1 = 0,
-/// unused [27:31]
-_unused27: u5 = 0,
-};
-/// Control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// OAR1
-const OAR1_val = packed struct {
-/// OA1_0 [0:0]
-/// Interface address
-OA1_0: u1 = 0,
-/// OA1_1 [1:7]
-/// Interface address
-OA1_1: u7 = 0,
-/// OA1_8 [8:9]
-/// Interface address
-OA1_8: u2 = 0,
-/// OA1MODE [10:10]
-/// Own Address 1 10-bit mode
-OA1MODE: u1 = 0,
-/// unused [11:14]
-_unused11: u4 = 0,
-/// OA1EN [15:15]
-/// Own Address 1 enable
-OA1EN: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Own address register 1
-pub const OAR1 = Register(OAR1_val).init(base_address + 0x8);
-
-/// OAR2
-const OAR2_val = packed struct {
-/// unused [0:0]
-_unused0: u1 = 0,
-/// OA2 [1:7]
-/// Interface address
-OA2: u7 = 0,
-/// OA2MSK [8:10]
-/// Own Address 2 masks
-OA2MSK: u3 = 0,
-/// unused [11:14]
-_unused11: u4 = 0,
-/// OA2EN [15:15]
-/// Own Address 2 enable
-OA2EN: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Own address register 2
-pub const OAR2 = Register(OAR2_val).init(base_address + 0xc);
-
-/// TIMINGR
-const TIMINGR_val = packed struct {
-/// SCLL [0:7]
-/// SCL low period (master
-SCLL: u8 = 0,
-/// SCLH [8:15]
-/// SCL high period (master
-SCLH: u8 = 0,
-/// SDADEL [16:19]
-/// Data hold time
-SDADEL: u4 = 0,
-/// SCLDEL [20:23]
-/// Data setup time
-SCLDEL: u4 = 0,
-/// unused [24:27]
-_unused24: u4 = 0,
-/// PRESC [28:31]
-/// Timing prescaler
-PRESC: u4 = 0,
-};
-/// Timing register
-pub const TIMINGR = Register(TIMINGR_val).init(base_address + 0x10);
-
-/// TIMEOUTR
-const TIMEOUTR_val = packed struct {
-/// TIMEOUTA [0:11]
-/// Bus timeout A
-TIMEOUTA: u12 = 0,
-/// TIDLE [12:12]
-/// Idle clock timeout
-TIDLE: u1 = 0,
-/// unused [13:14]
-_unused13: u2 = 0,
-/// TIMOUTEN [15:15]
-/// Clock timeout enable
-TIMOUTEN: u1 = 0,
-/// TIMEOUTB [16:27]
-/// Bus timeout B
-TIMEOUTB: u12 = 0,
-/// unused [28:30]
-_unused28: u3 = 0,
-/// TEXTEN [31:31]
-/// Extended clock timeout
-TEXTEN: u1 = 0,
-};
-/// Status register 1
-pub const TIMEOUTR = Register(TIMEOUTR_val).init(base_address + 0x14);
-
-/// ISR
-const ISR_val = packed struct {
-/// TXE [0:0]
-/// Transmit data register empty
-TXE: u1 = 1,
-/// TXIS [1:1]
-/// Transmit interrupt status
-TXIS: u1 = 0,
-/// RXNE [2:2]
-/// Receive data register not empty
-RXNE: u1 = 0,
-/// ADDR [3:3]
-/// Address matched (slave
-ADDR: u1 = 0,
-/// NACKF [4:4]
-/// Not acknowledge received
-NACKF: u1 = 0,
-/// STOPF [5:5]
-/// Stop detection flag
-STOPF: u1 = 0,
-/// TC [6:6]
-/// Transfer Complete (master
-TC: u1 = 0,
-/// TCR [7:7]
-/// Transfer Complete Reload
-TCR: u1 = 0,
-/// BERR [8:8]
-/// Bus error
-BERR: u1 = 0,
-/// ARLO [9:9]
-/// Arbitration lost
-ARLO: u1 = 0,
-/// OVR [10:10]
-/// Overrun/Underrun (slave
-OVR: u1 = 0,
-/// PECERR [11:11]
-/// PEC Error in reception
-PECERR: u1 = 0,
-/// TIMEOUT [12:12]
-/// Timeout or t_low detection
-TIMEOUT: u1 = 0,
-/// ALERT [13:13]
-/// SMBus alert
-ALERT: u1 = 0,
-/// unused [14:14]
-_unused14: u1 = 0,
-/// BUSY [15:15]
-/// Bus busy
-BUSY: u1 = 0,
-/// DIR [16:16]
-/// Transfer direction (Slave
-DIR: u1 = 0,
-/// ADDCODE [17:23]
-/// Address match code (Slave
-ADDCODE: u7 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// Interrupt and Status register
-pub const ISR = Register(ISR_val).init(base_address + 0x18);
-
-/// ICR
-const ICR_val = packed struct {
-/// unused [0:2]
-_unused0: u3 = 0,
-/// ADDRCF [3:3]
-/// Address Matched flag clear
-ADDRCF: u1 = 0,
-/// NACKCF [4:4]
-/// Not Acknowledge flag clear
-NACKCF: u1 = 0,
-/// STOPCF [5:5]
-/// Stop detection flag clear
-STOPCF: u1 = 0,
-/// unused [6:7]
-_unused6: u2 = 0,
-/// BERRCF [8:8]
-/// Bus error flag clear
-BERRCF: u1 = 0,
-/// ARLOCF [9:9]
-/// Arbitration lost flag
-ARLOCF: u1 = 0,
-/// OVRCF [10:10]
-/// Overrun/Underrun flag
-OVRCF: u1 = 0,
-/// PECCF [11:11]
-/// PEC Error flag clear
-PECCF: u1 = 0,
-/// TIMOUTCF [12:12]
-/// Timeout detection flag
-TIMOUTCF: u1 = 0,
-/// ALERTCF [13:13]
-/// Alert flag clear
-ALERTCF: u1 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt clear register
-pub const ICR = Register(ICR_val).init(base_address + 0x1c);
-
-/// PECR
-const PECR_val = packed struct {
-/// PEC [0:7]
-/// Packet error checking
-PEC: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// PEC register
-pub const PECR = Register(PECR_val).init(base_address + 0x20);
-
-/// RXDR
-const RXDR_val = packed struct {
-/// RXDATA [0:7]
-/// 8-bit receive data
-RXDATA: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Receive data register
-pub const RXDR = Register(RXDR_val).init(base_address + 0x24);
-
-/// TXDR
-const TXDR_val = packed struct {
-/// TXDATA [0:7]
-/// 8-bit transmit data
-TXDATA: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Transmit data register
-pub const TXDR = Register(TXDR_val).init(base_address + 0x28);
-};
-
-/// Independent watchdog
-pub const IWDG = struct {
-
-const base_address = 0x40003000;
-/// KR
-const KR_val = packed struct {
-/// KEY [0:15]
-/// Key value
-KEY: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Key register
-pub const KR = Register(KR_val).init(base_address + 0x0);
-
-/// PR
-const PR_val = packed struct {
-/// PR [0:2]
-/// Prescaler divider
-PR: u3 = 0,
-/// unused [3:31]
-_unused3: u5 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Prescaler register
-pub const PR = Register(PR_val).init(base_address + 0x4);
-
-/// RLR
-const RLR_val = packed struct {
-/// RL [0:11]
-/// Watchdog counter reload
-RL: u12 = 4095,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Reload register
-pub const RLR = Register(RLR_val).init(base_address + 0x8);
-
-/// SR
-const SR_val = packed struct {
-/// PVU [0:0]
-/// Watchdog prescaler value
-PVU: u1 = 0,
-/// RVU [1:1]
-/// Watchdog counter reload value
-RVU: u1 = 0,
-/// WVU [2:2]
-/// Watchdog counter window value
-WVU: u1 = 0,
-/// unused [3:31]
-_unused3: u5 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Status register
-pub const SR = Register(SR_val).init(base_address + 0xc);
-
-/// WINR
-const WINR_val = packed struct {
-/// WIN [0:11]
-/// Watchdog counter window
-WIN: u12 = 4095,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Window register
-pub const WINR = Register(WINR_val).init(base_address + 0x10);
-};
-
-/// Window watchdog
-pub const WWDG = struct {
-
-const base_address = 0x40002c00;
-/// CR
-const CR_val = packed struct {
-/// T [0:6]
-/// 7-bit counter
-T: u7 = 127,
-/// WDGA [7:7]
-/// Activation bit
-WDGA: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Control register
-pub const CR = Register(CR_val).init(base_address + 0x0);
-
-/// CFR
-const CFR_val = packed struct {
-/// W [0:6]
-/// 7-bit window value
-W: u7 = 127,
-/// WDGTB [7:8]
-/// Timer base
-WDGTB: u2 = 0,
-/// EWI [9:9]
-/// Early wakeup interrupt
-EWI: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Configuration register
-pub const CFR = Register(CFR_val).init(base_address + 0x4);
-
-/// SR
-const SR_val = packed struct {
-/// EWIF [0:0]
-/// Early wakeup interrupt
-EWIF: u1 = 0,
-/// unused [1:31]
-_unused1: u7 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Status register
-pub const SR = Register(SR_val).init(base_address + 0x8);
-};
-
-/// Advanced-timers
-pub const TIM1 = struct {
-
-const base_address = 0x40012c00;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// DIR [4:4]
-/// Direction
-DIR: u1 = 0,
-/// CMS [5:6]
-/// Center-aligned mode
-CMS: u2 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// CCPC [0:0]
-/// Capture/compare preloaded
-CCPC: u1 = 0,
-/// unused [1:1]
-_unused1: u1 = 0,
-/// CCUS [2:2]
-/// Capture/compare control update
-CCUS: u1 = 0,
-/// CCDS [3:3]
-/// Capture/compare DMA
-CCDS: u1 = 0,
-/// MMS [4:6]
-/// Master mode selection
-MMS: u3 = 0,
-/// TI1S [7:7]
-/// TI1 selection
-TI1S: u1 = 0,
-/// OIS1 [8:8]
-/// Output Idle state 1
-OIS1: u1 = 0,
-/// OIS1N [9:9]
-/// Output Idle state 1
-OIS1N: u1 = 0,
-/// OIS2 [10:10]
-/// Output Idle state 2
-OIS2: u1 = 0,
-/// OIS2N [11:11]
-/// Output Idle state 2
-OIS2N: u1 = 0,
-/// OIS3 [12:12]
-/// Output Idle state 3
-OIS3: u1 = 0,
-/// OIS3N [13:13]
-/// Output Idle state 3
-OIS3N: u1 = 0,
-/// OIS4 [14:14]
-/// Output Idle state 4
-OIS4: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// SMCR
-const SMCR_val = packed struct {
-/// SMS [0:2]
-/// Slave mode selection
-SMS: u3 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// TS [4:6]
-/// Trigger selection
-TS: u3 = 0,
-/// MSM [7:7]
-/// Master/Slave mode
-MSM: u1 = 0,
-/// ETF [8:11]
-/// External trigger filter
-ETF: u4 = 0,
-/// ETPS [12:13]
-/// External trigger prescaler
-ETPS: u2 = 0,
-/// ECE [14:14]
-/// External clock enable
-ECE: u1 = 0,
-/// ETP [15:15]
-/// External trigger polarity
-ETP: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// slave mode control register
-pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// CC2IE [2:2]
-/// Capture/Compare 2 interrupt
-CC2IE: u1 = 0,
-/// CC3IE [3:3]
-/// Capture/Compare 3 interrupt
-CC3IE: u1 = 0,
-/// CC4IE [4:4]
-/// Capture/Compare 4 interrupt
-CC4IE: u1 = 0,
-/// COMIE [5:5]
-/// COM interrupt enable
-COMIE: u1 = 0,
-/// TIE [6:6]
-/// Trigger interrupt enable
-TIE: u1 = 0,
-/// BIE [7:7]
-/// Break interrupt enable
-BIE: u1 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// CC1DE [9:9]
-/// Capture/Compare 1 DMA request
-CC1DE: u1 = 0,
-/// CC2DE [10:10]
-/// Capture/Compare 2 DMA request
-CC2DE: u1 = 0,
-/// CC3DE [11:11]
-/// Capture/Compare 3 DMA request
-CC3DE: u1 = 0,
-/// CC4DE [12:12]
-/// Capture/Compare 4 DMA request
-CC4DE: u1 = 0,
-/// COMDE [13:13]
-/// Reserved
-COMDE: u1 = 0,
-/// TDE [14:14]
-/// Trigger DMA request enable
-TDE: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// CC2IF [2:2]
-/// Capture/Compare 2 interrupt
-CC2IF: u1 = 0,
-/// CC3IF [3:3]
-/// Capture/Compare 3 interrupt
-CC3IF: u1 = 0,
-/// CC4IF [4:4]
-/// Capture/Compare 4 interrupt
-CC4IF: u1 = 0,
-/// COMIF [5:5]
-/// COM interrupt flag
-COMIF: u1 = 0,
-/// TIF [6:6]
-/// Trigger interrupt flag
-TIF: u1 = 0,
-/// BIF [7:7]
-/// Break interrupt flag
-BIF: u1 = 0,
-/// unused [8:8]
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// CC2OF [10:10]
-/// Capture/compare 2 overcapture
-CC2OF: u1 = 0,
-/// CC3OF [11:11]
-/// Capture/Compare 3 overcapture
-CC3OF: u1 = 0,
-/// CC4OF [12:12]
-/// Capture/Compare 4 overcapture
-CC4OF: u1 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// CC2G [2:2]
-/// Capture/compare 2
-CC2G: u1 = 0,
-/// CC3G [3:3]
-/// Capture/compare 3
-CC3G: u1 = 0,
-/// CC4G [4:4]
-/// Capture/compare 4
-CC4G: u1 = 0,
-/// COMG [5:5]
-/// Capture/Compare control update
-COMG: u1 = 0,
-/// TG [6:6]
-/// Trigger generation
-TG: u1 = 0,
-/// BG [7:7]
-/// Break generation
-BG: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output Compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output Compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output Compare 1 mode
-OC1M: u3 = 0,
-/// OC1CE [7:7]
-/// Output Compare 1 clear
-OC1CE: u1 = 0,
-/// CC2S [8:9]
-/// Capture/Compare 2
-CC2S: u2 = 0,
-/// OC2FE [10:10]
-/// Output Compare 2 fast
-OC2FE: u1 = 0,
-/// OC2PE [11:11]
-/// Output Compare 2 preload
-OC2PE: u1 = 0,
-/// OC2M [12:14]
-/// Output Compare 2 mode
-OC2M: u3 = 0,
-/// OC2CE [15:15]
-/// Output Compare 2 clear
-OC2CE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PCS [2:3]
-/// Input capture 1 prescaler
-IC1PCS: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// CC2S [8:9]
-/// Capture/Compare 2
-CC2S: u2 = 0,
-/// IC2PCS [10:11]
-/// Input capture 2 prescaler
-IC2PCS: u2 = 0,
-/// IC2F [12:15]
-/// Input capture 2 filter
-IC2F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCMR2_Output
-const CCMR2_Output_val = packed struct {
-/// CC3S [0:1]
-/// Capture/Compare 3
-CC3S: u2 = 0,
-/// OC3FE [2:2]
-/// Output compare 3 fast
-OC3FE: u1 = 0,
-/// OC3PE [3:3]
-/// Output compare 3 preload
-OC3PE: u1 = 0,
-/// OC3M [4:6]
-/// Output compare 3 mode
-OC3M: u3 = 0,
-/// OC3CE [7:7]
-/// Output compare 3 clear
-OC3CE: u1 = 0,
-/// CC4S [8:9]
-/// Capture/Compare 4
-CC4S: u2 = 0,
-/// OC4FE [10:10]
-/// Output compare 4 fast
-OC4FE: u1 = 0,
-/// OC4PE [11:11]
-/// Output compare 4 preload
-OC4PE: u1 = 0,
-/// OC4M [12:14]
-/// Output compare 4 mode
-OC4M: u3 = 0,
-/// OC4CE [15:15]
-/// Output compare 4 clear
-OC4CE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (output
-pub const CCMR2_Output = Register(CCMR2_Output_val).init(base_address + 0x1c);
-
-/// CCMR2_Input
-const CCMR2_Input_val = packed struct {
-/// CC3S [0:1]
-/// Capture/compare 3
-CC3S: u2 = 0,
-/// IC3PSC [2:3]
-/// Input capture 3 prescaler
-IC3PSC: u2 = 0,
-/// IC3F [4:7]
-/// Input capture 3 filter
-IC3F: u4 = 0,
-/// CC4S [8:9]
-/// Capture/Compare 4
-CC4S: u2 = 0,
-/// IC4PSC [10:11]
-/// Input capture 4 prescaler
-IC4PSC: u2 = 0,
-/// IC4F [12:15]
-/// Input capture 4 filter
-IC4F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 2 (input
-pub const CCMR2_Input = Register(CCMR2_Input_val).init(base_address + 0x1c);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// CC1NE [2:2]
-/// Capture/Compare 1 complementary output
-CC1NE: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// CC2E [4:4]
-/// Capture/Compare 2 output
-CC2E: u1 = 0,
-/// CC2P [5:5]
-/// Capture/Compare 2 output
-CC2P: u1 = 0,
-/// CC2NE [6:6]
-/// Capture/Compare 2 complementary output
-CC2NE: u1 = 0,
-/// CC2NP [7:7]
-/// Capture/Compare 2 output
-CC2NP: u1 = 0,
-/// CC3E [8:8]
-/// Capture/Compare 3 output
-CC3E: u1 = 0,
-/// CC3P [9:9]
-/// Capture/Compare 3 output
-CC3P: u1 = 0,
-/// CC3NE [10:10]
-/// Capture/Compare 3 complementary output
-CC3NE: u1 = 0,
-/// CC3NP [11:11]
-/// Capture/Compare 3 output
-CC3NP: u1 = 0,
-/// CC4E [12:12]
-/// Capture/Compare 4 output
-CC4E: u1 = 0,
-/// CC4P [13:13]
-/// Capture/Compare 3 output
-CC4P: u1 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT [0:15]
-/// counter value
-CNT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR [0:15]
-/// Auto-reload value
-ARR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// RCR
-const RCR_val = packed struct {
-/// REP [0:7]
-/// Repetition counter value
-REP: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// repetition counter register
-pub const RCR = Register(RCR_val).init(base_address + 0x30);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1 [0:15]
-/// Capture/Compare 1 value
-CCR1: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// CCR2
-const CCR2_val = packed struct {
-/// CCR2 [0:15]
-/// Capture/Compare 2 value
-CCR2: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 2
-pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
-
-/// CCR3
-const CCR3_val = packed struct {
-/// CCR3 [0:15]
-/// Capture/Compare 3 value
-CCR3: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 3
-pub const CCR3 = Register(CCR3_val).init(base_address + 0x3c);
-
-/// CCR4
-const CCR4_val = packed struct {
-/// CCR4 [0:15]
-/// Capture/Compare 3 value
-CCR4: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 4
-pub const CCR4 = Register(CCR4_val).init(base_address + 0x40);
-
-/// BDTR
-const BDTR_val = packed struct {
-/// DTG [0:7]
-/// Dead-time generator setup
-DTG: u8 = 0,
-/// LOCK [8:9]
-/// Lock configuration
-LOCK: u2 = 0,
-/// OSSI [10:10]
-/// Off-state selection for Idle
-OSSI: u1 = 0,
-/// OSSR [11:11]
-/// Off-state selection for Run
-OSSR: u1 = 0,
-/// BKE [12:12]
-/// Break enable
-BKE: u1 = 0,
-/// BKP [13:13]
-/// Break polarity
-BKP: u1 = 0,
-/// AOE [14:14]
-/// Automatic output enable
-AOE: u1 = 0,
-/// MOE [15:15]
-/// Main output enable
-MOE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// break and dead-time register
-pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
-
-/// DCR
-const DCR_val = packed struct {
-/// DBA [0:4]
-/// DMA base address
-DBA: u5 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBL [8:12]
-/// DMA burst length
-DBL: u5 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA control register
-pub const DCR = Register(DCR_val).init(base_address + 0x48);
-
-/// DMAR
-const DMAR_val = packed struct {
-/// DMAB [0:15]
-/// DMA register for burst
-DMAB: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA address for full transfer
-pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
-};
-
-/// General-purpose-timers
-pub const TIM2 = struct {
-
-const base_address = 0x40000000;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// DIR [4:4]
-/// Direction
-DIR: u1 = 0,
-/// CMS [5:6]
-/// Center-aligned mode
-CMS: u2 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// unused [0:2]
-_unused0: u3 = 0,
-/// CCDS [3:3]
-/// Capture/compare DMA
-CCDS: u1 = 0,
-/// MMS [4:6]
-/// Master mode selection
-MMS: u3 = 0,
-/// TI1S [7:7]
-/// TI1 selection
-TI1S: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// SMCR
-const SMCR_val = packed struct {
-/// SMS [0:2]
-/// Slave mode selection
-SMS: u3 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// TS [4:6]
-/// Trigger selection
-TS: u3 = 0,
-/// MSM [7:7]
-/// Master/Slave mode
-MSM: u1 = 0,
-/// ETF [8:11]
-/// External trigger filter
-ETF: u4 = 0,
-/// ETPS [12:13]
-/// External trigger prescaler
-ETPS: u2 = 0,
-/// ECE [14:14]
-/// External clock enable
-ECE: u1 = 0,
-/// ETP [15:15]
-/// External trigger polarity
-ETP: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// slave mode control register
-pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// CC2IE [2:2]
-/// Capture/Compare 2 interrupt
-CC2IE: u1 = 0,
-/// CC3IE [3:3]
-/// Capture/Compare 3 interrupt
-CC3IE: u1 = 0,
-/// CC4IE [4:4]
-/// Capture/Compare 4 interrupt
-CC4IE: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TIE [6:6]
-/// Trigger interrupt enable
-TIE: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// CC1DE [9:9]
-/// Capture/Compare 1 DMA request
-CC1DE: u1 = 0,
-/// CC2DE [10:10]
-/// Capture/Compare 2 DMA request
-CC2DE: u1 = 0,
-/// CC3DE [11:11]
-/// Capture/Compare 3 DMA request
-CC3DE: u1 = 0,
-/// CC4DE [12:12]
-/// Capture/Compare 4 DMA request
-CC4DE: u1 = 0,
-/// COMDE [13:13]
-/// Reserved
-COMDE: u1 = 0,
-/// TDE [14:14]
-/// Trigger DMA request enable
-TDE: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// CC2IF [2:2]
-/// Capture/Compare 2 interrupt
-CC2IF: u1 = 0,
-/// CC3IF [3:3]
-/// Capture/Compare 3 interrupt
-CC3IF: u1 = 0,
-/// CC4IF [4:4]
-/// Capture/Compare 4 interrupt
-CC4IF: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TIF [6:6]
-/// Trigger interrupt flag
-TIF: u1 = 0,
-/// unused [7:8]
-_unused7: u1 = 0,
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// CC2OF [10:10]
-/// Capture/compare 2 overcapture
-CC2OF: u1 = 0,
-/// CC3OF [11:11]
-/// Capture/Compare 3 overcapture
-CC3OF: u1 = 0,
-/// CC4OF [12:12]
-/// Capture/Compare 4 overcapture
-CC4OF: u1 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// CC2G [2:2]
-/// Capture/compare 2
-CC2G: u1 = 0,
-/// CC3G [3:3]
-/// Capture/compare 3
-CC3G: u1 = 0,
-/// CC4G [4:4]
-/// Capture/compare 4
-CC4G: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TG [6:6]
-/// Trigger generation
-TG: u1 = 0,
-/// unused [7:31]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output compare 1 mode
-OC1M: u3 = 0,
-/// OC1CE [7:7]
-/// Output compare 1 clear
-OC1CE: u1 = 0,
-/// CC2S [8:9]
-/// Capture/Compare 2
-CC2S: u2 = 0,
-/// OC2FE [10:10]
-/// Output compare 2 fast
-OC2FE: u1 = 0,
-/// OC2PE [11:11]
-/// Output compare 2 preload
-OC2PE: u1 = 0,
-/// OC2M [12:14]
-/// Output compare 2 mode
-OC2M: u3 = 0,
-/// OC2CE [15:15]
-/// Output compare 2 clear
-OC2CE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PSC [2:3]
-/// Input capture 1 prescaler
-IC1PSC: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// CC2S [8:9]
-/// Capture/compare 2
-CC2S: u2 = 0,
-/// IC2PSC [10:11]
-/// Input capture 2 prescaler
-IC2PSC: u2 = 0,
-/// IC2F [12:15]
-/// Input capture 2 filter
-IC2F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCMR2_Output
-const CCMR2_Output_val = packed struct {
-/// CC3S [0:1]
-/// Capture/Compare 3
-CC3S: u2 = 0,
-/// OC3FE [2:2]
-/// Output compare 3 fast
-OC3FE: u1 = 0,
-/// OC3PE [3:3]
-/// Output compare 3 preload
-OC3PE: u1 = 0,
-/// OC3M [4:6]
-/// Output compare 3 mode
-OC3M: u3 = 0,
-/// OC3CE [7:7]
-/// Output compare 3 clear
-OC3CE: u1 = 0,
-/// CC4S [8:9]
-/// Capture/Compare 4
-CC4S: u2 = 0,
-/// OC4FE [10:10]
-/// Output compare 4 fast
-OC4FE: u1 = 0,
-/// OC4PE [11:11]
-/// Output compare 4 preload
-OC4PE: u1 = 0,
-/// OC4M [12:14]
-/// Output compare 4 mode
-OC4M: u3 = 0,
-/// OC4CE [15:15]
-/// Output compare 4 clear
-OC4CE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 2 (output
-pub const CCMR2_Output = Register(CCMR2_Output_val).init(base_address + 0x1c);
-
-/// CCMR2_Input
-const CCMR2_Input_val = packed struct {
-/// CC3S [0:1]
-/// Capture/Compare 3
-CC3S: u2 = 0,
-/// IC3PSC [2:3]
-/// Input capture 3 prescaler
-IC3PSC: u2 = 0,
-/// IC3F [4:7]
-/// Input capture 3 filter
-IC3F: u4 = 0,
-/// CC4S [8:9]
-/// Capture/Compare 4
-CC4S: u2 = 0,
-/// IC4PSC [10:11]
-/// Input capture 4 prescaler
-IC4PSC: u2 = 0,
-/// IC4F [12:15]
-/// Input capture 4 filter
-IC4F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 2 (input
-pub const CCMR2_Input = Register(CCMR2_Input_val).init(base_address + 0x1c);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// unused [2:2]
-_unused2: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// CC2E [4:4]
-/// Capture/Compare 2 output
-CC2E: u1 = 0,
-/// CC2P [5:5]
-/// Capture/Compare 2 output
-CC2P: u1 = 0,
-/// unused [6:6]
-_unused6: u1 = 0,
-/// CC2NP [7:7]
-/// Capture/Compare 2 output
-CC2NP: u1 = 0,
-/// CC3E [8:8]
-/// Capture/Compare 3 output
-CC3E: u1 = 0,
-/// CC3P [9:9]
-/// Capture/Compare 3 output
-CC3P: u1 = 0,
-/// unused [10:10]
-_unused10: u1 = 0,
-/// CC3NP [11:11]
-/// Capture/Compare 3 output
-CC3NP: u1 = 0,
-/// CC4E [12:12]
-/// Capture/Compare 4 output
-CC4E: u1 = 0,
-/// CC4P [13:13]
-/// Capture/Compare 3 output
-CC4P: u1 = 0,
-/// unused [14:14]
-_unused14: u1 = 0,
-/// CC4NP [15:15]
-/// Capture/Compare 4 output
-CC4NP: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT_L [0:15]
-/// Low counter value
-CNT_L: u16 = 0,
-/// CNT_H [16:31]
-/// High counter value (TIM2
-CNT_H: u16 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR_L [0:15]
-/// Low Auto-reload value
-ARR_L: u16 = 0,
-/// ARR_H [16:31]
-/// High Auto-reload value (TIM2
-ARR_H: u16 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1_L [0:15]
-/// Low Capture/Compare 1
-CCR1_L: u16 = 0,
-/// CCR1_H [16:31]
-/// High Capture/Compare 1 value (TIM2
-CCR1_H: u16 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// CCR2
-const CCR2_val = packed struct {
-/// CCR2_L [0:15]
-/// Low Capture/Compare 2
-CCR2_L: u16 = 0,
-/// CCR2_H [16:31]
-/// High Capture/Compare 2 value (TIM2
-CCR2_H: u16 = 0,
-};
-/// capture/compare register 2
-pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
-
-/// CCR3
-const CCR3_val = packed struct {
-/// CCR3_L [0:15]
-/// Low Capture/Compare value
-CCR3_L: u16 = 0,
-/// CCR3_H [16:31]
-/// High Capture/Compare value (TIM2
-CCR3_H: u16 = 0,
-};
-/// capture/compare register 3
-pub const CCR3 = Register(CCR3_val).init(base_address + 0x3c);
-
-/// CCR4
-const CCR4_val = packed struct {
-/// CCR4_L [0:15]
-/// Low Capture/Compare value
-CCR4_L: u16 = 0,
-/// CCR4_H [16:31]
-/// High Capture/Compare value (TIM2
-CCR4_H: u16 = 0,
-};
-/// capture/compare register 4
-pub const CCR4 = Register(CCR4_val).init(base_address + 0x40);
-
-/// DCR
-const DCR_val = packed struct {
-/// DBA [0:4]
-/// DMA base address
-DBA: u5 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBL [8:12]
-/// DMA burst length
-DBL: u5 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA control register
-pub const DCR = Register(DCR_val).init(base_address + 0x48);
-
-/// DMAR
-const DMAR_val = packed struct {
-/// DMAR [0:15]
-/// DMA register for burst
-DMAR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA address for full transfer
-pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
-};
-
-/// General-purpose-timers
-pub const TIM3 = struct {
-
-const base_address = 0x40000400;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// DIR [4:4]
-/// Direction
-DIR: u1 = 0,
-/// CMS [5:6]
-/// Center-aligned mode
-CMS: u2 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// unused [0:2]
-_unused0: u3 = 0,
-/// CCDS [3:3]
-/// Capture/compare DMA
-CCDS: u1 = 0,
-/// MMS [4:6]
-/// Master mode selection
-MMS: u3 = 0,
-/// TI1S [7:7]
-/// TI1 selection
-TI1S: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// SMCR
-const SMCR_val = packed struct {
-/// SMS [0:2]
-/// Slave mode selection
-SMS: u3 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// TS [4:6]
-/// Trigger selection
-TS: u3 = 0,
-/// MSM [7:7]
-/// Master/Slave mode
-MSM: u1 = 0,
-/// ETF [8:11]
-/// External trigger filter
-ETF: u4 = 0,
-/// ETPS [12:13]
-/// External trigger prescaler
-ETPS: u2 = 0,
-/// ECE [14:14]
-/// External clock enable
-ECE: u1 = 0,
-/// ETP [15:15]
-/// External trigger polarity
-ETP: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// slave mode control register
-pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// CC2IE [2:2]
-/// Capture/Compare 2 interrupt
-CC2IE: u1 = 0,
-/// CC3IE [3:3]
-/// Capture/Compare 3 interrupt
-CC3IE: u1 = 0,
-/// CC4IE [4:4]
-/// Capture/Compare 4 interrupt
-CC4IE: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TIE [6:6]
-/// Trigger interrupt enable
-TIE: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// CC1DE [9:9]
-/// Capture/Compare 1 DMA request
-CC1DE: u1 = 0,
-/// CC2DE [10:10]
-/// Capture/Compare 2 DMA request
-CC2DE: u1 = 0,
-/// CC3DE [11:11]
-/// Capture/Compare 3 DMA request
-CC3DE: u1 = 0,
-/// CC4DE [12:12]
-/// Capture/Compare 4 DMA request
-CC4DE: u1 = 0,
-/// COMDE [13:13]
-/// Reserved
-COMDE: u1 = 0,
-/// TDE [14:14]
-/// Trigger DMA request enable
-TDE: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// CC2IF [2:2]
-/// Capture/Compare 2 interrupt
-CC2IF: u1 = 0,
-/// CC3IF [3:3]
-/// Capture/Compare 3 interrupt
-CC3IF: u1 = 0,
-/// CC4IF [4:4]
-/// Capture/Compare 4 interrupt
-CC4IF: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TIF [6:6]
-/// Trigger interrupt flag
-TIF: u1 = 0,
-/// unused [7:8]
-_unused7: u1 = 0,
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// CC2OF [10:10]
-/// Capture/compare 2 overcapture
-CC2OF: u1 = 0,
-/// CC3OF [11:11]
-/// Capture/Compare 3 overcapture
-CC3OF: u1 = 0,
-/// CC4OF [12:12]
-/// Capture/Compare 4 overcapture
-CC4OF: u1 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// CC2G [2:2]
-/// Capture/compare 2
-CC2G: u1 = 0,
-/// CC3G [3:3]
-/// Capture/compare 3
-CC3G: u1 = 0,
-/// CC4G [4:4]
-/// Capture/compare 4
-CC4G: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TG [6:6]
-/// Trigger generation
-TG: u1 = 0,
-/// unused [7:31]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output compare 1 mode
-OC1M: u3 = 0,
-/// OC1CE [7:7]
-/// Output compare 1 clear
-OC1CE: u1 = 0,
-/// CC2S [8:9]
-/// Capture/Compare 2
-CC2S: u2 = 0,
-/// OC2FE [10:10]
-/// Output compare 2 fast
-OC2FE: u1 = 0,
-/// OC2PE [11:11]
-/// Output compare 2 preload
-OC2PE: u1 = 0,
-/// OC2M [12:14]
-/// Output compare 2 mode
-OC2M: u3 = 0,
-/// OC2CE [15:15]
-/// Output compare 2 clear
-OC2CE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PSC [2:3]
-/// Input capture 1 prescaler
-IC1PSC: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// CC2S [8:9]
-/// Capture/compare 2
-CC2S: u2 = 0,
-/// IC2PSC [10:11]
-/// Input capture 2 prescaler
-IC2PSC: u2 = 0,
-/// IC2F [12:15]
-/// Input capture 2 filter
-IC2F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCMR2_Output
-const CCMR2_Output_val = packed struct {
-/// CC3S [0:1]
-/// Capture/Compare 3
-CC3S: u2 = 0,
-/// OC3FE [2:2]
-/// Output compare 3 fast
-OC3FE: u1 = 0,
-/// OC3PE [3:3]
-/// Output compare 3 preload
-OC3PE: u1 = 0,
-/// OC3M [4:6]
-/// Output compare 3 mode
-OC3M: u3 = 0,
-/// OC3CE [7:7]
-/// Output compare 3 clear
-OC3CE: u1 = 0,
-/// CC4S [8:9]
-/// Capture/Compare 4
-CC4S: u2 = 0,
-/// OC4FE [10:10]
-/// Output compare 4 fast
-OC4FE: u1 = 0,
-/// OC4PE [11:11]
-/// Output compare 4 preload
-OC4PE: u1 = 0,
-/// OC4M [12:14]
-/// Output compare 4 mode
-OC4M: u3 = 0,
-/// OC4CE [15:15]
-/// Output compare 4 clear
-OC4CE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 2 (output
-pub const CCMR2_Output = Register(CCMR2_Output_val).init(base_address + 0x1c);
-
-/// CCMR2_Input
-const CCMR2_Input_val = packed struct {
-/// CC3S [0:1]
-/// Capture/Compare 3
-CC3S: u2 = 0,
-/// IC3PSC [2:3]
-/// Input capture 3 prescaler
-IC3PSC: u2 = 0,
-/// IC3F [4:7]
-/// Input capture 3 filter
-IC3F: u4 = 0,
-/// CC4S [8:9]
-/// Capture/Compare 4
-CC4S: u2 = 0,
-/// IC4PSC [10:11]
-/// Input capture 4 prescaler
-IC4PSC: u2 = 0,
-/// IC4F [12:15]
-/// Input capture 4 filter
-IC4F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 2 (input
-pub const CCMR2_Input = Register(CCMR2_Input_val).init(base_address + 0x1c);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// unused [2:2]
-_unused2: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// CC2E [4:4]
-/// Capture/Compare 2 output
-CC2E: u1 = 0,
-/// CC2P [5:5]
-/// Capture/Compare 2 output
-CC2P: u1 = 0,
-/// unused [6:6]
-_unused6: u1 = 0,
-/// CC2NP [7:7]
-/// Capture/Compare 2 output
-CC2NP: u1 = 0,
-/// CC3E [8:8]
-/// Capture/Compare 3 output
-CC3E: u1 = 0,
-/// CC3P [9:9]
-/// Capture/Compare 3 output
-CC3P: u1 = 0,
-/// unused [10:10]
-_unused10: u1 = 0,
-/// CC3NP [11:11]
-/// Capture/Compare 3 output
-CC3NP: u1 = 0,
-/// CC4E [12:12]
-/// Capture/Compare 4 output
-CC4E: u1 = 0,
-/// CC4P [13:13]
-/// Capture/Compare 3 output
-CC4P: u1 = 0,
-/// unused [14:14]
-_unused14: u1 = 0,
-/// CC4NP [15:15]
-/// Capture/Compare 4 output
-CC4NP: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT_L [0:15]
-/// Low counter value
-CNT_L: u16 = 0,
-/// CNT_H [16:31]
-/// High counter value (TIM2
-CNT_H: u16 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR_L [0:15]
-/// Low Auto-reload value
-ARR_L: u16 = 0,
-/// ARR_H [16:31]
-/// High Auto-reload value (TIM2
-ARR_H: u16 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1_L [0:15]
-/// Low Capture/Compare 1
-CCR1_L: u16 = 0,
-/// CCR1_H [16:31]
-/// High Capture/Compare 1 value (TIM2
-CCR1_H: u16 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// CCR2
-const CCR2_val = packed struct {
-/// CCR2_L [0:15]
-/// Low Capture/Compare 2
-CCR2_L: u16 = 0,
-/// CCR2_H [16:31]
-/// High Capture/Compare 2 value (TIM2
-CCR2_H: u16 = 0,
-};
-/// capture/compare register 2
-pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
-
-/// CCR3
-const CCR3_val = packed struct {
-/// CCR3_L [0:15]
-/// Low Capture/Compare value
-CCR3_L: u16 = 0,
-/// CCR3_H [16:31]
-/// High Capture/Compare value (TIM2
-CCR3_H: u16 = 0,
-};
-/// capture/compare register 3
-pub const CCR3 = Register(CCR3_val).init(base_address + 0x3c);
-
-/// CCR4
-const CCR4_val = packed struct {
-/// CCR4_L [0:15]
-/// Low Capture/Compare value
-CCR4_L: u16 = 0,
-/// CCR4_H [16:31]
-/// High Capture/Compare value (TIM2
-CCR4_H: u16 = 0,
-};
-/// capture/compare register 4
-pub const CCR4 = Register(CCR4_val).init(base_address + 0x40);
-
-/// DCR
-const DCR_val = packed struct {
-/// DBA [0:4]
-/// DMA base address
-DBA: u5 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBL [8:12]
-/// DMA burst length
-DBL: u5 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA control register
-pub const DCR = Register(DCR_val).init(base_address + 0x48);
-
-/// DMAR
-const DMAR_val = packed struct {
-/// DMAR [0:15]
-/// DMA register for burst
-DMAR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA address for full transfer
-pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
-};
-
-/// General-purpose-timers
-pub const TIM14 = struct {
-
-const base_address = 0x40002000;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// unused [3:6]
-_unused3: u4 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// unused [2:31]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// unused [2:8]
-_unused2: u6 = 0,
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// unused [2:31]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output Compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output Compare 1 mode
-OC1M: u3 = 0,
-/// unused [7:31]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PSC [2:3]
-/// Input capture 1 prescaler
-IC1PSC: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// unused [2:2]
-_unused2: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// unused [4:31]
-_unused4: u4 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT [0:15]
-/// counter value
-CNT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR [0:15]
-/// Auto-reload value
-ARR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1 [0:15]
-/// Capture/Compare 1 value
-CCR1: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// OR
-const OR_val = packed struct {
-/// RMP [0:1]
-/// Timer input 1 remap
-RMP: u2 = 0,
-/// unused [2:31]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// option register
-pub const OR = Register(OR_val).init(base_address + 0x50);
-};
-
-/// Basic-timers
-pub const TIM6 = struct {
-
-const base_address = 0x40001000;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// unused [4:6]
-_unused4: u3 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// unused [0:3]
-_unused0: u4 = 0,
-/// MMS [4:6]
-/// Master mode selection
-MMS: u3 = 0,
-/// unused [7:31]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// unused [1:7]
-_unused1: u7 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// unused [1:31]
-_unused1: u7 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// unused [1:31]
-_unused1: u7 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT [0:15]
-/// Low counter value
-CNT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR [0:15]
-/// Low Auto-reload value
-ARR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-};
-
-/// External interrupt/event
-pub const EXTI = struct {
-
-const base_address = 0x40010400;
-/// IMR
-const IMR_val = packed struct {
-/// MR0 [0:0]
-/// Interrupt Mask on line 0
-MR0: u1 = 0,
-/// MR1 [1:1]
-/// Interrupt Mask on line 1
-MR1: u1 = 0,
-/// MR2 [2:2]
-/// Interrupt Mask on line 2
-MR2: u1 = 0,
-/// MR3 [3:3]
-/// Interrupt Mask on line 3
-MR3: u1 = 0,
-/// MR4 [4:4]
-/// Interrupt Mask on line 4
-MR4: u1 = 0,
-/// MR5 [5:5]
-/// Interrupt Mask on line 5
-MR5: u1 = 0,
-/// MR6 [6:6]
-/// Interrupt Mask on line 6
-MR6: u1 = 0,
-/// MR7 [7:7]
-/// Interrupt Mask on line 7
-MR7: u1 = 0,
-/// MR8 [8:8]
-/// Interrupt Mask on line 8
-MR8: u1 = 0,
-/// MR9 [9:9]
-/// Interrupt Mask on line 9
-MR9: u1 = 0,
-/// MR10 [10:10]
-/// Interrupt Mask on line 10
-MR10: u1 = 0,
-/// MR11 [11:11]
-/// Interrupt Mask on line 11
-MR11: u1 = 0,
-/// MR12 [12:12]
-/// Interrupt Mask on line 12
-MR12: u1 = 0,
-/// MR13 [13:13]
-/// Interrupt Mask on line 13
-MR13: u1 = 0,
-/// MR14 [14:14]
-/// Interrupt Mask on line 14
-MR14: u1 = 0,
-/// MR15 [15:15]
-/// Interrupt Mask on line 15
-MR15: u1 = 0,
-/// MR16 [16:16]
-/// Interrupt Mask on line 16
-MR16: u1 = 0,
-/// MR17 [17:17]
-/// Interrupt Mask on line 17
-MR17: u1 = 0,
-/// MR18 [18:18]
-/// Interrupt Mask on line 18
-MR18: u1 = 1,
-/// MR19 [19:19]
-/// Interrupt Mask on line 19
-MR19: u1 = 0,
-/// MR20 [20:20]
-/// Interrupt Mask on line 20
-MR20: u1 = 1,
-/// MR21 [21:21]
-/// Interrupt Mask on line 21
-MR21: u1 = 0,
-/// MR22 [22:22]
-/// Interrupt Mask on line 22
-MR22: u1 = 0,
-/// MR23 [23:23]
-/// Interrupt Mask on line 23
-MR23: u1 = 1,
-/// MR24 [24:24]
-/// Interrupt Mask on line 24
-MR24: u1 = 1,
-/// MR25 [25:25]
-/// Interrupt Mask on line 25
-MR25: u1 = 1,
-/// MR26 [26:26]
-/// Interrupt Mask on line 26
-MR26: u1 = 1,
-/// MR27 [27:27]
-/// Interrupt Mask on line 27
-MR27: u1 = 1,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// Interrupt mask register
-pub const IMR = Register(IMR_val).init(base_address + 0x0);
-
-/// EMR
-const EMR_val = packed struct {
-/// MR0 [0:0]
-/// Event Mask on line 0
-MR0: u1 = 0,
-/// MR1 [1:1]
-/// Event Mask on line 1
-MR1: u1 = 0,
-/// MR2 [2:2]
-/// Event Mask on line 2
-MR2: u1 = 0,
-/// MR3 [3:3]
-/// Event Mask on line 3
-MR3: u1 = 0,
-/// MR4 [4:4]
-/// Event Mask on line 4
-MR4: u1 = 0,
-/// MR5 [5:5]
-/// Event Mask on line 5
-MR5: u1 = 0,
-/// MR6 [6:6]
-/// Event Mask on line 6
-MR6: u1 = 0,
-/// MR7 [7:7]
-/// Event Mask on line 7
-MR7: u1 = 0,
-/// MR8 [8:8]
-/// Event Mask on line 8
-MR8: u1 = 0,
-/// MR9 [9:9]
-/// Event Mask on line 9
-MR9: u1 = 0,
-/// MR10 [10:10]
-/// Event Mask on line 10
-MR10: u1 = 0,
-/// MR11 [11:11]
-/// Event Mask on line 11
-MR11: u1 = 0,
-/// MR12 [12:12]
-/// Event Mask on line 12
-MR12: u1 = 0,
-/// MR13 [13:13]
-/// Event Mask on line 13
-MR13: u1 = 0,
-/// MR14 [14:14]
-/// Event Mask on line 14
-MR14: u1 = 0,
-/// MR15 [15:15]
-/// Event Mask on line 15
-MR15: u1 = 0,
-/// MR16 [16:16]
-/// Event Mask on line 16
-MR16: u1 = 0,
-/// MR17 [17:17]
-/// Event Mask on line 17
-MR17: u1 = 0,
-/// MR18 [18:18]
-/// Event Mask on line 18
-MR18: u1 = 0,
-/// MR19 [19:19]
-/// Event Mask on line 19
-MR19: u1 = 0,
-/// MR20 [20:20]
-/// Event Mask on line 20
-MR20: u1 = 0,
-/// MR21 [21:21]
-/// Event Mask on line 21
-MR21: u1 = 0,
-/// MR22 [22:22]
-/// Event Mask on line 22
-MR22: u1 = 0,
-/// MR23 [23:23]
-/// Event Mask on line 23
-MR23: u1 = 0,
-/// MR24 [24:24]
-/// Event Mask on line 24
-MR24: u1 = 0,
-/// MR25 [25:25]
-/// Event Mask on line 25
-MR25: u1 = 0,
-/// MR26 [26:26]
-/// Event Mask on line 26
-MR26: u1 = 0,
-/// MR27 [27:27]
-/// Event Mask on line 27
-MR27: u1 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// Event mask register (EXTI_EMR)
-pub const EMR = Register(EMR_val).init(base_address + 0x4);
-
-/// RTSR
-const RTSR_val = packed struct {
-/// TR0 [0:0]
-/// Rising trigger event configuration of
-TR0: u1 = 0,
-/// TR1 [1:1]
-/// Rising trigger event configuration of
-TR1: u1 = 0,
-/// TR2 [2:2]
-/// Rising trigger event configuration of
-TR2: u1 = 0,
-/// TR3 [3:3]
-/// Rising trigger event configuration of
-TR3: u1 = 0,
-/// TR4 [4:4]
-/// Rising trigger event configuration of
-TR4: u1 = 0,
-/// TR5 [5:5]
-/// Rising trigger event configuration of
-TR5: u1 = 0,
-/// TR6 [6:6]
-/// Rising trigger event configuration of
-TR6: u1 = 0,
-/// TR7 [7:7]
-/// Rising trigger event configuration of
-TR7: u1 = 0,
-/// TR8 [8:8]
-/// Rising trigger event configuration of
-TR8: u1 = 0,
-/// TR9 [9:9]
-/// Rising trigger event configuration of
-TR9: u1 = 0,
-/// TR10 [10:10]
-/// Rising trigger event configuration of
-TR10: u1 = 0,
-/// TR11 [11:11]
-/// Rising trigger event configuration of
-TR11: u1 = 0,
-/// TR12 [12:12]
-/// Rising trigger event configuration of
-TR12: u1 = 0,
-/// TR13 [13:13]
-/// Rising trigger event configuration of
-TR13: u1 = 0,
-/// TR14 [14:14]
-/// Rising trigger event configuration of
-TR14: u1 = 0,
-/// TR15 [15:15]
-/// Rising trigger event configuration of
-TR15: u1 = 0,
-/// TR16 [16:16]
-/// Rising trigger event configuration of
-TR16: u1 = 0,
-/// TR17 [17:17]
-/// Rising trigger event configuration of
-TR17: u1 = 0,
-/// unused [18:18]
-_unused18: u1 = 0,
-/// TR19 [19:19]
-/// Rising trigger event configuration of
-TR19: u1 = 0,
-/// unused [20:31]
-_unused20: u4 = 0,
-_unused24: u8 = 0,
-};
-/// Rising Trigger selection register
-pub const RTSR = Register(RTSR_val).init(base_address + 0x8);
-
-/// FTSR
-const FTSR_val = packed struct {
-/// TR0 [0:0]
-/// Falling trigger event configuration of
-TR0: u1 = 0,
-/// TR1 [1:1]
-/// Falling trigger event configuration of
-TR1: u1 = 0,
-/// TR2 [2:2]
-/// Falling trigger event configuration of
-TR2: u1 = 0,
-/// TR3 [3:3]
-/// Falling trigger event configuration of
-TR3: u1 = 0,
-/// TR4 [4:4]
-/// Falling trigger event configuration of
-TR4: u1 = 0,
-/// TR5 [5:5]
-/// Falling trigger event configuration of
-TR5: u1 = 0,
-/// TR6 [6:6]
-/// Falling trigger event configuration of
-TR6: u1 = 0,
-/// TR7 [7:7]
-/// Falling trigger event configuration of
-TR7: u1 = 0,
-/// TR8 [8:8]
-/// Falling trigger event configuration of
-TR8: u1 = 0,
-/// TR9 [9:9]
-/// Falling trigger event configuration of
-TR9: u1 = 0,
-/// TR10 [10:10]
-/// Falling trigger event configuration of
-TR10: u1 = 0,
-/// TR11 [11:11]
-/// Falling trigger event configuration of
-TR11: u1 = 0,
-/// TR12 [12:12]
-/// Falling trigger event configuration of
-TR12: u1 = 0,
-/// TR13 [13:13]
-/// Falling trigger event configuration of
-TR13: u1 = 0,
-/// TR14 [14:14]
-/// Falling trigger event configuration of
-TR14: u1 = 0,
-/// TR15 [15:15]
-/// Falling trigger event configuration of
-TR15: u1 = 0,
-/// TR16 [16:16]
-/// Falling trigger event configuration of
-TR16: u1 = 0,
-/// TR17 [17:17]
-/// Falling trigger event configuration of
-TR17: u1 = 0,
-/// unused [18:18]
-_unused18: u1 = 0,
-/// TR19 [19:19]
-/// Falling trigger event configuration of
-TR19: u1 = 0,
-/// unused [20:31]
-_unused20: u4 = 0,
-_unused24: u8 = 0,
-};
-/// Falling Trigger selection register
-pub const FTSR = Register(FTSR_val).init(base_address + 0xc);
-
-/// SWIER
-const SWIER_val = packed struct {
-/// SWIER0 [0:0]
-/// Software Interrupt on line
-SWIER0: u1 = 0,
-/// SWIER1 [1:1]
-/// Software Interrupt on line
-SWIER1: u1 = 0,
-/// SWIER2 [2:2]
-/// Software Interrupt on line
-SWIER2: u1 = 0,
-/// SWIER3 [3:3]
-/// Software Interrupt on line
-SWIER3: u1 = 0,
-/// SWIER4 [4:4]
-/// Software Interrupt on line
-SWIER4: u1 = 0,
-/// SWIER5 [5:5]
-/// Software Interrupt on line
-SWIER5: u1 = 0,
-/// SWIER6 [6:6]
-/// Software Interrupt on line
-SWIER6: u1 = 0,
-/// SWIER7 [7:7]
-/// Software Interrupt on line
-SWIER7: u1 = 0,
-/// SWIER8 [8:8]
-/// Software Interrupt on line
-SWIER8: u1 = 0,
-/// SWIER9 [9:9]
-/// Software Interrupt on line
-SWIER9: u1 = 0,
-/// SWIER10 [10:10]
-/// Software Interrupt on line
-SWIER10: u1 = 0,
-/// SWIER11 [11:11]
-/// Software Interrupt on line
-SWIER11: u1 = 0,
-/// SWIER12 [12:12]
-/// Software Interrupt on line
-SWIER12: u1 = 0,
-/// SWIER13 [13:13]
-/// Software Interrupt on line
-SWIER13: u1 = 0,
-/// SWIER14 [14:14]
-/// Software Interrupt on line
-SWIER14: u1 = 0,
-/// SWIER15 [15:15]
-/// Software Interrupt on line
-SWIER15: u1 = 0,
-/// SWIER16 [16:16]
-/// Software Interrupt on line
-SWIER16: u1 = 0,
-/// SWIER17 [17:17]
-/// Software Interrupt on line
-SWIER17: u1 = 0,
-/// unused [18:18]
-_unused18: u1 = 0,
-/// SWIER19 [19:19]
-/// Software Interrupt on line
-SWIER19: u1 = 0,
-/// unused [20:31]
-_unused20: u4 = 0,
-_unused24: u8 = 0,
-};
-/// Software interrupt event register
-pub const SWIER = Register(SWIER_val).init(base_address + 0x10);
-
-/// PR
-const PR_val = packed struct {
-/// PR0 [0:0]
-/// Pending bit 0
-PR0: u1 = 0,
-/// PR1 [1:1]
-/// Pending bit 1
-PR1: u1 = 0,
-/// PR2 [2:2]
-/// Pending bit 2
-PR2: u1 = 0,
-/// PR3 [3:3]
-/// Pending bit 3
-PR3: u1 = 0,
-/// PR4 [4:4]
-/// Pending bit 4
-PR4: u1 = 0,
-/// PR5 [5:5]
-/// Pending bit 5
-PR5: u1 = 0,
-/// PR6 [6:6]
-/// Pending bit 6
-PR6: u1 = 0,
-/// PR7 [7:7]
-/// Pending bit 7
-PR7: u1 = 0,
-/// PR8 [8:8]
-/// Pending bit 8
-PR8: u1 = 0,
-/// PR9 [9:9]
-/// Pending bit 9
-PR9: u1 = 0,
-/// PR10 [10:10]
-/// Pending bit 10
-PR10: u1 = 0,
-/// PR11 [11:11]
-/// Pending bit 11
-PR11: u1 = 0,
-/// PR12 [12:12]
-/// Pending bit 12
-PR12: u1 = 0,
-/// PR13 [13:13]
-/// Pending bit 13
-PR13: u1 = 0,
-/// PR14 [14:14]
-/// Pending bit 14
-PR14: u1 = 0,
-/// PR15 [15:15]
-/// Pending bit 15
-PR15: u1 = 0,
-/// PR16 [16:16]
-/// Pending bit 16
-PR16: u1 = 0,
-/// PR17 [17:17]
-/// Pending bit 17
-PR17: u1 = 0,
-/// unused [18:18]
-_unused18: u1 = 0,
-/// PR19 [19:19]
-/// Pending bit 19
-PR19: u1 = 0,
-/// unused [20:31]
-_unused20: u4 = 0,
-_unused24: u8 = 0,
-};
-/// Pending register (EXTI_PR)
-pub const PR = Register(PR_val).init(base_address + 0x14);
-};
-
-/// Nested Vectored Interrupt
-pub const NVIC = struct {
-
-const base_address = 0xe000e100;
-/// ISER
-const ISER_val = packed struct {
-/// SETENA [0:31]
-/// SETENA
-SETENA: u32 = 0,
-};
-/// Interrupt Set Enable Register
-pub const ISER = Register(ISER_val).init(base_address + 0x0);
-
-/// ICER
-const ICER_val = packed struct {
-/// CLRENA [0:31]
-/// CLRENA
-CLRENA: u32 = 0,
-};
-/// Interrupt Clear Enable
-pub const ICER = Register(ICER_val).init(base_address + 0x80);
-
-/// ISPR
-const ISPR_val = packed struct {
-/// SETPEND [0:31]
-/// SETPEND
-SETPEND: u32 = 0,
-};
-/// Interrupt Set-Pending Register
-pub const ISPR = Register(ISPR_val).init(base_address + 0x100);
-
-/// ICPR
-const ICPR_val = packed struct {
-/// CLRPEND [0:31]
-/// CLRPEND
-CLRPEND: u32 = 0,
-};
-/// Interrupt Clear-Pending
-pub const ICPR = Register(ICPR_val).init(base_address + 0x180);
-
-/// IPR0
-const IPR0_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_00 [6:7]
-/// PRI_00
-PRI_00: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_01 [14:15]
-/// PRI_01
-PRI_01: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_02 [22:23]
-/// PRI_02
-PRI_02: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_03 [30:31]
-/// PRI_03
-PRI_03: u2 = 0,
-};
-/// Interrupt Priority Register 0
-pub const IPR0 = Register(IPR0_val).init(base_address + 0x300);
-
-/// IPR1
-const IPR1_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_40 [6:7]
-/// PRI_40
-PRI_40: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_41 [14:15]
-/// PRI_41
-PRI_41: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_42 [22:23]
-/// PRI_42
-PRI_42: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_43 [30:31]
-/// PRI_43
-PRI_43: u2 = 0,
-};
-/// Interrupt Priority Register 1
-pub const IPR1 = Register(IPR1_val).init(base_address + 0x304);
-
-/// IPR2
-const IPR2_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_80 [6:7]
-/// PRI_80
-PRI_80: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_81 [14:15]
-/// PRI_81
-PRI_81: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_82 [22:23]
-/// PRI_82
-PRI_82: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_83 [30:31]
-/// PRI_83
-PRI_83: u2 = 0,
-};
-/// Interrupt Priority Register 2
-pub const IPR2 = Register(IPR2_val).init(base_address + 0x308);
-
-/// IPR3
-const IPR3_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_120 [6:7]
-/// PRI_120
-PRI_120: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_121 [14:15]
-/// PRI_121
-PRI_121: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_122 [22:23]
-/// PRI_122
-PRI_122: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_123 [30:31]
-/// PRI_123
-PRI_123: u2 = 0,
-};
-/// Interrupt Priority Register 3
-pub const IPR3 = Register(IPR3_val).init(base_address + 0x30c);
-
-/// IPR4
-const IPR4_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_160 [6:7]
-/// PRI_160
-PRI_160: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_161 [14:15]
-/// PRI_161
-PRI_161: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_162 [22:23]
-/// PRI_162
-PRI_162: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_163 [30:31]
-/// PRI_163
-PRI_163: u2 = 0,
-};
-/// Interrupt Priority Register 4
-pub const IPR4 = Register(IPR4_val).init(base_address + 0x310);
-
-/// IPR5
-const IPR5_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_200 [6:7]
-/// PRI_200
-PRI_200: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_201 [14:15]
-/// PRI_201
-PRI_201: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_202 [22:23]
-/// PRI_202
-PRI_202: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_203 [30:31]
-/// PRI_203
-PRI_203: u2 = 0,
-};
-/// Interrupt Priority Register 5
-pub const IPR5 = Register(IPR5_val).init(base_address + 0x314);
-
-/// IPR6
-const IPR6_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_240 [6:7]
-/// PRI_240
-PRI_240: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_241 [14:15]
-/// PRI_241
-PRI_241: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_242 [22:23]
-/// PRI_242
-PRI_242: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_243 [30:31]
-/// PRI_243
-PRI_243: u2 = 0,
-};
-/// Interrupt Priority Register 6
-pub const IPR6 = Register(IPR6_val).init(base_address + 0x318);
-
-/// IPR7
-const IPR7_val = packed struct {
-/// unused [0:5]
-_unused0: u6 = 0,
-/// PRI_280 [6:7]
-/// PRI_280
-PRI_280: u2 = 0,
-/// unused [8:13]
-_unused8: u6 = 0,
-/// PRI_281 [14:15]
-/// PRI_281
-PRI_281: u2 = 0,
-/// unused [16:21]
-_unused16: u6 = 0,
-/// PRI_282 [22:23]
-/// PRI_282
-PRI_282: u2 = 0,
-/// unused [24:29]
-_unused24: u6 = 0,
-/// PRI_283 [30:31]
-/// PRI_283
-PRI_283: u2 = 0,
-};
-/// Interrupt Priority Register 7
-pub const IPR7 = Register(IPR7_val).init(base_address + 0x31c);
-};
-
-/// DMA controller
-pub const DMA = struct {
-
-const base_address = 0x40020000;
-/// ISR
-const ISR_val = packed struct {
-/// GIF1 [0:0]
-/// Channel 1 Global interrupt
-GIF1: u1 = 0,
-/// TCIF1 [1:1]
-/// Channel 1 Transfer Complete
-TCIF1: u1 = 0,
-/// HTIF1 [2:2]
-/// Channel 1 Half Transfer Complete
-HTIF1: u1 = 0,
-/// TEIF1 [3:3]
-/// Channel 1 Transfer Error
-TEIF1: u1 = 0,
-/// GIF2 [4:4]
-/// Channel 2 Global interrupt
-GIF2: u1 = 0,
-/// TCIF2 [5:5]
-/// Channel 2 Transfer Complete
-TCIF2: u1 = 0,
-/// HTIF2 [6:6]
-/// Channel 2 Half Transfer Complete
-HTIF2: u1 = 0,
-/// TEIF2 [7:7]
-/// Channel 2 Transfer Error
-TEIF2: u1 = 0,
-/// GIF3 [8:8]
-/// Channel 3 Global interrupt
-GIF3: u1 = 0,
-/// TCIF3 [9:9]
-/// Channel 3 Transfer Complete
-TCIF3: u1 = 0,
-/// HTIF3 [10:10]
-/// Channel 3 Half Transfer Complete
-HTIF3: u1 = 0,
-/// TEIF3 [11:11]
-/// Channel 3 Transfer Error
-TEIF3: u1 = 0,
-/// GIF4 [12:12]
-/// Channel 4 Global interrupt
-GIF4: u1 = 0,
-/// TCIF4 [13:13]
-/// Channel 4 Transfer Complete
-TCIF4: u1 = 0,
-/// HTIF4 [14:14]
-/// Channel 4 Half Transfer Complete
-HTIF4: u1 = 0,
-/// TEIF4 [15:15]
-/// Channel 4 Transfer Error
-TEIF4: u1 = 0,
-/// GIF5 [16:16]
-/// Channel 5 Global interrupt
-GIF5: u1 = 0,
-/// TCIF5 [17:17]
-/// Channel 5 Transfer Complete
-TCIF5: u1 = 0,
-/// HTIF5 [18:18]
-/// Channel 5 Half Transfer Complete
-HTIF5: u1 = 0,
-/// TEIF5 [19:19]
-/// Channel 5 Transfer Error
-TEIF5: u1 = 0,
-/// GIF6 [20:20]
-/// Channel 6 Global interrupt
-GIF6: u1 = 0,
-/// TCIF6 [21:21]
-/// Channel 6 Transfer Complete
-TCIF6: u1 = 0,
-/// HTIF6 [22:22]
-/// Channel 6 Half Transfer Complete
-HTIF6: u1 = 0,
-/// TEIF6 [23:23]
-/// Channel 6 Transfer Error
-TEIF6: u1 = 0,
-/// GIF7 [24:24]
-/// Channel 7 Global interrupt
-GIF7: u1 = 0,
-/// TCIF7 [25:25]
-/// Channel 7 Transfer Complete
-TCIF7: u1 = 0,
-/// HTIF7 [26:26]
-/// Channel 7 Half Transfer Complete
-HTIF7: u1 = 0,
-/// TEIF7 [27:27]
-/// Channel 7 Transfer Error
-TEIF7: u1 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// DMA interrupt status register
-pub const ISR = Register(ISR_val).init(base_address + 0x0);
-
-/// IFCR
-const IFCR_val = packed struct {
-/// CGIF1 [0:0]
-/// Channel 1 Global interrupt
-CGIF1: u1 = 0,
-/// CTCIF1 [1:1]
-/// Channel 1 Transfer Complete
-CTCIF1: u1 = 0,
-/// CHTIF1 [2:2]
-/// Channel 1 Half Transfer
-CHTIF1: u1 = 0,
-/// CTEIF1 [3:3]
-/// Channel 1 Transfer Error
-CTEIF1: u1 = 0,
-/// CGIF2 [4:4]
-/// Channel 2 Global interrupt
-CGIF2: u1 = 0,
-/// CTCIF2 [5:5]
-/// Channel 2 Transfer Complete
-CTCIF2: u1 = 0,
-/// CHTIF2 [6:6]
-/// Channel 2 Half Transfer
-CHTIF2: u1 = 0,
-/// CTEIF2 [7:7]
-/// Channel 2 Transfer Error
-CTEIF2: u1 = 0,
-/// CGIF3 [8:8]
-/// Channel 3 Global interrupt
-CGIF3: u1 = 0,
-/// CTCIF3 [9:9]
-/// Channel 3 Transfer Complete
-CTCIF3: u1 = 0,
-/// CHTIF3 [10:10]
-/// Channel 3 Half Transfer
-CHTIF3: u1 = 0,
-/// CTEIF3 [11:11]
-/// Channel 3 Transfer Error
-CTEIF3: u1 = 0,
-/// CGIF4 [12:12]
-/// Channel 4 Global interrupt
-CGIF4: u1 = 0,
-/// CTCIF4 [13:13]
-/// Channel 4 Transfer Complete
-CTCIF4: u1 = 0,
-/// CHTIF4 [14:14]
-/// Channel 4 Half Transfer
-CHTIF4: u1 = 0,
-/// CTEIF4 [15:15]
-/// Channel 4 Transfer Error
-CTEIF4: u1 = 0,
-/// CGIF5 [16:16]
-/// Channel 5 Global interrupt
-CGIF5: u1 = 0,
-/// CTCIF5 [17:17]
-/// Channel 5 Transfer Complete
-CTCIF5: u1 = 0,
-/// CHTIF5 [18:18]
-/// Channel 5 Half Transfer
-CHTIF5: u1 = 0,
-/// CTEIF5 [19:19]
-/// Channel 5 Transfer Error
-CTEIF5: u1 = 0,
-/// CGIF6 [20:20]
-/// Channel 6 Global interrupt
-CGIF6: u1 = 0,
-/// CTCIF6 [21:21]
-/// Channel 6 Transfer Complete
-CTCIF6: u1 = 0,
-/// CHTIF6 [22:22]
-/// Channel 6 Half Transfer
-CHTIF6: u1 = 0,
-/// CTEIF6 [23:23]
-/// Channel 6 Transfer Error
-CTEIF6: u1 = 0,
-/// CGIF7 [24:24]
-/// Channel 7 Global interrupt
-CGIF7: u1 = 0,
-/// CTCIF7 [25:25]
-/// Channel 7 Transfer Complete
-CTCIF7: u1 = 0,
-/// CHTIF7 [26:26]
-/// Channel 7 Half Transfer
-CHTIF7: u1 = 0,
-/// CTEIF7 [27:27]
-/// Channel 7 Transfer Error
-CTEIF7: u1 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// DMA interrupt flag clear register
-pub const IFCR = Register(IFCR_val).init(base_address + 0x4);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x8);
-
-/// CNDTR1
-const CNDTR1_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 1 number of data
-pub const CNDTR1 = Register(CNDTR1_val).init(base_address + 0xc);
-
-/// CPAR1
-const CPAR1_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 1 peripheral address
-pub const CPAR1 = Register(CPAR1_val).init(base_address + 0x10);
-
-/// CMAR1
-const CMAR1_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 1 memory address
-pub const CMAR1 = Register(CMAR1_val).init(base_address + 0x14);
-
-/// CCR2
-const CCR2_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR2 = Register(CCR2_val).init(base_address + 0x1c);
-
-/// CNDTR2
-const CNDTR2_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 2 number of data
-pub const CNDTR2 = Register(CNDTR2_val).init(base_address + 0x20);
-
-/// CPAR2
-const CPAR2_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 2 peripheral address
-pub const CPAR2 = Register(CPAR2_val).init(base_address + 0x24);
-
-/// CMAR2
-const CMAR2_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 2 memory address
-pub const CMAR2 = Register(CMAR2_val).init(base_address + 0x28);
-
-/// CCR3
-const CCR3_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR3 = Register(CCR3_val).init(base_address + 0x30);
-
-/// CNDTR3
-const CNDTR3_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 3 number of data
-pub const CNDTR3 = Register(CNDTR3_val).init(base_address + 0x34);
-
-/// CPAR3
-const CPAR3_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 3 peripheral address
-pub const CPAR3 = Register(CPAR3_val).init(base_address + 0x38);
-
-/// CMAR3
-const CMAR3_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 3 memory address
-pub const CMAR3 = Register(CMAR3_val).init(base_address + 0x3c);
-
-/// CCR4
-const CCR4_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR4 = Register(CCR4_val).init(base_address + 0x44);
-
-/// CNDTR4
-const CNDTR4_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 4 number of data
-pub const CNDTR4 = Register(CNDTR4_val).init(base_address + 0x48);
-
-/// CPAR4
-const CPAR4_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 4 peripheral address
-pub const CPAR4 = Register(CPAR4_val).init(base_address + 0x4c);
-
-/// CMAR4
-const CMAR4_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 4 memory address
-pub const CMAR4 = Register(CMAR4_val).init(base_address + 0x50);
-
-/// CCR5
-const CCR5_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR5 = Register(CCR5_val).init(base_address + 0x58);
-
-/// CNDTR5
-const CNDTR5_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 5 number of data
-pub const CNDTR5 = Register(CNDTR5_val).init(base_address + 0x5c);
-
-/// CPAR5
-const CPAR5_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 5 peripheral address
-pub const CPAR5 = Register(CPAR5_val).init(base_address + 0x60);
-
-/// CMAR5
-const CMAR5_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 5 memory address
-pub const CMAR5 = Register(CMAR5_val).init(base_address + 0x64);
-
-/// CCR6
-const CCR6_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR6 = Register(CCR6_val).init(base_address + 0x6c);
-
-/// CNDTR6
-const CNDTR6_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 6 number of data
-pub const CNDTR6 = Register(CNDTR6_val).init(base_address + 0x70);
-
-/// CPAR6
-const CPAR6_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 6 peripheral address
-pub const CPAR6 = Register(CPAR6_val).init(base_address + 0x74);
-
-/// CMAR6
-const CMAR6_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 6 memory address
-pub const CMAR6 = Register(CMAR6_val).init(base_address + 0x78);
-
-/// CCR7
-const CCR7_val = packed struct {
-/// EN [0:0]
-/// Channel enable
-EN: u1 = 0,
-/// TCIE [1:1]
-/// Transfer complete interrupt
-TCIE: u1 = 0,
-/// HTIE [2:2]
-/// Half Transfer interrupt
-HTIE: u1 = 0,
-/// TEIE [3:3]
-/// Transfer error interrupt
-TEIE: u1 = 0,
-/// DIR [4:4]
-/// Data transfer direction
-DIR: u1 = 0,
-/// CIRC [5:5]
-/// Circular mode
-CIRC: u1 = 0,
-/// PINC [6:6]
-/// Peripheral increment mode
-PINC: u1 = 0,
-/// MINC [7:7]
-/// Memory increment mode
-MINC: u1 = 0,
-/// PSIZE [8:9]
-/// Peripheral size
-PSIZE: u2 = 0,
-/// MSIZE [10:11]
-/// Memory size
-MSIZE: u2 = 0,
-/// PL [12:13]
-/// Channel Priority level
-PL: u2 = 0,
-/// MEM2MEM [14:14]
-/// Memory to memory mode
-MEM2MEM: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel configuration register
-pub const CCR7 = Register(CCR7_val).init(base_address + 0x80);
-
-/// CNDTR7
-const CNDTR7_val = packed struct {
-/// NDT [0:15]
-/// Number of data to transfer
-NDT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA channel 7 number of data
-pub const CNDTR7 = Register(CNDTR7_val).init(base_address + 0x84);
-
-/// CPAR7
-const CPAR7_val = packed struct {
-/// PA [0:31]
-/// Peripheral address
-PA: u32 = 0,
-};
-/// DMA channel 7 peripheral address
-pub const CPAR7 = Register(CPAR7_val).init(base_address + 0x88);
-
-/// CMAR7
-const CMAR7_val = packed struct {
-/// MA [0:31]
-/// Memory address
-MA: u32 = 0,
-};
-/// DMA channel 7 memory address
-pub const CMAR7 = Register(CMAR7_val).init(base_address + 0x8c);
-};
-
-/// Reset and clock control
-pub const RCC = struct {
-
-const base_address = 0x40021000;
-/// CR
-const CR_val = packed struct {
-/// HSION [0:0]
-/// Internal High Speed clock
-HSION: u1 = 1,
-/// HSIRDY [1:1]
-/// Internal High Speed clock ready
-HSIRDY: u1 = 1,
-/// unused [2:2]
-_unused2: u1 = 0,
-/// HSITRIM [3:7]
-/// Internal High Speed clock
-HSITRIM: u5 = 16,
-/// HSICAL [8:15]
-/// Internal High Speed clock
-HSICAL: u8 = 0,
-/// HSEON [16:16]
-/// External High Speed clock
-HSEON: u1 = 0,
-/// HSERDY [17:17]
-/// External High Speed clock ready
-HSERDY: u1 = 0,
-/// HSEBYP [18:18]
-/// External High Speed clock
-HSEBYP: u1 = 0,
-/// CSSON [19:19]
-/// Clock Security System
-CSSON: u1 = 0,
-/// unused [20:23]
-_unused20: u4 = 0,
-/// PLLON [24:24]
-/// PLL enable
-PLLON: u1 = 0,
-/// PLLRDY [25:25]
-/// PLL clock ready flag
-PLLRDY: u1 = 0,
-/// unused [26:31]
-_unused26: u6 = 0,
-};
-/// Clock control register
-pub const CR = Register(CR_val).init(base_address + 0x0);
-
-/// CFGR
-const CFGR_val = packed struct {
-/// SW [0:1]
-/// System clock Switch
-SW: u2 = 0,
-/// SWS [2:3]
-/// System Clock Switch Status
-SWS: u2 = 0,
-/// HPRE [4:7]
-/// AHB prescaler
-HPRE: u4 = 0,
-/// PPRE [8:10]
-/// APB Low speed prescaler
-PPRE: u3 = 0,
-/// unused [11:13]
-_unused11: u3 = 0,
-/// ADCPRE [14:15]
-/// ADC prescaler
-ADCPRE: u2 = 0,
-/// PLLSRC [16:16]
-/// PLL entry clock source
-PLLSRC: u1 = 0,
-/// PLLXTPRE [17:17]
-/// HSE divider for PLL entry
-PLLXTPRE: u1 = 0,
-/// PLLMUL [18:21]
-/// PLL Multiplication Factor
-PLLMUL: u4 = 0,
-/// unused [22:23]
-_unused22: u2 = 0,
-/// MCO [24:26]
-/// Microcontroller clock
-MCO: u3 = 0,
-/// unused [27:31]
-_unused27: u5 = 0,
-};
-/// Clock configuration register
-pub const CFGR = Register(CFGR_val).init(base_address + 0x4);
-
-/// CIR
-const CIR_val = packed struct {
-/// LSIRDYF [0:0]
-/// LSI Ready Interrupt flag
-LSIRDYF: u1 = 0,
-/// LSERDYF [1:1]
-/// LSE Ready Interrupt flag
-LSERDYF: u1 = 0,
-/// HSIRDYF [2:2]
-/// HSI Ready Interrupt flag
-HSIRDYF: u1 = 0,
-/// HSERDYF [3:3]
-/// HSE Ready Interrupt flag
-HSERDYF: u1 = 0,
-/// PLLRDYF [4:4]
-/// PLL Ready Interrupt flag
-PLLRDYF: u1 = 0,
-/// HSI14RDYF [5:5]
-/// HSI14 ready interrupt flag
-HSI14RDYF: u1 = 0,
-/// unused [6:6]
-_unused6: u1 = 0,
-/// CSSF [7:7]
-/// Clock Security System Interrupt
-CSSF: u1 = 0,
-/// LSIRDYIE [8:8]
-/// LSI Ready Interrupt Enable
-LSIRDYIE: u1 = 0,
-/// LSERDYIE [9:9]
-/// LSE Ready Interrupt Enable
-LSERDYIE: u1 = 0,
-/// HSIRDYIE [10:10]
-/// HSI Ready Interrupt Enable
-HSIRDYIE: u1 = 0,
-/// HSERDYIE [11:11]
-/// HSE Ready Interrupt Enable
-HSERDYIE: u1 = 0,
-/// PLLRDYIE [12:12]
-/// PLL Ready Interrupt Enable
-PLLRDYIE: u1 = 0,
-/// HSI14RDYE [13:13]
-/// HSI14 ready interrupt
-HSI14RDYE: u1 = 0,
-/// unused [14:15]
-_unused14: u2 = 0,
-/// LSIRDYC [16:16]
-/// LSI Ready Interrupt Clear
-LSIRDYC: u1 = 0,
-/// LSERDYC [17:17]
-/// LSE Ready Interrupt Clear
-LSERDYC: u1 = 0,
-/// HSIRDYC [18:18]
-/// HSI Ready Interrupt Clear
-HSIRDYC: u1 = 0,
-/// HSERDYC [19:19]
-/// HSE Ready Interrupt Clear
-HSERDYC: u1 = 0,
-/// PLLRDYC [20:20]
-/// PLL Ready Interrupt Clear
-PLLRDYC: u1 = 0,
-/// HSI14RDYC [21:21]
-/// HSI 14 MHz Ready Interrupt
-HSI14RDYC: u1 = 0,
-/// unused [22:22]
-_unused22: u1 = 0,
-/// CSSC [23:23]
-/// Clock security system interrupt
-CSSC: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// Clock interrupt register
-pub const CIR = Register(CIR_val).init(base_address + 0x8);
-
-/// APB2RSTR
-const APB2RSTR_val = packed struct {
-/// SYSCFGRST [0:0]
-/// SYSCFG and COMP reset
-SYSCFGRST: u1 = 0,
-/// unused [1:8]
-_unused1: u7 = 0,
-_unused8: u1 = 0,
-/// ADCRST [9:9]
-/// ADC interface reset
-ADCRST: u1 = 0,
-/// unused [10:10]
-_unused10: u1 = 0,
-/// TIM1RST [11:11]
-/// TIM1 timer reset
-TIM1RST: u1 = 0,
-/// SPI1RST [12:12]
-/// SPI 1 reset
-SPI1RST: u1 = 0,
-/// unused [13:13]
-_unused13: u1 = 0,
-/// USART1RST [14:14]
-/// USART1 reset
-USART1RST: u1 = 0,
-/// unused [15:15]
-_unused15: u1 = 0,
-/// TIM15RST [16:16]
-/// TIM15 timer reset
-TIM15RST: u1 = 0,
-/// TIM16RST [17:17]
-/// TIM16 timer reset
-TIM16RST: u1 = 0,
-/// TIM17RST [18:18]
-/// TIM17 timer reset
-TIM17RST: u1 = 0,
-/// unused [19:21]
-_unused19: u3 = 0,
-/// DBGMCURST [22:22]
-/// Debug MCU reset
-DBGMCURST: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// APB2 peripheral reset register
-pub const APB2RSTR = Register(APB2RSTR_val).init(base_address + 0xc);
-
-/// APB1RSTR
-const APB1RSTR_val = packed struct {
-/// TIM2RST [0:0]
-/// Timer 2 reset
-TIM2RST: u1 = 0,
-/// TIM3RST [1:1]
-/// Timer 3 reset
-TIM3RST: u1 = 0,
-/// unused [2:3]
-_unused2: u2 = 0,
-/// TIM6RST [4:4]
-/// Timer 6 reset
-TIM6RST: u1 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// TIM14RST [8:8]
-/// Timer 14 reset
-TIM14RST: u1 = 0,
-/// unused [9:10]
-_unused9: u2 = 0,
-/// WWDGRST [11:11]
-/// Window watchdog reset
-WWDGRST: u1 = 0,
-/// unused [12:13]
-_unused12: u2 = 0,
-/// SPI2RST [14:14]
-/// SPI2 reset
-SPI2RST: u1 = 0,
-/// unused [15:16]
-_unused15: u1 = 0,
-_unused16: u1 = 0,
-/// USART2RST [17:17]
-/// USART 2 reset
-USART2RST: u1 = 0,
-/// unused [18:20]
-_unused18: u3 = 0,
-/// I2C1RST [21:21]
-/// I2C1 reset
-I2C1RST: u1 = 0,
-/// I2C2RST [22:22]
-/// I2C2 reset
-I2C2RST: u1 = 0,
-/// unused [23:27]
-_unused23: u1 = 0,
-_unused24: u4 = 0,
-/// PWRRST [28:28]
-/// Power interface reset
-PWRRST: u1 = 0,
-/// DACRST [29:29]
-/// DAC interface reset
-DACRST: u1 = 0,
-/// CECRST [30:30]
-/// HDMI CEC reset
-CECRST: u1 = 0,
-/// unused [31:31]
-_unused31: u1 = 0,
-};
-/// APB1 peripheral reset register
-pub const APB1RSTR = Register(APB1RSTR_val).init(base_address + 0x10);
-
-/// AHBENR
-const AHBENR_val = packed struct {
-/// DMAEN [0:0]
-/// DMA1 clock enable
-DMAEN: u1 = 0,
-/// unused [1:1]
-_unused1: u1 = 0,
-/// SRAMEN [2:2]
-/// SRAM interface clock
-SRAMEN: u1 = 1,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// FLITFEN [4:4]
-/// FLITF clock enable
-FLITFEN: u1 = 1,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// CRCEN [6:6]
-/// CRC clock enable
-CRCEN: u1 = 0,
-/// unused [7:16]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u1 = 0,
-/// IOPAEN [17:17]
-/// I/O port A clock enable
-IOPAEN: u1 = 0,
-/// IOPBEN [18:18]
-/// I/O port B clock enable
-IOPBEN: u1 = 0,
-/// IOPCEN [19:19]
-/// I/O port C clock enable
-IOPCEN: u1 = 0,
-/// IOPDEN [20:20]
-/// I/O port D clock enable
-IOPDEN: u1 = 0,
-/// unused [21:21]
-_unused21: u1 = 0,
-/// IOPFEN [22:22]
-/// I/O port F clock enable
-IOPFEN: u1 = 0,
-/// unused [23:23]
-_unused23: u1 = 0,
-/// TSCEN [24:24]
-/// Touch sensing controller clock
-TSCEN: u1 = 0,
-/// unused [25:31]
-_unused25: u7 = 0,
-};
-/// AHB Peripheral Clock enable register
-pub const AHBENR = Register(AHBENR_val).init(base_address + 0x14);
-
-/// APB2ENR
-const APB2ENR_val = packed struct {
-/// SYSCFGEN [0:0]
-/// SYSCFG clock enable
-SYSCFGEN: u1 = 0,
-/// unused [1:8]
-_unused1: u7 = 0,
-_unused8: u1 = 0,
-/// ADCEN [9:9]
-/// ADC 1 interface clock
-ADCEN: u1 = 0,
-/// unused [10:10]
-_unused10: u1 = 0,
-/// TIM1EN [11:11]
-/// TIM1 Timer clock enable
-TIM1EN: u1 = 0,
-/// SPI1EN [12:12]
-/// SPI 1 clock enable
-SPI1EN: u1 = 0,
-/// unused [13:13]
-_unused13: u1 = 0,
-/// USART1EN [14:14]
-/// USART1 clock enable
-USART1EN: u1 = 0,
-/// unused [15:15]
-_unused15: u1 = 0,
-/// TIM15EN [16:16]
-/// TIM15 timer clock enable
-TIM15EN: u1 = 0,
-/// TIM16EN [17:17]
-/// TIM16 timer clock enable
-TIM16EN: u1 = 0,
-/// TIM17EN [18:18]
-/// TIM17 timer clock enable
-TIM17EN: u1 = 0,
-/// unused [19:21]
-_unused19: u3 = 0,
-/// DBGMCUEN [22:22]
-/// MCU debug module clock
-DBGMCUEN: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// APB2 peripheral clock enable register
-pub const APB2ENR = Register(APB2ENR_val).init(base_address + 0x18);
-
-/// APB1ENR
-const APB1ENR_val = packed struct {
-/// TIM2EN [0:0]
-/// Timer 2 clock enable
-TIM2EN: u1 = 0,
-/// TIM3EN [1:1]
-/// Timer 3 clock enable
-TIM3EN: u1 = 0,
-/// unused [2:3]
-_unused2: u2 = 0,
-/// TIM6EN [4:4]
-/// Timer 6 clock enable
-TIM6EN: u1 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// TIM14EN [8:8]
-/// Timer 14 clock enable
-TIM14EN: u1 = 0,
-/// unused [9:10]
-_unused9: u2 = 0,
-/// WWDGEN [11:11]
-/// Window watchdog clock
-WWDGEN: u1 = 0,
-/// unused [12:13]
-_unused12: u2 = 0,
-/// SPI2EN [14:14]
-/// SPI 2 clock enable
-SPI2EN: u1 = 0,
-/// unused [15:16]
-_unused15: u1 = 0,
-_unused16: u1 = 0,
-/// USART2EN [17:17]
-/// USART 2 clock enable
-USART2EN: u1 = 0,
-/// unused [18:20]
-_unused18: u3 = 0,
-/// I2C1EN [21:21]
-/// I2C 1 clock enable
-I2C1EN: u1 = 0,
-/// I2C2EN [22:22]
-/// I2C 2 clock enable
-I2C2EN: u1 = 0,
-/// unused [23:27]
-_unused23: u1 = 0,
-_unused24: u4 = 0,
-/// PWREN [28:28]
-/// Power interface clock
-PWREN: u1 = 0,
-/// DACEN [29:29]
-/// DAC interface clock enable
-DACEN: u1 = 0,
-/// CECEN [30:30]
-/// HDMI CEC interface clock
-CECEN: u1 = 0,
-/// unused [31:31]
-_unused31: u1 = 0,
-};
-/// APB1 peripheral clock enable register
-pub const APB1ENR = Register(APB1ENR_val).init(base_address + 0x1c);
-
-/// BDCR
-const BDCR_val = packed struct {
-/// LSEON [0:0]
-/// External Low Speed oscillator
-LSEON: u1 = 0,
-/// LSERDY [1:1]
-/// External Low Speed oscillator
-LSERDY: u1 = 0,
-/// LSEBYP [2:2]
-/// External Low Speed oscillator
-LSEBYP: u1 = 0,
-/// LSEDRV [3:4]
-/// LSE oscillator drive
-LSEDRV: u2 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// RTCSEL [8:9]
-/// RTC clock source selection
-RTCSEL: u2 = 0,
-/// unused [10:14]
-_unused10: u5 = 0,
-/// RTCEN [15:15]
-/// RTC clock enable
-RTCEN: u1 = 0,
-/// BDRST [16:16]
-/// Backup domain software
-BDRST: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// Backup domain control register
-pub const BDCR = Register(BDCR_val).init(base_address + 0x20);
-
-/// CSR
-const CSR_val = packed struct {
-/// LSION [0:0]
-/// Internal low speed oscillator
-LSION: u1 = 0,
-/// LSIRDY [1:1]
-/// Internal low speed oscillator
-LSIRDY: u1 = 0,
-/// unused [2:23]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-/// RMVF [24:24]
-/// Remove reset flag
-RMVF: u1 = 0,
-/// OBLRSTF [25:25]
-/// Option byte loader reset
-OBLRSTF: u1 = 0,
-/// PINRSTF [26:26]
-/// PIN reset flag
-PINRSTF: u1 = 1,
-/// PORRSTF [27:27]
-/// POR/PDR reset flag
-PORRSTF: u1 = 1,
-/// SFTRSTF [28:28]
-/// Software reset flag
-SFTRSTF: u1 = 0,
-/// IWDGRSTF [29:29]
-/// Independent watchdog reset
-IWDGRSTF: u1 = 0,
-/// WWDGRSTF [30:30]
-/// Window watchdog reset flag
-WWDGRSTF: u1 = 0,
-/// LPWRRSTF [31:31]
-/// Low-power reset flag
-LPWRRSTF: u1 = 0,
-};
-/// Control/status register
-pub const CSR = Register(CSR_val).init(base_address + 0x24);
-
-/// AHBRSTR
-const AHBRSTR_val = packed struct {
-/// unused [0:16]
-_unused0: u8 = 0,
-_unused8: u8 = 0,
-_unused16: u1 = 0,
-/// IOPARST [17:17]
-/// I/O port A reset
-IOPARST: u1 = 0,
-/// IOPBRST [18:18]
-/// I/O port B reset
-IOPBRST: u1 = 0,
-/// IOPCRST [19:19]
-/// I/O port C reset
-IOPCRST: u1 = 0,
-/// IOPDRST [20:20]
-/// I/O port D reset
-IOPDRST: u1 = 0,
-/// unused [21:21]
-_unused21: u1 = 0,
-/// IOPFRST [22:22]
-/// I/O port F reset
-IOPFRST: u1 = 0,
-/// unused [23:23]
-_unused23: u1 = 0,
-/// TSCRST [24:24]
-/// Touch sensing controller
-TSCRST: u1 = 0,
-/// unused [25:31]
-_unused25: u7 = 0,
-};
-/// AHB peripheral reset register
-pub const AHBRSTR = Register(AHBRSTR_val).init(base_address + 0x28);
-
-/// CFGR2
-const CFGR2_val = packed struct {
-/// PREDIV [0:3]
-/// PREDIV division factor
-PREDIV: u4 = 0,
-/// unused [4:31]
-_unused4: u4 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Clock configuration register 2
-pub const CFGR2 = Register(CFGR2_val).init(base_address + 0x2c);
-
-/// CFGR3
-const CFGR3_val = packed struct {
-/// USART1SW [0:1]
-/// USART1 clock source
-USART1SW: u2 = 0,
-/// unused [2:3]
-_unused2: u2 = 0,
-/// I2C1SW [4:4]
-/// I2C1 clock source
-I2C1SW: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// CECSW [6:6]
-/// HDMI CEC clock source
-CECSW: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// ADCSW [8:8]
-/// ADC clock source selection
-ADCSW: u1 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Clock configuration register 3
-pub const CFGR3 = Register(CFGR3_val).init(base_address + 0x30);
-
-/// CR2
-const CR2_val = packed struct {
-/// HSI14ON [0:0]
-/// HSI14 clock enable
-HSI14ON: u1 = 0,
-/// HSI14RDY [1:1]
-/// HR14 clock ready flag
-HSI14RDY: u1 = 0,
-/// HSI14DIS [2:2]
-/// HSI14 clock request from ADC
-HSI14DIS: u1 = 0,
-/// HSI14TRIM [3:7]
-/// HSI14 clock trimming
-HSI14TRIM: u5 = 16,
-/// HSI14CAL [8:15]
-/// HSI14 clock calibration
-HSI14CAL: u8 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Clock control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x34);
-};
-
-/// System configuration controller
-pub const SYSCFG = struct {
-
-const base_address = 0x40010000;
-/// CFGR1
-const CFGR1_val = packed struct {
-/// MEM_MODE [0:1]
-/// Memory mapping selection
-MEM_MODE: u2 = 0,
-/// unused [2:7]
-_unused2: u6 = 0,
-/// ADC_DMA_RMP [8:8]
-/// ADC DMA remapping bit
-ADC_DMA_RMP: u1 = 0,
-/// USART1_TX_DMA_RMP [9:9]
-/// USART1_TX DMA remapping
-USART1_TX_DMA_RMP: u1 = 0,
-/// USART1_RX_DMA_RMP [10:10]
-/// USART1_RX DMA request remapping
-USART1_RX_DMA_RMP: u1 = 0,
-/// TIM16_DMA_RMP [11:11]
-/// TIM16 DMA request remapping
-TIM16_DMA_RMP: u1 = 0,
-/// TIM17_DMA_RMP [12:12]
-/// TIM17 DMA request remapping
-TIM17_DMA_RMP: u1 = 0,
-/// unused [13:15]
-_unused13: u3 = 0,
-/// I2C_PB6_FM [16:16]
-/// Fast Mode Plus (FM+) driving capability
-I2C_PB6_FM: u1 = 0,
-/// I2C_PB7_FM [17:17]
-/// Fast Mode Plus (FM+) driving capability
-I2C_PB7_FM: u1 = 0,
-/// I2C_PB8_FM [18:18]
-/// Fast Mode Plus (FM+) driving capability
-I2C_PB8_FM: u1 = 0,
-/// I2C_PB9_FM [19:19]
-/// Fast Mode Plus (FM+) driving capability
-I2C_PB9_FM: u1 = 0,
-/// unused [20:31]
-_unused20: u4 = 0,
-_unused24: u8 = 0,
-};
-/// configuration register 1
-pub const CFGR1 = Register(CFGR1_val).init(base_address + 0x0);
-
-/// EXTICR1
-const EXTICR1_val = packed struct {
-/// EXTI0 [0:3]
-/// EXTI 0 configuration bits
-EXTI0: u4 = 0,
-/// EXTI1 [4:7]
-/// EXTI 1 configuration bits
-EXTI1: u4 = 0,
-/// EXTI2 [8:11]
-/// EXTI 2 configuration bits
-EXTI2: u4 = 0,
-/// EXTI3 [12:15]
-/// EXTI 3 configuration bits
-EXTI3: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// external interrupt configuration register
-pub const EXTICR1 = Register(EXTICR1_val).init(base_address + 0x8);
-
-/// EXTICR2
-const EXTICR2_val = packed struct {
-/// EXTI4 [0:3]
-/// EXTI 4 configuration bits
-EXTI4: u4 = 0,
-/// EXTI5 [4:7]
-/// EXTI 5 configuration bits
-EXTI5: u4 = 0,
-/// EXTI6 [8:11]
-/// EXTI 6 configuration bits
-EXTI6: u4 = 0,
-/// EXTI7 [12:15]
-/// EXTI 7 configuration bits
-EXTI7: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// external interrupt configuration register
-pub const EXTICR2 = Register(EXTICR2_val).init(base_address + 0xc);
-
-/// EXTICR3
-const EXTICR3_val = packed struct {
-/// EXTI8 [0:3]
-/// EXTI 8 configuration bits
-EXTI8: u4 = 0,
-/// EXTI9 [4:7]
-/// EXTI 9 configuration bits
-EXTI9: u4 = 0,
-/// EXTI10 [8:11]
-/// EXTI 10 configuration bits
-EXTI10: u4 = 0,
-/// EXTI11 [12:15]
-/// EXTI 11 configuration bits
-EXTI11: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// external interrupt configuration register
-pub const EXTICR3 = Register(EXTICR3_val).init(base_address + 0x10);
-
-/// EXTICR4
-const EXTICR4_val = packed struct {
-/// EXTI12 [0:3]
-/// EXTI 12 configuration bits
-EXTI12: u4 = 0,
-/// EXTI13 [4:7]
-/// EXTI 13 configuration bits
-EXTI13: u4 = 0,
-/// EXTI14 [8:11]
-/// EXTI 14 configuration bits
-EXTI14: u4 = 0,
-/// EXTI15 [12:15]
-/// EXTI 15 configuration bits
-EXTI15: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// external interrupt configuration register
-pub const EXTICR4 = Register(EXTICR4_val).init(base_address + 0x14);
-
-/// CFGR2
-const CFGR2_val = packed struct {
-/// LOCUP_LOCK [0:0]
-/// Cortex-M0 LOCKUP bit enable
-LOCUP_LOCK: u1 = 0,
-/// SRAM_PARITY_LOCK [1:1]
-/// SRAM parity lock bit
-SRAM_PARITY_LOCK: u1 = 0,
-/// PVD_LOCK [2:2]
-/// PVD lock enable bit
-PVD_LOCK: u1 = 0,
-/// unused [3:7]
-_unused3: u5 = 0,
-/// SRAM_PEF [8:8]
-/// SRAM parity flag
-SRAM_PEF: u1 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// configuration register 2
-pub const CFGR2 = Register(CFGR2_val).init(base_address + 0x18);
-};
-
-/// Analog-to-digital converter
-pub const ADC = struct {
-
-const base_address = 0x40012400;
-/// ISR
-const ISR_val = packed struct {
-/// ADRDY [0:0]
-/// ADC ready
-ADRDY: u1 = 0,
-/// EOSMP [1:1]
-/// End of sampling flag
-EOSMP: u1 = 0,
-/// EOC [2:2]
-/// End of conversion flag
-EOC: u1 = 0,
-/// EOS [3:3]
-/// End of sequence flag
-EOS: u1 = 0,
-/// OVR [4:4]
-/// ADC overrun
-OVR: u1 = 0,
-/// unused [5:6]
-_unused5: u2 = 0,
-/// AWD [7:7]
-/// Analog watchdog flag
-AWD: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// interrupt and status register
-pub const ISR = Register(ISR_val).init(base_address + 0x0);
-
-/// IER
-const IER_val = packed struct {
-/// ADRDYIE [0:0]
-/// ADC ready interrupt enable
-ADRDYIE: u1 = 0,
-/// EOSMPIE [1:1]
-/// End of sampling flag interrupt
-EOSMPIE: u1 = 0,
-/// EOCIE [2:2]
-/// End of conversion interrupt
-EOCIE: u1 = 0,
-/// EOSIE [3:3]
-/// End of conversion sequence interrupt
-EOSIE: u1 = 0,
-/// OVRIE [4:4]
-/// Overrun interrupt enable
-OVRIE: u1 = 0,
-/// unused [5:6]
-_unused5: u2 = 0,
-/// AWDIE [7:7]
-/// Analog watchdog interrupt
-AWDIE: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// interrupt enable register
-pub const IER = Register(IER_val).init(base_address + 0x4);
-
-/// CR
-const CR_val = packed struct {
-/// ADEN [0:0]
-/// ADC enable command
-ADEN: u1 = 0,
-/// ADDIS [1:1]
-/// ADC disable command
-ADDIS: u1 = 0,
-/// ADSTART [2:2]
-/// ADC start conversion
-ADSTART: u1 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// ADSTP [4:4]
-/// ADC stop conversion
-ADSTP: u1 = 0,
-/// unused [5:30]
-_unused5: u3 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u7 = 0,
-/// ADCAL [31:31]
-/// ADC calibration
-ADCAL: u1 = 0,
-};
-/// control register
-pub const CR = Register(CR_val).init(base_address + 0x8);
-
-/// CFGR1
-const CFGR1_val = packed struct {
-/// DMAEN [0:0]
-/// Direct memory access
-DMAEN: u1 = 0,
-/// DMACFG [1:1]
-/// Direct memery access
-DMACFG: u1 = 0,
-/// SCANDIR [2:2]
-/// Scan sequence direction
-SCANDIR: u1 = 0,
-/// RES [3:4]
-/// Data resolution
-RES: u2 = 0,
-/// ALIGN [5:5]
-/// Data alignment
-ALIGN: u1 = 0,
-/// EXTSEL [6:8]
-/// External trigger selection
-EXTSEL: u3 = 0,
-/// unused [9:9]
-_unused9: u1 = 0,
-/// EXTEN [10:11]
-/// External trigger enable and polarity
-EXTEN: u2 = 0,
-/// OVRMOD [12:12]
-/// Overrun management mode
-OVRMOD: u1 = 0,
-/// CONT [13:13]
-/// Single / continuous conversion
-CONT: u1 = 0,
-/// AUTDLY [14:14]
-/// Auto-delayed conversion
-AUTDLY: u1 = 0,
-/// AUTOFF [15:15]
-/// Auto-off mode
-AUTOFF: u1 = 0,
-/// DISCEN [16:16]
-/// Discontinuous mode
-DISCEN: u1 = 0,
-/// unused [17:21]
-_unused17: u5 = 0,
-/// AWDSGL [22:22]
-/// Enable the watchdog on a single channel
-AWDSGL: u1 = 0,
-/// AWDEN [23:23]
-/// Analog watchdog enable
-AWDEN: u1 = 0,
-/// unused [24:25]
-_unused24: u2 = 0,
-/// AWDCH [26:30]
-/// Analog watchdog channel
-AWDCH: u5 = 0,
-/// unused [31:31]
-_unused31: u1 = 0,
-};
-/// configuration register 1
-pub const CFGR1 = Register(CFGR1_val).init(base_address + 0xc);
-
-/// CFGR2
-const CFGR2_val = packed struct {
-/// unused [0:29]
-_unused0: u8 = 0,
-_unused8: u8 = 128,
-_unused16: u8 = 0,
-_unused24: u6 = 0,
-/// JITOFF_D2 [30:30]
-/// JITOFF_D2
-JITOFF_D2: u1 = 0,
-/// JITOFF_D4 [31:31]
-/// JITOFF_D4
-JITOFF_D4: u1 = 0,
-};
-/// configuration register 2
-pub const CFGR2 = Register(CFGR2_val).init(base_address + 0x10);
-
-/// SMPR
-const SMPR_val = packed struct {
-/// SMPR [0:2]
-/// Sampling time selection
-SMPR: u3 = 0,
-/// unused [3:31]
-_unused3: u5 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// sampling time register
-pub const SMPR = Register(SMPR_val).init(base_address + 0x14);
-
-/// TR
-const TR_val = packed struct {
-/// LT [0:11]
-/// Analog watchdog lower
-LT: u12 = 4095,
-/// unused [12:15]
-_unused12: u4 = 0,
-/// HT [16:27]
-/// Analog watchdog higher
-HT: u12 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// watchdog threshold register
-pub const TR = Register(TR_val).init(base_address + 0x20);
-
-/// CHSELR
-const CHSELR_val = packed struct {
-/// CHSEL0 [0:0]
-/// Channel-x selection
-CHSEL0: u1 = 0,
-/// CHSEL1 [1:1]
-/// Channel-x selection
-CHSEL1: u1 = 0,
-/// CHSEL2 [2:2]
-/// Channel-x selection
-CHSEL2: u1 = 0,
-/// CHSEL3 [3:3]
-/// Channel-x selection
-CHSEL3: u1 = 0,
-/// CHSEL4 [4:4]
-/// Channel-x selection
-CHSEL4: u1 = 0,
-/// CHSEL5 [5:5]
-/// Channel-x selection
-CHSEL5: u1 = 0,
-/// CHSEL6 [6:6]
-/// Channel-x selection
-CHSEL6: u1 = 0,
-/// CHSEL7 [7:7]
-/// Channel-x selection
-CHSEL7: u1 = 0,
-/// CHSEL8 [8:8]
-/// Channel-x selection
-CHSEL8: u1 = 0,
-/// CHSEL9 [9:9]
-/// Channel-x selection
-CHSEL9: u1 = 0,
-/// CHSEL10 [10:10]
-/// Channel-x selection
-CHSEL10: u1 = 0,
-/// CHSEL11 [11:11]
-/// Channel-x selection
-CHSEL11: u1 = 0,
-/// CHSEL12 [12:12]
-/// Channel-x selection
-CHSEL12: u1 = 0,
-/// CHSEL13 [13:13]
-/// Channel-x selection
-CHSEL13: u1 = 0,
-/// CHSEL14 [14:14]
-/// Channel-x selection
-CHSEL14: u1 = 0,
-/// CHSEL15 [15:15]
-/// Channel-x selection
-CHSEL15: u1 = 0,
-/// CHSEL16 [16:16]
-/// Channel-x selection
-CHSEL16: u1 = 0,
-/// CHSEL17 [17:17]
-/// Channel-x selection
-CHSEL17: u1 = 0,
-/// CHSEL18 [18:18]
-/// Channel-x selection
-CHSEL18: u1 = 0,
-/// unused [19:31]
-_unused19: u5 = 0,
-_unused24: u8 = 0,
-};
-/// channel selection register
-pub const CHSELR = Register(CHSELR_val).init(base_address + 0x28);
-
-/// DR
-const DR_val = packed struct {
-/// DATA [0:15]
-/// Converted data
-DATA: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// data register
-pub const DR = Register(DR_val).init(base_address + 0x40);
-
-/// CCR
-const CCR_val = packed struct {
-/// unused [0:21]
-_unused0: u8 = 0,
-_unused8: u8 = 0,
-_unused16: u6 = 0,
-/// VREFEN [22:22]
-/// Temperature sensor and VREFINT
-VREFEN: u1 = 0,
-/// TSEN [23:23]
-/// Temperature sensor enable
-TSEN: u1 = 0,
-/// VBATEN [24:24]
-/// VBAT enable
-VBATEN: u1 = 0,
-/// unused [25:31]
-_unused25: u7 = 0,
-};
-/// common configuration register
-pub const CCR = Register(CCR_val).init(base_address + 0x308);
-};
-
-/// Universal synchronous asynchronous receiver
-pub const USART1 = struct {
-
-const base_address = 0x40013800;
-/// CR1
-const CR1_val = packed struct {
-/// UE [0:0]
-/// USART enable
-UE: u1 = 0,
-/// UESM [1:1]
-/// USART enable in Stop mode
-UESM: u1 = 0,
-/// RE [2:2]
-/// Receiver enable
-RE: u1 = 0,
-/// TE [3:3]
-/// Transmitter enable
-TE: u1 = 0,
-/// IDLEIE [4:4]
-/// IDLE interrupt enable
-IDLEIE: u1 = 0,
-/// RXNEIE [5:5]
-/// RXNE interrupt enable
-RXNEIE: u1 = 0,
-/// TCIE [6:6]
-/// Transmission complete interrupt
-TCIE: u1 = 0,
-/// TXEIE [7:7]
-/// interrupt enable
-TXEIE: u1 = 0,
-/// PEIE [8:8]
-/// PE interrupt enable
-PEIE: u1 = 0,
-/// PS [9:9]
-/// Parity selection
-PS: u1 = 0,
-/// PCE [10:10]
-/// Parity control enable
-PCE: u1 = 0,
-/// WAKE [11:11]
-/// Receiver wakeup method
-WAKE: u1 = 0,
-/// M [12:12]
-/// Word length
-M: u1 = 0,
-/// MME [13:13]
-/// Mute mode enable
-MME: u1 = 0,
-/// CMIE [14:14]
-/// Character match interrupt
-CMIE: u1 = 0,
-/// OVER8 [15:15]
-/// Oversampling mode
-OVER8: u1 = 0,
-/// DEDT [16:20]
-/// Driver Enable deassertion
-DEDT: u5 = 0,
-/// DEAT [21:25]
-/// Driver Enable assertion
-DEAT: u5 = 0,
-/// RTOIE [26:26]
-/// Receiver timeout interrupt
-RTOIE: u1 = 0,
-/// EOBIE [27:27]
-/// End of Block interrupt
-EOBIE: u1 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// Control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// unused [0:3]
-_unused0: u4 = 0,
-/// ADDM7 [4:4]
-/// 7-bit Address Detection/4-bit Address
-ADDM7: u1 = 0,
-/// LBDL [5:5]
-/// LIN break detection length
-LBDL: u1 = 0,
-/// LBDIE [6:6]
-/// LIN break detection interrupt
-LBDIE: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// LBCL [8:8]
-/// Last bit clock pulse
-LBCL: u1 = 0,
-/// CPHA [9:9]
-/// Clock phase
-CPHA: u1 = 0,
-/// CPOL [10:10]
-/// Clock polarity
-CPOL: u1 = 0,
-/// CLKEN [11:11]
-/// Clock enable
-CLKEN: u1 = 0,
-/// STOP [12:13]
-/// STOP bits
-STOP: u2 = 0,
-/// LINEN [14:14]
-/// LIN mode enable
-LINEN: u1 = 0,
-/// SWAP [15:15]
-/// Swap TX/RX pins
-SWAP: u1 = 0,
-/// RXINV [16:16]
-/// RX pin active level
-RXINV: u1 = 0,
-/// TXINV [17:17]
-/// TX pin active level
-TXINV: u1 = 0,
-/// DATAINV [18:18]
-/// Binary data inversion
-DATAINV: u1 = 0,
-/// MSBFIRST [19:19]
-/// Most significant bit first
-MSBFIRST: u1 = 0,
-/// ABREN [20:20]
-/// Auto baud rate enable
-ABREN: u1 = 0,
-/// ABRMOD [21:22]
-/// Auto baud rate mode
-ABRMOD: u2 = 0,
-/// RTOEN [23:23]
-/// Receiver timeout enable
-RTOEN: u1 = 0,
-/// ADD0 [24:27]
-/// Address of the USART node
-ADD0: u4 = 0,
-/// ADD4 [28:31]
-/// Address of the USART node
-ADD4: u4 = 0,
-};
-/// Control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// CR3
-const CR3_val = packed struct {
-/// EIE [0:0]
-/// Error interrupt enable
-EIE: u1 = 0,
-/// IREN [1:1]
-/// IrDA mode enable
-IREN: u1 = 0,
-/// IRLP [2:2]
-/// IrDA low-power
-IRLP: u1 = 0,
-/// HDSEL [3:3]
-/// Half-duplex selection
-HDSEL: u1 = 0,
-/// NACK [4:4]
-/// Smartcard NACK enable
-NACK: u1 = 0,
-/// SCEN [5:5]
-/// Smartcard mode enable
-SCEN: u1 = 0,
-/// DMAR [6:6]
-/// DMA enable receiver
-DMAR: u1 = 0,
-/// DMAT [7:7]
-/// DMA enable transmitter
-DMAT: u1 = 0,
-/// RTSE [8:8]
-/// RTS enable
-RTSE: u1 = 0,
-/// CTSE [9:9]
-/// CTS enable
-CTSE: u1 = 0,
-/// CTSIE [10:10]
-/// CTS interrupt enable
-CTSIE: u1 = 0,
-/// ONEBIT [11:11]
-/// One sample bit method
-ONEBIT: u1 = 0,
-/// OVRDIS [12:12]
-/// Overrun Disable
-OVRDIS: u1 = 0,
-/// DDRE [13:13]
-/// DMA Disable on Reception
-DDRE: u1 = 0,
-/// DEM [14:14]
-/// Driver enable mode
-DEM: u1 = 0,
-/// DEP [15:15]
-/// Driver enable polarity
-DEP: u1 = 0,
-/// unused [16:16]
-_unused16: u1 = 0,
-/// SCARCNT [17:19]
-/// Smartcard auto-retry count
-SCARCNT: u3 = 0,
-/// WUS [20:21]
-/// Wakeup from Stop mode interrupt flag
-WUS: u2 = 0,
-/// WUFIE [22:22]
-/// Wakeup from Stop mode interrupt
-WUFIE: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// Control register 3
-pub const CR3 = Register(CR3_val).init(base_address + 0x8);
-
-/// BRR
-const BRR_val = packed struct {
-/// DIV_Fraction [0:3]
-/// fraction of USARTDIV
-DIV_Fraction: u4 = 0,
-/// DIV_Mantissa [4:15]
-/// mantissa of USARTDIV
-DIV_Mantissa: u12 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Baud rate register
-pub const BRR = Register(BRR_val).init(base_address + 0xc);
-
-/// GTPR
-const GTPR_val = packed struct {
-/// PSC [0:7]
-/// Prescaler value
-PSC: u8 = 0,
-/// GT [8:15]
-/// Guard time value
-GT: u8 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Guard time and prescaler
-pub const GTPR = Register(GTPR_val).init(base_address + 0x10);
-
-/// RTOR
-const RTOR_val = packed struct {
-/// RTO [0:23]
-/// Receiver timeout value
-RTO: u24 = 0,
-/// BLEN [24:31]
-/// Block Length
-BLEN: u8 = 0,
-};
-/// Receiver timeout register
-pub const RTOR = Register(RTOR_val).init(base_address + 0x14);
-
-/// RQR
-const RQR_val = packed struct {
-/// ABRRQ [0:0]
-/// Auto baud rate request
-ABRRQ: u1 = 0,
-/// SBKRQ [1:1]
-/// Send break request
-SBKRQ: u1 = 0,
-/// MMRQ [2:2]
-/// Mute mode request
-MMRQ: u1 = 0,
-/// RXFRQ [3:3]
-/// Receive data flush request
-RXFRQ: u1 = 0,
-/// TXFRQ [4:4]
-/// Transmit data flush
-TXFRQ: u1 = 0,
-/// unused [5:31]
-_unused5: u3 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Request register
-pub const RQR = Register(RQR_val).init(base_address + 0x18);
-
-/// ISR
-const ISR_val = packed struct {
-/// PE [0:0]
-/// Parity error
-PE: u1 = 0,
-/// FE [1:1]
-/// Framing error
-FE: u1 = 0,
-/// NF [2:2]
-/// Noise detected flag
-NF: u1 = 0,
-/// ORE [3:3]
-/// Overrun error
-ORE: u1 = 0,
-/// IDLE [4:4]
-/// Idle line detected
-IDLE: u1 = 0,
-/// RXNE [5:5]
-/// Read data register not
-RXNE: u1 = 0,
-/// TC [6:6]
-/// Transmission complete
-TC: u1 = 1,
-/// TXE [7:7]
-/// Transmit data register
-TXE: u1 = 1,
-/// LBDF [8:8]
-/// LIN break detection flag
-LBDF: u1 = 0,
-/// CTSIF [9:9]
-/// CTS interrupt flag
-CTSIF: u1 = 0,
-/// CTS [10:10]
-/// CTS flag
-CTS: u1 = 0,
-/// RTOF [11:11]
-/// Receiver timeout
-RTOF: u1 = 0,
-/// EOBF [12:12]
-/// End of block flag
-EOBF: u1 = 0,
-/// unused [13:13]
-_unused13: u1 = 0,
-/// ABRE [14:14]
-/// Auto baud rate error
-ABRE: u1 = 0,
-/// ABRF [15:15]
-/// Auto baud rate flag
-ABRF: u1 = 0,
-/// BUSY [16:16]
-/// Busy flag
-BUSY: u1 = 0,
-/// CMF [17:17]
-/// character match flag
-CMF: u1 = 0,
-/// SBKF [18:18]
-/// Send break flag
-SBKF: u1 = 0,
-/// RWU [19:19]
-/// Receiver wakeup from Mute
-RWU: u1 = 0,
-/// WUF [20:20]
-/// Wakeup from Stop mode flag
-WUF: u1 = 0,
-/// TEACK [21:21]
-/// Transmit enable acknowledge
-TEACK: u1 = 0,
-/// REACK [22:22]
-/// Receive enable acknowledge
-REACK: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt &amp; status
-pub const ISR = Register(ISR_val).init(base_address + 0x1c);
-
-/// ICR
-const ICR_val = packed struct {
-/// PECF [0:0]
-/// Parity error clear flag
-PECF: u1 = 0,
-/// FECF [1:1]
-/// Framing error clear flag
-FECF: u1 = 0,
-/// NCF [2:2]
-/// Noise detected clear flag
-NCF: u1 = 0,
-/// ORECF [3:3]
-/// Overrun error clear flag
-ORECF: u1 = 0,
-/// IDLECF [4:4]
-/// Idle line detected clear
-IDLECF: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TCCF [6:6]
-/// Transmission complete clear
-TCCF: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// LBDCF [8:8]
-/// LIN break detection clear
-LBDCF: u1 = 0,
-/// CTSCF [9:9]
-/// CTS clear flag
-CTSCF: u1 = 0,
-/// unused [10:10]
-_unused10: u1 = 0,
-/// RTOCF [11:11]
-/// Receiver timeout clear
-RTOCF: u1 = 0,
-/// EOBCF [12:12]
-/// End of timeout clear flag
-EOBCF: u1 = 0,
-/// unused [13:16]
-_unused13: u3 = 0,
-_unused16: u1 = 0,
-/// CMCF [17:17]
-/// Character match clear flag
-CMCF: u1 = 0,
-/// unused [18:19]
-_unused18: u2 = 0,
-/// WUCF [20:20]
-/// Wakeup from Stop mode clear
-WUCF: u1 = 0,
-/// unused [21:31]
-_unused21: u3 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt flag clear register
-pub const ICR = Register(ICR_val).init(base_address + 0x20);
-
-/// RDR
-const RDR_val = packed struct {
-/// RDR [0:8]
-/// Receive data value
-RDR: u9 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Receive data register
-pub const RDR = Register(RDR_val).init(base_address + 0x24);
-
-/// TDR
-const TDR_val = packed struct {
-/// TDR [0:8]
-/// Transmit data value
-TDR: u9 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Transmit data register
-pub const TDR = Register(TDR_val).init(base_address + 0x28);
-};
-
-/// Universal synchronous asynchronous receiver
-pub const USART2 = struct {
-
-const base_address = 0x40004400;
-/// CR1
-const CR1_val = packed struct {
-/// UE [0:0]
-/// USART enable
-UE: u1 = 0,
-/// UESM [1:1]
-/// USART enable in Stop mode
-UESM: u1 = 0,
-/// RE [2:2]
-/// Receiver enable
-RE: u1 = 0,
-/// TE [3:3]
-/// Transmitter enable
-TE: u1 = 0,
-/// IDLEIE [4:4]
-/// IDLE interrupt enable
-IDLEIE: u1 = 0,
-/// RXNEIE [5:5]
-/// RXNE interrupt enable
-RXNEIE: u1 = 0,
-/// TCIE [6:6]
-/// Transmission complete interrupt
-TCIE: u1 = 0,
-/// TXEIE [7:7]
-/// interrupt enable
-TXEIE: u1 = 0,
-/// PEIE [8:8]
-/// PE interrupt enable
-PEIE: u1 = 0,
-/// PS [9:9]
-/// Parity selection
-PS: u1 = 0,
-/// PCE [10:10]
-/// Parity control enable
-PCE: u1 = 0,
-/// WAKE [11:11]
-/// Receiver wakeup method
-WAKE: u1 = 0,
-/// M [12:12]
-/// Word length
-M: u1 = 0,
-/// MME [13:13]
-/// Mute mode enable
-MME: u1 = 0,
-/// CMIE [14:14]
-/// Character match interrupt
-CMIE: u1 = 0,
-/// OVER8 [15:15]
-/// Oversampling mode
-OVER8: u1 = 0,
-/// DEDT [16:20]
-/// Driver Enable deassertion
-DEDT: u5 = 0,
-/// DEAT [21:25]
-/// Driver Enable assertion
-DEAT: u5 = 0,
-/// RTOIE [26:26]
-/// Receiver timeout interrupt
-RTOIE: u1 = 0,
-/// EOBIE [27:27]
-/// End of Block interrupt
-EOBIE: u1 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// Control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// unused [0:3]
-_unused0: u4 = 0,
-/// ADDM7 [4:4]
-/// 7-bit Address Detection/4-bit Address
-ADDM7: u1 = 0,
-/// LBDL [5:5]
-/// LIN break detection length
-LBDL: u1 = 0,
-/// LBDIE [6:6]
-/// LIN break detection interrupt
-LBDIE: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// LBCL [8:8]
-/// Last bit clock pulse
-LBCL: u1 = 0,
-/// CPHA [9:9]
-/// Clock phase
-CPHA: u1 = 0,
-/// CPOL [10:10]
-/// Clock polarity
-CPOL: u1 = 0,
-/// CLKEN [11:11]
-/// Clock enable
-CLKEN: u1 = 0,
-/// STOP [12:13]
-/// STOP bits
-STOP: u2 = 0,
-/// LINEN [14:14]
-/// LIN mode enable
-LINEN: u1 = 0,
-/// SWAP [15:15]
-/// Swap TX/RX pins
-SWAP: u1 = 0,
-/// RXINV [16:16]
-/// RX pin active level
-RXINV: u1 = 0,
-/// TXINV [17:17]
-/// TX pin active level
-TXINV: u1 = 0,
-/// DATAINV [18:18]
-/// Binary data inversion
-DATAINV: u1 = 0,
-/// MSBFIRST [19:19]
-/// Most significant bit first
-MSBFIRST: u1 = 0,
-/// ABREN [20:20]
-/// Auto baud rate enable
-ABREN: u1 = 0,
-/// ABRMOD [21:22]
-/// Auto baud rate mode
-ABRMOD: u2 = 0,
-/// RTOEN [23:23]
-/// Receiver timeout enable
-RTOEN: u1 = 0,
-/// ADD0 [24:27]
-/// Address of the USART node
-ADD0: u4 = 0,
-/// ADD4 [28:31]
-/// Address of the USART node
-ADD4: u4 = 0,
-};
-/// Control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// CR3
-const CR3_val = packed struct {
-/// EIE [0:0]
-/// Error interrupt enable
-EIE: u1 = 0,
-/// IREN [1:1]
-/// IrDA mode enable
-IREN: u1 = 0,
-/// IRLP [2:2]
-/// IrDA low-power
-IRLP: u1 = 0,
-/// HDSEL [3:3]
-/// Half-duplex selection
-HDSEL: u1 = 0,
-/// NACK [4:4]
-/// Smartcard NACK enable
-NACK: u1 = 0,
-/// SCEN [5:5]
-/// Smartcard mode enable
-SCEN: u1 = 0,
-/// DMAR [6:6]
-/// DMA enable receiver
-DMAR: u1 = 0,
-/// DMAT [7:7]
-/// DMA enable transmitter
-DMAT: u1 = 0,
-/// RTSE [8:8]
-/// RTS enable
-RTSE: u1 = 0,
-/// CTSE [9:9]
-/// CTS enable
-CTSE: u1 = 0,
-/// CTSIE [10:10]
-/// CTS interrupt enable
-CTSIE: u1 = 0,
-/// ONEBIT [11:11]
-/// One sample bit method
-ONEBIT: u1 = 0,
-/// OVRDIS [12:12]
-/// Overrun Disable
-OVRDIS: u1 = 0,
-/// DDRE [13:13]
-/// DMA Disable on Reception
-DDRE: u1 = 0,
-/// DEM [14:14]
-/// Driver enable mode
-DEM: u1 = 0,
-/// DEP [15:15]
-/// Driver enable polarity
-DEP: u1 = 0,
-/// unused [16:16]
-_unused16: u1 = 0,
-/// SCARCNT [17:19]
-/// Smartcard auto-retry count
-SCARCNT: u3 = 0,
-/// WUS [20:21]
-/// Wakeup from Stop mode interrupt flag
-WUS: u2 = 0,
-/// WUFIE [22:22]
-/// Wakeup from Stop mode interrupt
-WUFIE: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// Control register 3
-pub const CR3 = Register(CR3_val).init(base_address + 0x8);
-
-/// BRR
-const BRR_val = packed struct {
-/// DIV_Fraction [0:3]
-/// fraction of USARTDIV
-DIV_Fraction: u4 = 0,
-/// DIV_Mantissa [4:15]
-/// mantissa of USARTDIV
-DIV_Mantissa: u12 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Baud rate register
-pub const BRR = Register(BRR_val).init(base_address + 0xc);
-
-/// GTPR
-const GTPR_val = packed struct {
-/// PSC [0:7]
-/// Prescaler value
-PSC: u8 = 0,
-/// GT [8:15]
-/// Guard time value
-GT: u8 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Guard time and prescaler
-pub const GTPR = Register(GTPR_val).init(base_address + 0x10);
-
-/// RTOR
-const RTOR_val = packed struct {
-/// RTO [0:23]
-/// Receiver timeout value
-RTO: u24 = 0,
-/// BLEN [24:31]
-/// Block Length
-BLEN: u8 = 0,
-};
-/// Receiver timeout register
-pub const RTOR = Register(RTOR_val).init(base_address + 0x14);
-
-/// RQR
-const RQR_val = packed struct {
-/// ABRRQ [0:0]
-/// Auto baud rate request
-ABRRQ: u1 = 0,
-/// SBKRQ [1:1]
-/// Send break request
-SBKRQ: u1 = 0,
-/// MMRQ [2:2]
-/// Mute mode request
-MMRQ: u1 = 0,
-/// RXFRQ [3:3]
-/// Receive data flush request
-RXFRQ: u1 = 0,
-/// TXFRQ [4:4]
-/// Transmit data flush
-TXFRQ: u1 = 0,
-/// unused [5:31]
-_unused5: u3 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Request register
-pub const RQR = Register(RQR_val).init(base_address + 0x18);
-
-/// ISR
-const ISR_val = packed struct {
-/// PE [0:0]
-/// Parity error
-PE: u1 = 0,
-/// FE [1:1]
-/// Framing error
-FE: u1 = 0,
-/// NF [2:2]
-/// Noise detected flag
-NF: u1 = 0,
-/// ORE [3:3]
-/// Overrun error
-ORE: u1 = 0,
-/// IDLE [4:4]
-/// Idle line detected
-IDLE: u1 = 0,
-/// RXNE [5:5]
-/// Read data register not
-RXNE: u1 = 0,
-/// TC [6:6]
-/// Transmission complete
-TC: u1 = 1,
-/// TXE [7:7]
-/// Transmit data register
-TXE: u1 = 1,
-/// LBDF [8:8]
-/// LIN break detection flag
-LBDF: u1 = 0,
-/// CTSIF [9:9]
-/// CTS interrupt flag
-CTSIF: u1 = 0,
-/// CTS [10:10]
-/// CTS flag
-CTS: u1 = 0,
-/// RTOF [11:11]
-/// Receiver timeout
-RTOF: u1 = 0,
-/// EOBF [12:12]
-/// End of block flag
-EOBF: u1 = 0,
-/// unused [13:13]
-_unused13: u1 = 0,
-/// ABRE [14:14]
-/// Auto baud rate error
-ABRE: u1 = 0,
-/// ABRF [15:15]
-/// Auto baud rate flag
-ABRF: u1 = 0,
-/// BUSY [16:16]
-/// Busy flag
-BUSY: u1 = 0,
-/// CMF [17:17]
-/// character match flag
-CMF: u1 = 0,
-/// SBKF [18:18]
-/// Send break flag
-SBKF: u1 = 0,
-/// RWU [19:19]
-/// Receiver wakeup from Mute
-RWU: u1 = 0,
-/// WUF [20:20]
-/// Wakeup from Stop mode flag
-WUF: u1 = 0,
-/// TEACK [21:21]
-/// Transmit enable acknowledge
-TEACK: u1 = 0,
-/// REACK [22:22]
-/// Receive enable acknowledge
-REACK: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt &amp; status
-pub const ISR = Register(ISR_val).init(base_address + 0x1c);
-
-/// ICR
-const ICR_val = packed struct {
-/// PECF [0:0]
-/// Parity error clear flag
-PECF: u1 = 0,
-/// FECF [1:1]
-/// Framing error clear flag
-FECF: u1 = 0,
-/// NCF [2:2]
-/// Noise detected clear flag
-NCF: u1 = 0,
-/// ORECF [3:3]
-/// Overrun error clear flag
-ORECF: u1 = 0,
-/// IDLECF [4:4]
-/// Idle line detected clear
-IDLECF: u1 = 0,
-/// unused [5:5]
-_unused5: u1 = 0,
-/// TCCF [6:6]
-/// Transmission complete clear
-TCCF: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// LBDCF [8:8]
-/// LIN break detection clear
-LBDCF: u1 = 0,
-/// CTSCF [9:9]
-/// CTS clear flag
-CTSCF: u1 = 0,
-/// unused [10:10]
-_unused10: u1 = 0,
-/// RTOCF [11:11]
-/// Receiver timeout clear
-RTOCF: u1 = 0,
-/// EOBCF [12:12]
-/// End of timeout clear flag
-EOBCF: u1 = 0,
-/// unused [13:16]
-_unused13: u3 = 0,
-_unused16: u1 = 0,
-/// CMCF [17:17]
-/// Character match clear flag
-CMCF: u1 = 0,
-/// unused [18:19]
-_unused18: u2 = 0,
-/// WUCF [20:20]
-/// Wakeup from Stop mode clear
-WUCF: u1 = 0,
-/// unused [21:31]
-_unused21: u3 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt flag clear register
-pub const ICR = Register(ICR_val).init(base_address + 0x20);
-
-/// RDR
-const RDR_val = packed struct {
-/// RDR [0:8]
-/// Receive data value
-RDR: u9 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Receive data register
-pub const RDR = Register(RDR_val).init(base_address + 0x24);
-
-/// TDR
-const TDR_val = packed struct {
-/// TDR [0:8]
-/// Transmit data value
-TDR: u9 = 0,
-/// unused [9:31]
-_unused9: u7 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Transmit data register
-pub const TDR = Register(TDR_val).init(base_address + 0x28);
-};
-
-/// Comparator
-pub const COMP = struct {
-
-const base_address = 0x4001001c;
-/// CSR
-const CSR_val = packed struct {
-/// COMP1EN [0:0]
-/// Comparator 1 enable
-COMP1EN: u1 = 0,
-/// COMP1_INP_DAC [1:1]
-/// COMP1_INP_DAC
-COMP1_INP_DAC: u1 = 0,
-/// COMP1MODE [2:3]
-/// Comparator 1 mode
-COMP1MODE: u2 = 0,
-/// COMP1INSEL [4:6]
-/// Comparator 1 inverting input
-COMP1INSEL: u3 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// COMP1OUTSEL [8:10]
-/// Comparator 1 output
-COMP1OUTSEL: u3 = 0,
-/// COMP1POL [11:11]
-/// Comparator 1 output
-COMP1POL: u1 = 0,
-/// COMP1HYST [12:13]
-/// Comparator 1 hysteresis
-COMP1HYST: u2 = 0,
-/// COMP1OUT [14:14]
-/// Comparator 1 output
-COMP1OUT: u1 = 0,
-/// COMP1LOCK [15:15]
-/// Comparator 1 lock
-COMP1LOCK: u1 = 0,
-/// COMP2EN [16:16]
-/// Comparator 2 enable
-COMP2EN: u1 = 0,
-/// unused [17:17]
-_unused17: u1 = 0,
-/// COMP2MODE [18:19]
-/// Comparator 2 mode
-COMP2MODE: u2 = 0,
-/// COMP2INSEL [20:22]
-/// Comparator 2 inverting input
-COMP2INSEL: u3 = 0,
-/// WNDWEN [23:23]
-/// Window mode enable
-WNDWEN: u1 = 0,
-/// COMP2OUTSEL [24:26]
-/// Comparator 2 output
-COMP2OUTSEL: u3 = 0,
-/// COMP2POL [27:27]
-/// Comparator 2 output
-COMP2POL: u1 = 0,
-/// COMP2HYST [28:29]
-/// Comparator 2 hysteresis
-COMP2HYST: u2 = 0,
-/// COMP2OUT [30:30]
-/// Comparator 2 output
-COMP2OUT: u1 = 0,
-/// COMP2LOCK [31:31]
-/// Comparator 2 lock
-COMP2LOCK: u1 = 0,
-};
-/// control and status register
-pub const CSR = Register(CSR_val).init(base_address + 0x0);
-};
-
-/// Real-time clock
-pub const RTC = struct {
-
-const base_address = 0x40002800;
-/// TR
-const TR_val = packed struct {
-/// SU [0:3]
-/// Second units in BCD format
-SU: u4 = 0,
-/// ST [4:6]
-/// Second tens in BCD format
-ST: u3 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// MNU [8:11]
-/// Minute units in BCD format
-MNU: u4 = 0,
-/// MNT [12:14]
-/// Minute tens in BCD format
-MNT: u3 = 0,
-/// unused [15:15]
-_unused15: u1 = 0,
-/// HU [16:19]
-/// Hour units in BCD format
-HU: u4 = 0,
-/// HT [20:21]
-/// Hour tens in BCD format
-HT: u2 = 0,
-/// PM [22:22]
-/// AM/PM notation
-PM: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// time register
-pub const TR = Register(TR_val).init(base_address + 0x0);
-
-/// DR
-const DR_val = packed struct {
-/// DU [0:3]
-/// Date units in BCD format
-DU: u4 = 1,
-/// DT [4:5]
-/// Date tens in BCD format
-DT: u2 = 0,
-/// unused [6:7]
-_unused6: u2 = 0,
-/// MU [8:11]
-/// Month units in BCD format
-MU: u4 = 1,
-/// MT [12:12]
-/// Month tens in BCD format
-MT: u1 = 0,
-/// WDU [13:15]
-/// Week day units
-WDU: u3 = 1,
-/// YU [16:19]
-/// Year units in BCD format
-YU: u4 = 0,
-/// YT [20:23]
-/// Year tens in BCD format
-YT: u4 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// date register
-pub const DR = Register(DR_val).init(base_address + 0x4);
-
-/// CR
-const CR_val = packed struct {
-/// unused [0:2]
-_unused0: u3 = 0,
-/// TSEDGE [3:3]
-/// Time-stamp event active
-TSEDGE: u1 = 0,
-/// REFCKON [4:4]
-/// RTC_REFIN reference clock detection
-REFCKON: u1 = 0,
-/// BYPSHAD [5:5]
-/// Bypass the shadow
-BYPSHAD: u1 = 0,
-/// FMT [6:6]
-/// Hour format
-FMT: u1 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// ALRAE [8:8]
-/// Alarm A enable
-ALRAE: u1 = 0,
-/// unused [9:10]
-_unused9: u2 = 0,
-/// TSE [11:11]
-/// timestamp enable
-TSE: u1 = 0,
-/// ALRAIE [12:12]
-/// Alarm A interrupt enable
-ALRAIE: u1 = 0,
-/// unused [13:14]
-_unused13: u2 = 0,
-/// TSIE [15:15]
-/// Time-stamp interrupt
-TSIE: u1 = 0,
-/// ADD1H [16:16]
-/// Add 1 hour (summer time
-ADD1H: u1 = 0,
-/// SUB1H [17:17]
-/// Subtract 1 hour (winter time
-SUB1H: u1 = 0,
-/// BKP [18:18]
-/// Backup
-BKP: u1 = 0,
-/// COSEL [19:19]
-/// Calibration output
-COSEL: u1 = 0,
-/// POL [20:20]
-/// Output polarity
-POL: u1 = 0,
-/// OSEL [21:22]
-/// Output selection
-OSEL: u2 = 0,
-/// COE [23:23]
-/// Calibration output enable
-COE: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// control register
-pub const CR = Register(CR_val).init(base_address + 0x8);
-
-/// ISR
-const ISR_val = packed struct {
-/// ALRAWF [0:0]
-/// Alarm A write flag
-ALRAWF: u1 = 1,
-/// unused [1:2]
-_unused1: u2 = 3,
-/// SHPF [3:3]
-/// Shift operation pending
-SHPF: u1 = 0,
-/// INITS [4:4]
-/// Initialization status flag
-INITS: u1 = 0,
-/// RSF [5:5]
-/// Registers synchronization
-RSF: u1 = 0,
-/// INITF [6:6]
-/// Initialization flag
-INITF: u1 = 0,
-/// INIT [7:7]
-/// Initialization mode
-INIT: u1 = 0,
-/// ALRAF [8:8]
-/// Alarm A flag
-ALRAF: u1 = 0,
-/// unused [9:10]
-_unused9: u2 = 0,
-/// TSF [11:11]
-/// Time-stamp flag
-TSF: u1 = 0,
-/// TSOVF [12:12]
-/// Time-stamp overflow flag
-TSOVF: u1 = 0,
-/// TAMP1F [13:13]
-/// RTC_TAMP1 detection flag
-TAMP1F: u1 = 0,
-/// TAMP2F [14:14]
-/// RTC_TAMP2 detection flag
-TAMP2F: u1 = 0,
-/// unused [15:15]
-_unused15: u1 = 0,
-/// RECALPF [16:16]
-/// Recalibration pending Flag
-RECALPF: u1 = 0,
-/// unused [17:31]
-_unused17: u7 = 0,
-_unused24: u8 = 0,
-};
-/// initialization and status
-pub const ISR = Register(ISR_val).init(base_address + 0xc);
-
-/// PRER
-const PRER_val = packed struct {
-/// PREDIV_S [0:14]
-/// Synchronous prescaler
-PREDIV_S: u15 = 255,
-/// unused [15:15]
-_unused15: u1 = 0,
-/// PREDIV_A [16:22]
-/// Asynchronous prescaler
-PREDIV_A: u7 = 127,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler register
-pub const PRER = Register(PRER_val).init(base_address + 0x10);
-
-/// ALRMAR
-const ALRMAR_val = packed struct {
-/// SU [0:3]
-/// Second units in BCD
-SU: u4 = 0,
-/// ST [4:6]
-/// Second tens in BCD format.
-ST: u3 = 0,
-/// MSK1 [7:7]
-/// Alarm A seconds mask
-MSK1: u1 = 0,
-/// MNU [8:11]
-/// Minute units in BCD
-MNU: u4 = 0,
-/// MNT [12:14]
-/// Minute tens in BCD format.
-MNT: u3 = 0,
-/// MSK2 [15:15]
-/// Alarm A minutes mask
-MSK2: u1 = 0,
-/// HU [16:19]
-/// Hour units in BCD format.
-HU: u4 = 0,
-/// HT [20:21]
-/// Hour tens in BCD format.
-HT: u2 = 0,
-/// PM [22:22]
-/// AM/PM notation
-PM: u1 = 0,
-/// MSK3 [23:23]
-/// Alarm A hours mask
-MSK3: u1 = 0,
-/// DU [24:27]
-/// Date units or day in BCD
-DU: u4 = 0,
-/// DT [28:29]
-/// Date tens in BCD format.
-DT: u2 = 0,
-/// WDSEL [30:30]
-/// Week day selection
-WDSEL: u1 = 0,
-/// MSK4 [31:31]
-/// Alarm A date mask
-MSK4: u1 = 0,
-};
-/// alarm A register
-pub const ALRMAR = Register(ALRMAR_val).init(base_address + 0x1c);
-
-/// WPR
-const WPR_val = packed struct {
-/// KEY [0:7]
-/// Write protection key
-KEY: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// write protection register
-pub const WPR = Register(WPR_val).init(base_address + 0x24);
-
-/// SSR
-const SSR_val = packed struct {
-/// SS [0:15]
-/// Sub second value
-SS: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// sub second register
-pub const SSR = Register(SSR_val).init(base_address + 0x28);
-
-/// SHIFTR
-const SHIFTR_val = packed struct {
-/// SUBFS [0:14]
-/// Subtract a fraction of a
-SUBFS: u15 = 0,
-/// unused [15:30]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u7 = 0,
-/// ADD1S [31:31]
-/// Reserved
-ADD1S: u1 = 0,
-};
-/// shift control register
-pub const SHIFTR = Register(SHIFTR_val).init(base_address + 0x2c);
-
-/// TSTR
-const TSTR_val = packed struct {
-/// SU [0:3]
-/// Second units in BCD
-SU: u4 = 0,
-/// ST [4:6]
-/// Second tens in BCD format.
-ST: u3 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// MNU [8:11]
-/// Minute units in BCD
-MNU: u4 = 0,
-/// MNT [12:14]
-/// Minute tens in BCD format.
-MNT: u3 = 0,
-/// unused [15:15]
-_unused15: u1 = 0,
-/// HU [16:19]
-/// Hour units in BCD format.
-HU: u4 = 0,
-/// HT [20:21]
-/// Hour tens in BCD format.
-HT: u2 = 0,
-/// PM [22:22]
-/// AM/PM notation
-PM: u1 = 0,
-/// unused [23:31]
-_unused23: u1 = 0,
-_unused24: u8 = 0,
-};
-/// timestamp time register
-pub const TSTR = Register(TSTR_val).init(base_address + 0x30);
-
-/// TSDR
-const TSDR_val = packed struct {
-/// DU [0:3]
-/// Date units in BCD format
-DU: u4 = 0,
-/// DT [4:5]
-/// Date tens in BCD format
-DT: u2 = 0,
-/// unused [6:7]
-_unused6: u2 = 0,
-/// MU [8:11]
-/// Month units in BCD format
-MU: u4 = 0,
-/// MT [12:12]
-/// Month tens in BCD format
-MT: u1 = 0,
-/// WDU [13:15]
-/// Week day units
-WDU: u3 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// timestamp date register
-pub const TSDR = Register(TSDR_val).init(base_address + 0x34);
-
-/// TSSSR
-const TSSSR_val = packed struct {
-/// SS [0:15]
-/// Sub second value
-SS: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// time-stamp sub second register
-pub const TSSSR = Register(TSSSR_val).init(base_address + 0x38);
-
-/// CALR
-const CALR_val = packed struct {
-/// CALM [0:8]
-/// Calibration minus
-CALM: u9 = 0,
-/// unused [9:12]
-_unused9: u4 = 0,
-/// CALW16 [13:13]
-/// Reserved
-CALW16: u1 = 0,
-/// CALW8 [14:14]
-/// Use a 16-second calibration cycle
-CALW8: u1 = 0,
-/// CALP [15:15]
-/// Use an 8-second calibration cycle
-CALP: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// calibration register
-pub const CALR = Register(CALR_val).init(base_address + 0x3c);
-
-/// TAFCR
-const TAFCR_val = packed struct {
-/// TAMP1E [0:0]
-/// RTC_TAMP1 input detection
-TAMP1E: u1 = 0,
-/// TAMP1TRG [1:1]
-/// Active level for RTC_TAMP1
-TAMP1TRG: u1 = 0,
-/// TAMPIE [2:2]
-/// Tamper interrupt enable
-TAMPIE: u1 = 0,
-/// TAMP2E [3:3]
-/// RTC_TAMP2 input detection
-TAMP2E: u1 = 0,
-/// TAMP2_TRG [4:4]
-/// Active level for RTC_TAMP2
-TAMP2_TRG: u1 = 0,
-/// unused [5:6]
-_unused5: u2 = 0,
-/// TAMPTS [7:7]
-/// Activate timestamp on tamper detection
-TAMPTS: u1 = 0,
-/// TAMPFREQ [8:10]
-/// Tamper sampling frequency
-TAMPFREQ: u3 = 0,
-/// TAMPFLT [11:12]
-/// RTC_TAMPx filter count
-TAMPFLT: u2 = 0,
-/// TAMP_PRCH [13:14]
-/// RTC_TAMPx precharge
-TAMP_PRCH: u2 = 0,
-/// TAMP_PUDIS [15:15]
-/// RTC_TAMPx pull-up disable
-TAMP_PUDIS: u1 = 0,
-/// unused [16:17]
-_unused16: u2 = 0,
-/// PC13VALUE [18:18]
-/// RTC_ALARM output type/PC13
-PC13VALUE: u1 = 0,
-/// PC13MODE [19:19]
-/// PC13 mode
-PC13MODE: u1 = 0,
-/// PC14VALUE [20:20]
-/// PC14 value
-PC14VALUE: u1 = 0,
-/// PC14MODE [21:21]
-/// PC14 mode
-PC14MODE: u1 = 0,
-/// PC15VALUE [22:22]
-/// PC15 value
-PC15VALUE: u1 = 0,
-/// PC15MODE [23:23]
-/// PC15 mode
-PC15MODE: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// tamper and alternate function configuration
-pub const TAFCR = Register(TAFCR_val).init(base_address + 0x40);
-
-/// ALRMASSR
-const ALRMASSR_val = packed struct {
-/// SS [0:14]
-/// Sub seconds value
-SS: u15 = 0,
-/// unused [15:23]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-/// MASKSS [24:27]
-/// Mask the most-significant bits starting
-MASKSS: u4 = 0,
-/// unused [28:31]
-_unused28: u4 = 0,
-};
-/// alarm A sub second register
-pub const ALRMASSR = Register(ALRMASSR_val).init(base_address + 0x44);
-
-/// BKP0R
-const BKP0R_val = packed struct {
-/// BKP [0:31]
-/// BKP
-BKP: u32 = 0,
-};
-/// backup register
-pub const BKP0R = Register(BKP0R_val).init(base_address + 0x50);
-
-/// BKP1R
-const BKP1R_val = packed struct {
-/// BKP [0:31]
-/// BKP
-BKP: u32 = 0,
-};
-/// backup register
-pub const BKP1R = Register(BKP1R_val).init(base_address + 0x54);
-
-/// BKP2R
-const BKP2R_val = packed struct {
-/// BKP [0:31]
-/// BKP
-BKP: u32 = 0,
-};
-/// backup register
-pub const BKP2R = Register(BKP2R_val).init(base_address + 0x58);
-
-/// BKP3R
-const BKP3R_val = packed struct {
-/// BKP [0:31]
-/// BKP
-BKP: u32 = 0,
-};
-/// backup register
-pub const BKP3R = Register(BKP3R_val).init(base_address + 0x5c);
-
-/// BKP4R
-const BKP4R_val = packed struct {
-/// BKP [0:31]
-/// BKP
-BKP: u32 = 0,
-};
-/// backup register
-pub const BKP4R = Register(BKP4R_val).init(base_address + 0x60);
-};
-
-/// General-purpose-timers
-pub const TIM15 = struct {
-
-const base_address = 0x40014000;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// unused [4:6]
-_unused4: u3 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// CCPC [0:0]
-/// Capture/compare preloaded
-CCPC: u1 = 0,
-/// unused [1:1]
-_unused1: u1 = 0,
-/// CCUS [2:2]
-/// Capture/compare control update
-CCUS: u1 = 0,
-/// CCDS [3:3]
-/// Capture/compare DMA
-CCDS: u1 = 0,
-/// MMS [4:6]
-/// Master mode selection
-MMS: u3 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// OIS1 [8:8]
-/// Output Idle state 1
-OIS1: u1 = 0,
-/// OIS1N [9:9]
-/// Output Idle state 1
-OIS1N: u1 = 0,
-/// OIS2 [10:10]
-/// Output Idle state 2
-OIS2: u1 = 0,
-/// unused [11:31]
-_unused11: u5 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// SMCR
-const SMCR_val = packed struct {
-/// SMS [0:2]
-/// Slave mode selection
-SMS: u3 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// TS [4:6]
-/// Trigger selection
-TS: u3 = 0,
-/// MSM [7:7]
-/// Master/Slave mode
-MSM: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// slave mode control register
-pub const SMCR = Register(SMCR_val).init(base_address + 0x8);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// CC2IE [2:2]
-/// Capture/Compare 2 interrupt
-CC2IE: u1 = 0,
-/// unused [3:4]
-_unused3: u2 = 0,
-/// COMIE [5:5]
-/// COM interrupt enable
-COMIE: u1 = 0,
-/// TIE [6:6]
-/// Trigger interrupt enable
-TIE: u1 = 0,
-/// BIE [7:7]
-/// Break interrupt enable
-BIE: u1 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// CC1DE [9:9]
-/// Capture/Compare 1 DMA request
-CC1DE: u1 = 0,
-/// CC2DE [10:10]
-/// Capture/Compare 2 DMA request
-CC2DE: u1 = 0,
-/// unused [11:13]
-_unused11: u3 = 0,
-/// TDE [14:14]
-/// Trigger DMA request enable
-TDE: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// CC2IF [2:2]
-/// Capture/Compare 2 interrupt
-CC2IF: u1 = 0,
-/// unused [3:4]
-_unused3: u2 = 0,
-/// COMIF [5:5]
-/// COM interrupt flag
-COMIF: u1 = 0,
-/// TIF [6:6]
-/// Trigger interrupt flag
-TIF: u1 = 0,
-/// BIF [7:7]
-/// Break interrupt flag
-BIF: u1 = 0,
-/// unused [8:8]
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// CC2OF [10:10]
-/// Capture/compare 2 overcapture
-CC2OF: u1 = 0,
-/// unused [11:31]
-_unused11: u5 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// CC2G [2:2]
-/// Capture/compare 2
-CC2G: u1 = 0,
-/// unused [3:4]
-_unused3: u2 = 0,
-/// COMG [5:5]
-/// Capture/Compare control update
-COMG: u1 = 0,
-/// TG [6:6]
-/// Trigger generation
-TG: u1 = 0,
-/// BG [7:7]
-/// Break generation
-BG: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output Compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output Compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output Compare 1 mode
-OC1M: u3 = 0,
-/// unused [7:7]
-_unused7: u1 = 0,
-/// CC2S [8:9]
-/// Capture/Compare 2
-CC2S: u2 = 0,
-/// OC2FE [10:10]
-/// Output Compare 2 fast
-OC2FE: u1 = 0,
-/// OC2PE [11:11]
-/// Output Compare 2 preload
-OC2PE: u1 = 0,
-/// OC2M [12:14]
-/// Output Compare 2 mode
-OC2M: u3 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PSC [2:3]
-/// Input capture 1 prescaler
-IC1PSC: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// CC2S [8:9]
-/// Capture/Compare 2
-CC2S: u2 = 0,
-/// IC2PSC [10:11]
-/// Input capture 2 prescaler
-IC2PSC: u2 = 0,
-/// IC2F [12:15]
-/// Input capture 2 filter
-IC2F: u4 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// CC1NE [2:2]
-/// Capture/Compare 1 complementary output
-CC1NE: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// CC2E [4:4]
-/// Capture/Compare 2 output
-CC2E: u1 = 0,
-/// CC2P [5:5]
-/// Capture/Compare 2 output
-CC2P: u1 = 0,
-/// unused [6:6]
-_unused6: u1 = 0,
-/// CC2NP [7:7]
-/// Capture/Compare 2 output
-CC2NP: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT [0:15]
-/// counter value
-CNT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR [0:15]
-/// Auto-reload value
-ARR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// RCR
-const RCR_val = packed struct {
-/// REP [0:7]
-/// Repetition counter value
-REP: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// repetition counter register
-pub const RCR = Register(RCR_val).init(base_address + 0x30);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1 [0:15]
-/// Capture/Compare 1 value
-CCR1: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// CCR2
-const CCR2_val = packed struct {
-/// CCR2 [0:15]
-/// Capture/Compare 2 value
-CCR2: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 2
-pub const CCR2 = Register(CCR2_val).init(base_address + 0x38);
-
-/// BDTR
-const BDTR_val = packed struct {
-/// DTG [0:7]
-/// Dead-time generator setup
-DTG: u8 = 0,
-/// LOCK [8:9]
-/// Lock configuration
-LOCK: u2 = 0,
-/// OSSI [10:10]
-/// Off-state selection for Idle
-OSSI: u1 = 0,
-/// OSSR [11:11]
-/// Off-state selection for Run
-OSSR: u1 = 0,
-/// BKE [12:12]
-/// Break enable
-BKE: u1 = 0,
-/// BKP [13:13]
-/// Break polarity
-BKP: u1 = 0,
-/// AOE [14:14]
-/// Automatic output enable
-AOE: u1 = 0,
-/// MOE [15:15]
-/// Main output enable
-MOE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// break and dead-time register
-pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
-
-/// DCR
-const DCR_val = packed struct {
-/// DBA [0:4]
-/// DMA base address
-DBA: u5 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBL [8:12]
-/// DMA burst length
-DBL: u5 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA control register
-pub const DCR = Register(DCR_val).init(base_address + 0x48);
-
-/// DMAR
-const DMAR_val = packed struct {
-/// DMAB [0:15]
-/// DMA register for burst
-DMAB: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA address for full transfer
-pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
-};
-
-/// General-purpose-timers
-pub const TIM16 = struct {
-
-const base_address = 0x40014400;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// unused [4:6]
-_unused4: u3 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// CCPC [0:0]
-/// Capture/compare preloaded
-CCPC: u1 = 0,
-/// unused [1:1]
-_unused1: u1 = 0,
-/// CCUS [2:2]
-/// Capture/compare control update
-CCUS: u1 = 0,
-/// CCDS [3:3]
-/// Capture/compare DMA
-CCDS: u1 = 0,
-/// unused [4:7]
-_unused4: u4 = 0,
-/// OIS1 [8:8]
-/// Output Idle state 1
-OIS1: u1 = 0,
-/// OIS1N [9:9]
-/// Output Idle state 1
-OIS1N: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// unused [2:4]
-_unused2: u3 = 0,
-/// COMIE [5:5]
-/// COM interrupt enable
-COMIE: u1 = 0,
-/// TIE [6:6]
-/// Trigger interrupt enable
-TIE: u1 = 0,
-/// BIE [7:7]
-/// Break interrupt enable
-BIE: u1 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// CC1DE [9:9]
-/// Capture/Compare 1 DMA request
-CC1DE: u1 = 0,
-/// unused [10:13]
-_unused10: u4 = 0,
-/// TDE [14:14]
-/// Trigger DMA request enable
-TDE: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// unused [2:4]
-_unused2: u3 = 0,
-/// COMIF [5:5]
-/// COM interrupt flag
-COMIF: u1 = 0,
-/// TIF [6:6]
-/// Trigger interrupt flag
-TIF: u1 = 0,
-/// BIF [7:7]
-/// Break interrupt flag
-BIF: u1 = 0,
-/// unused [8:8]
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// unused [2:4]
-_unused2: u3 = 0,
-/// COMG [5:5]
-/// Capture/Compare control update
-COMG: u1 = 0,
-/// TG [6:6]
-/// Trigger generation
-TG: u1 = 0,
-/// BG [7:7]
-/// Break generation
-BG: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output Compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output Compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output Compare 1 mode
-OC1M: u3 = 0,
-/// unused [7:31]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PSC [2:3]
-/// Input capture 1 prescaler
-IC1PSC: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// CC1NE [2:2]
-/// Capture/Compare 1 complementary output
-CC1NE: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// unused [4:31]
-_unused4: u4 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT [0:15]
-/// counter value
-CNT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR [0:15]
-/// Auto-reload value
-ARR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// RCR
-const RCR_val = packed struct {
-/// REP [0:7]
-/// Repetition counter value
-REP: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// repetition counter register
-pub const RCR = Register(RCR_val).init(base_address + 0x30);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1 [0:15]
-/// Capture/Compare 1 value
-CCR1: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// BDTR
-const BDTR_val = packed struct {
-/// DTG [0:7]
-/// Dead-time generator setup
-DTG: u8 = 0,
-/// LOCK [8:9]
-/// Lock configuration
-LOCK: u2 = 0,
-/// OSSI [10:10]
-/// Off-state selection for Idle
-OSSI: u1 = 0,
-/// OSSR [11:11]
-/// Off-state selection for Run
-OSSR: u1 = 0,
-/// BKE [12:12]
-/// Break enable
-BKE: u1 = 0,
-/// BKP [13:13]
-/// Break polarity
-BKP: u1 = 0,
-/// AOE [14:14]
-/// Automatic output enable
-AOE: u1 = 0,
-/// MOE [15:15]
-/// Main output enable
-MOE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// break and dead-time register
-pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
-
-/// DCR
-const DCR_val = packed struct {
-/// DBA [0:4]
-/// DMA base address
-DBA: u5 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBL [8:12]
-/// DMA burst length
-DBL: u5 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA control register
-pub const DCR = Register(DCR_val).init(base_address + 0x48);
-
-/// DMAR
-const DMAR_val = packed struct {
-/// DMAB [0:15]
-/// DMA register for burst
-DMAB: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA address for full transfer
-pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
-};
-
-/// General-purpose-timers
-pub const TIM17 = struct {
-
-const base_address = 0x40014800;
-/// CR1
-const CR1_val = packed struct {
-/// CEN [0:0]
-/// Counter enable
-CEN: u1 = 0,
-/// UDIS [1:1]
-/// Update disable
-UDIS: u1 = 0,
-/// URS [2:2]
-/// Update request source
-URS: u1 = 0,
-/// OPM [3:3]
-/// One-pulse mode
-OPM: u1 = 0,
-/// unused [4:6]
-_unused4: u3 = 0,
-/// ARPE [7:7]
-/// Auto-reload preload enable
-ARPE: u1 = 0,
-/// CKD [8:9]
-/// Clock division
-CKD: u2 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 1
-pub const CR1 = Register(CR1_val).init(base_address + 0x0);
-
-/// CR2
-const CR2_val = packed struct {
-/// CCPC [0:0]
-/// Capture/compare preloaded
-CCPC: u1 = 0,
-/// unused [1:1]
-_unused1: u1 = 0,
-/// CCUS [2:2]
-/// Capture/compare control update
-CCUS: u1 = 0,
-/// CCDS [3:3]
-/// Capture/compare DMA
-CCDS: u1 = 0,
-/// unused [4:7]
-_unused4: u4 = 0,
-/// OIS1 [8:8]
-/// Output Idle state 1
-OIS1: u1 = 0,
-/// OIS1N [9:9]
-/// Output Idle state 1
-OIS1N: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register 2
-pub const CR2 = Register(CR2_val).init(base_address + 0x4);
-
-/// DIER
-const DIER_val = packed struct {
-/// UIE [0:0]
-/// Update interrupt enable
-UIE: u1 = 0,
-/// CC1IE [1:1]
-/// Capture/Compare 1 interrupt
-CC1IE: u1 = 0,
-/// unused [2:4]
-_unused2: u3 = 0,
-/// COMIE [5:5]
-/// COM interrupt enable
-COMIE: u1 = 0,
-/// TIE [6:6]
-/// Trigger interrupt enable
-TIE: u1 = 0,
-/// BIE [7:7]
-/// Break interrupt enable
-BIE: u1 = 0,
-/// UDE [8:8]
-/// Update DMA request enable
-UDE: u1 = 0,
-/// CC1DE [9:9]
-/// Capture/Compare 1 DMA request
-CC1DE: u1 = 0,
-/// unused [10:13]
-_unused10: u4 = 0,
-/// TDE [14:14]
-/// Trigger DMA request enable
-TDE: u1 = 0,
-/// unused [15:31]
-_unused15: u1 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA/Interrupt enable register
-pub const DIER = Register(DIER_val).init(base_address + 0xc);
-
-/// SR
-const SR_val = packed struct {
-/// UIF [0:0]
-/// Update interrupt flag
-UIF: u1 = 0,
-/// CC1IF [1:1]
-/// Capture/compare 1 interrupt
-CC1IF: u1 = 0,
-/// unused [2:4]
-_unused2: u3 = 0,
-/// COMIF [5:5]
-/// COM interrupt flag
-COMIF: u1 = 0,
-/// TIF [6:6]
-/// Trigger interrupt flag
-TIF: u1 = 0,
-/// BIF [7:7]
-/// Break interrupt flag
-BIF: u1 = 0,
-/// unused [8:8]
-_unused8: u1 = 0,
-/// CC1OF [9:9]
-/// Capture/Compare 1 overcapture
-CC1OF: u1 = 0,
-/// unused [10:31]
-_unused10: u6 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// status register
-pub const SR = Register(SR_val).init(base_address + 0x10);
-
-/// EGR
-const EGR_val = packed struct {
-/// UG [0:0]
-/// Update generation
-UG: u1 = 0,
-/// CC1G [1:1]
-/// Capture/compare 1
-CC1G: u1 = 0,
-/// unused [2:4]
-_unused2: u3 = 0,
-/// COMG [5:5]
-/// Capture/Compare control update
-COMG: u1 = 0,
-/// TG [6:6]
-/// Trigger generation
-TG: u1 = 0,
-/// BG [7:7]
-/// Break generation
-BG: u1 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// event generation register
-pub const EGR = Register(EGR_val).init(base_address + 0x14);
-
-/// CCMR1_Output
-const CCMR1_Output_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// OC1FE [2:2]
-/// Output Compare 1 fast
-OC1FE: u1 = 0,
-/// OC1PE [3:3]
-/// Output Compare 1 preload
-OC1PE: u1 = 0,
-/// OC1M [4:6]
-/// Output Compare 1 mode
-OC1M: u3 = 0,
-/// unused [7:31]
-_unused7: u1 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register (output
-pub const CCMR1_Output = Register(CCMR1_Output_val).init(base_address + 0x18);
-
-/// CCMR1_Input
-const CCMR1_Input_val = packed struct {
-/// CC1S [0:1]
-/// Capture/Compare 1
-CC1S: u2 = 0,
-/// IC1PSC [2:3]
-/// Input capture 1 prescaler
-IC1PSC: u2 = 0,
-/// IC1F [4:7]
-/// Input capture 1 filter
-IC1F: u4 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare mode register 1 (input
-pub const CCMR1_Input = Register(CCMR1_Input_val).init(base_address + 0x18);
-
-/// CCER
-const CCER_val = packed struct {
-/// CC1E [0:0]
-/// Capture/Compare 1 output
-CC1E: u1 = 0,
-/// CC1P [1:1]
-/// Capture/Compare 1 output
-CC1P: u1 = 0,
-/// CC1NE [2:2]
-/// Capture/Compare 1 complementary output
-CC1NE: u1 = 0,
-/// CC1NP [3:3]
-/// Capture/Compare 1 output
-CC1NP: u1 = 0,
-/// unused [4:31]
-_unused4: u4 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare enable
-pub const CCER = Register(CCER_val).init(base_address + 0x20);
-
-/// CNT
-const CNT_val = packed struct {
-/// CNT [0:15]
-/// counter value
-CNT: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// counter
-pub const CNT = Register(CNT_val).init(base_address + 0x24);
-
-/// PSC
-const PSC_val = packed struct {
-/// PSC [0:15]
-/// Prescaler value
-PSC: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// prescaler
-pub const PSC = Register(PSC_val).init(base_address + 0x28);
-
-/// ARR
-const ARR_val = packed struct {
-/// ARR [0:15]
-/// Auto-reload value
-ARR: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// auto-reload register
-pub const ARR = Register(ARR_val).init(base_address + 0x2c);
-
-/// RCR
-const RCR_val = packed struct {
-/// REP [0:7]
-/// Repetition counter value
-REP: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// repetition counter register
-pub const RCR = Register(RCR_val).init(base_address + 0x30);
-
-/// CCR1
-const CCR1_val = packed struct {
-/// CCR1 [0:15]
-/// Capture/Compare 1 value
-CCR1: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// capture/compare register 1
-pub const CCR1 = Register(CCR1_val).init(base_address + 0x34);
-
-/// BDTR
-const BDTR_val = packed struct {
-/// DTG [0:7]
-/// Dead-time generator setup
-DTG: u8 = 0,
-/// LOCK [8:9]
-/// Lock configuration
-LOCK: u2 = 0,
-/// OSSI [10:10]
-/// Off-state selection for Idle
-OSSI: u1 = 0,
-/// OSSR [11:11]
-/// Off-state selection for Run
-OSSR: u1 = 0,
-/// BKE [12:12]
-/// Break enable
-BKE: u1 = 0,
-/// BKP [13:13]
-/// Break polarity
-BKP: u1 = 0,
-/// AOE [14:14]
-/// Automatic output enable
-AOE: u1 = 0,
-/// MOE [15:15]
-/// Main output enable
-MOE: u1 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// break and dead-time register
-pub const BDTR = Register(BDTR_val).init(base_address + 0x44);
-
-/// DCR
-const DCR_val = packed struct {
-/// DBA [0:4]
-/// DMA base address
-DBA: u5 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBL [8:12]
-/// DMA burst length
-DBL: u5 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA control register
-pub const DCR = Register(DCR_val).init(base_address + 0x48);
-
-/// DMAR
-const DMAR_val = packed struct {
-/// DMAB [0:15]
-/// DMA register for burst
-DMAB: u16 = 0,
-/// unused [16:31]
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// DMA address for full transfer
-pub const DMAR = Register(DMAR_val).init(base_address + 0x4c);
-};
-
-/// Touch sensing controller
-pub const TSC = struct {
-
-const base_address = 0x40024000;
-/// CR
-const CR_val = packed struct {
-/// TSCE [0:0]
-/// Touch sensing controller
-TSCE: u1 = 0,
-/// START [1:1]
-/// Start a new acquisition
-START: u1 = 0,
-/// AM [2:2]
-/// Acquisition mode
-AM: u1 = 0,
-/// SYNCPOL [3:3]
-/// Synchronization pin
-SYNCPOL: u1 = 0,
-/// IODEF [4:4]
-/// I/O Default mode
-IODEF: u1 = 0,
-/// MCV [5:7]
-/// Max count value
-MCV: u3 = 0,
-/// unused [8:11]
-_unused8: u4 = 0,
-/// PGPSC [12:14]
-/// pulse generator prescaler
-PGPSC: u3 = 0,
-/// SSPSC [15:15]
-/// Spread spectrum prescaler
-SSPSC: u1 = 0,
-/// SSE [16:16]
-/// Spread spectrum enable
-SSE: u1 = 0,
-/// SSD [17:23]
-/// Spread spectrum deviation
-SSD: u7 = 0,
-/// CTPL [24:27]
-/// Charge transfer pulse low
-CTPL: u4 = 0,
-/// CTPH [28:31]
-/// Charge transfer pulse high
-CTPH: u4 = 0,
-};
-/// control register
-pub const CR = Register(CR_val).init(base_address + 0x0);
-
-/// IER
-const IER_val = packed struct {
-/// EOAIE [0:0]
-/// End of acquisition interrupt
-EOAIE: u1 = 0,
-/// MCEIE [1:1]
-/// Max count error interrupt
-MCEIE: u1 = 0,
-/// unused [2:31]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// interrupt enable register
-pub const IER = Register(IER_val).init(base_address + 0x4);
-
-/// ICR
-const ICR_val = packed struct {
-/// EOAIC [0:0]
-/// End of acquisition interrupt
-EOAIC: u1 = 0,
-/// MCEIC [1:1]
-/// Max count error interrupt
-MCEIC: u1 = 0,
-/// unused [2:31]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// interrupt clear register
-pub const ICR = Register(ICR_val).init(base_address + 0x8);
-
-/// ISR
-const ISR_val = packed struct {
-/// EOAF [0:0]
-/// End of acquisition flag
-EOAF: u1 = 0,
-/// MCEF [1:1]
-/// Max count error flag
-MCEF: u1 = 0,
-/// unused [2:31]
-_unused2: u6 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// interrupt status register
-pub const ISR = Register(ISR_val).init(base_address + 0xc);
-
-/// IOHCR
-const IOHCR_val = packed struct {
-/// G1_IO1 [0:0]
-/// G1_IO1 Schmitt trigger hysteresis
-G1_IO1: u1 = 1,
-/// G1_IO2 [1:1]
-/// G1_IO2 Schmitt trigger hysteresis
-G1_IO2: u1 = 1,
-/// G1_IO3 [2:2]
-/// G1_IO3 Schmitt trigger hysteresis
-G1_IO3: u1 = 1,
-/// G1_IO4 [3:3]
-/// G1_IO4 Schmitt trigger hysteresis
-G1_IO4: u1 = 1,
-/// G2_IO1 [4:4]
-/// G2_IO1 Schmitt trigger hysteresis
-G2_IO1: u1 = 1,
-/// G2_IO2 [5:5]
-/// G2_IO2 Schmitt trigger hysteresis
-G2_IO2: u1 = 1,
-/// G2_IO3 [6:6]
-/// G2_IO3 Schmitt trigger hysteresis
-G2_IO3: u1 = 1,
-/// G2_IO4 [7:7]
-/// G2_IO4 Schmitt trigger hysteresis
-G2_IO4: u1 = 1,
-/// G3_IO1 [8:8]
-/// G3_IO1 Schmitt trigger hysteresis
-G3_IO1: u1 = 1,
-/// G3_IO2 [9:9]
-/// G3_IO2 Schmitt trigger hysteresis
-G3_IO2: u1 = 1,
-/// G3_IO3 [10:10]
-/// G3_IO3 Schmitt trigger hysteresis
-G3_IO3: u1 = 1,
-/// G3_IO4 [11:11]
-/// G3_IO4 Schmitt trigger hysteresis
-G3_IO4: u1 = 1,
-/// G4_IO1 [12:12]
-/// G4_IO1 Schmitt trigger hysteresis
-G4_IO1: u1 = 1,
-/// G4_IO2 [13:13]
-/// G4_IO2 Schmitt trigger hysteresis
-G4_IO2: u1 = 1,
-/// G4_IO3 [14:14]
-/// G4_IO3 Schmitt trigger hysteresis
-G4_IO3: u1 = 1,
-/// G4_IO4 [15:15]
-/// G4_IO4 Schmitt trigger hysteresis
-G4_IO4: u1 = 1,
-/// G5_IO1 [16:16]
-/// G5_IO1 Schmitt trigger hysteresis
-G5_IO1: u1 = 1,
-/// G5_IO2 [17:17]
-/// G5_IO2 Schmitt trigger hysteresis
-G5_IO2: u1 = 1,
-/// G5_IO3 [18:18]
-/// G5_IO3 Schmitt trigger hysteresis
-G5_IO3: u1 = 1,
-/// G5_IO4 [19:19]
-/// G5_IO4 Schmitt trigger hysteresis
-G5_IO4: u1 = 1,
-/// G6_IO1 [20:20]
-/// G6_IO1 Schmitt trigger hysteresis
-G6_IO1: u1 = 1,
-/// G6_IO2 [21:21]
-/// G6_IO2 Schmitt trigger hysteresis
-G6_IO2: u1 = 1,
-/// G6_IO3 [22:22]
-/// G6_IO3 Schmitt trigger hysteresis
-G6_IO3: u1 = 1,
-/// G6_IO4 [23:23]
-/// G6_IO4 Schmitt trigger hysteresis
-G6_IO4: u1 = 1,
-/// unused [24:31]
-_unused24: u8 = 255,
-};
-/// I/O hysteresis control
-pub const IOHCR = Register(IOHCR_val).init(base_address + 0x10);
-
-/// IOASCR
-const IOASCR_val = packed struct {
-/// G1_IO1 [0:0]
-/// G1_IO1 analog switch
-G1_IO1: u1 = 0,
-/// G1_IO2 [1:1]
-/// G1_IO2 analog switch
-G1_IO2: u1 = 0,
-/// G1_IO3 [2:2]
-/// G1_IO3 analog switch
-G1_IO3: u1 = 0,
-/// G1_IO4 [3:3]
-/// G1_IO4 analog switch
-G1_IO4: u1 = 0,
-/// G2_IO1 [4:4]
-/// G2_IO1 analog switch
-G2_IO1: u1 = 0,
-/// G2_IO2 [5:5]
-/// G2_IO2 analog switch
-G2_IO2: u1 = 0,
-/// G2_IO3 [6:6]
-/// G2_IO3 analog switch
-G2_IO3: u1 = 0,
-/// G2_IO4 [7:7]
-/// G2_IO4 analog switch
-G2_IO4: u1 = 0,
-/// G3_IO1 [8:8]
-/// G3_IO1 analog switch
-G3_IO1: u1 = 0,
-/// G3_IO2 [9:9]
-/// G3_IO2 analog switch
-G3_IO2: u1 = 0,
-/// G3_IO3 [10:10]
-/// G3_IO3 analog switch
-G3_IO3: u1 = 0,
-/// G3_IO4 [11:11]
-/// G3_IO4 analog switch
-G3_IO4: u1 = 0,
-/// G4_IO1 [12:12]
-/// G4_IO1 analog switch
-G4_IO1: u1 = 0,
-/// G4_IO2 [13:13]
-/// G4_IO2 analog switch
-G4_IO2: u1 = 0,
-/// G4_IO3 [14:14]
-/// G4_IO3 analog switch
-G4_IO3: u1 = 0,
-/// G4_IO4 [15:15]
-/// G4_IO4 analog switch
-G4_IO4: u1 = 0,
-/// G5_IO1 [16:16]
-/// G5_IO1 analog switch
-G5_IO1: u1 = 0,
-/// G5_IO2 [17:17]
-/// G5_IO2 analog switch
-G5_IO2: u1 = 0,
-/// G5_IO3 [18:18]
-/// G5_IO3 analog switch
-G5_IO3: u1 = 0,
-/// G5_IO4 [19:19]
-/// G5_IO4 analog switch
-G5_IO4: u1 = 0,
-/// G6_IO1 [20:20]
-/// G6_IO1 analog switch
-G6_IO1: u1 = 0,
-/// G6_IO2 [21:21]
-/// G6_IO2 analog switch
-G6_IO2: u1 = 0,
-/// G6_IO3 [22:22]
-/// G6_IO3 analog switch
-G6_IO3: u1 = 0,
-/// G6_IO4 [23:23]
-/// G6_IO4 analog switch
-G6_IO4: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// I/O analog switch control
-pub const IOASCR = Register(IOASCR_val).init(base_address + 0x18);
-
-/// IOSCR
-const IOSCR_val = packed struct {
-/// G1_IO1 [0:0]
-/// G1_IO1 sampling mode
-G1_IO1: u1 = 0,
-/// G1_IO2 [1:1]
-/// G1_IO2 sampling mode
-G1_IO2: u1 = 0,
-/// G1_IO3 [2:2]
-/// G1_IO3 sampling mode
-G1_IO3: u1 = 0,
-/// G1_IO4 [3:3]
-/// G1_IO4 sampling mode
-G1_IO4: u1 = 0,
-/// G2_IO1 [4:4]
-/// G2_IO1 sampling mode
-G2_IO1: u1 = 0,
-/// G2_IO2 [5:5]
-/// G2_IO2 sampling mode
-G2_IO2: u1 = 0,
-/// G2_IO3 [6:6]
-/// G2_IO3 sampling mode
-G2_IO3: u1 = 0,
-/// G2_IO4 [7:7]
-/// G2_IO4 sampling mode
-G2_IO4: u1 = 0,
-/// G3_IO1 [8:8]
-/// G3_IO1 sampling mode
-G3_IO1: u1 = 0,
-/// G3_IO2 [9:9]
-/// G3_IO2 sampling mode
-G3_IO2: u1 = 0,
-/// G3_IO3 [10:10]
-/// G3_IO3 sampling mode
-G3_IO3: u1 = 0,
-/// G3_IO4 [11:11]
-/// G3_IO4 sampling mode
-G3_IO4: u1 = 0,
-/// G4_IO1 [12:12]
-/// G4_IO1 sampling mode
-G4_IO1: u1 = 0,
-/// G4_IO2 [13:13]
-/// G4_IO2 sampling mode
-G4_IO2: u1 = 0,
-/// G4_IO3 [14:14]
-/// G4_IO3 sampling mode
-G4_IO3: u1 = 0,
-/// G4_IO4 [15:15]
-/// G4_IO4 sampling mode
-G4_IO4: u1 = 0,
-/// G5_IO1 [16:16]
-/// G5_IO1 sampling mode
-G5_IO1: u1 = 0,
-/// G5_IO2 [17:17]
-/// G5_IO2 sampling mode
-G5_IO2: u1 = 0,
-/// G5_IO3 [18:18]
-/// G5_IO3 sampling mode
-G5_IO3: u1 = 0,
-/// G5_IO4 [19:19]
-/// G5_IO4 sampling mode
-G5_IO4: u1 = 0,
-/// G6_IO1 [20:20]
-/// G6_IO1 sampling mode
-G6_IO1: u1 = 0,
-/// G6_IO2 [21:21]
-/// G6_IO2 sampling mode
-G6_IO2: u1 = 0,
-/// G6_IO3 [22:22]
-/// G6_IO3 sampling mode
-G6_IO3: u1 = 0,
-/// G6_IO4 [23:23]
-/// G6_IO4 sampling mode
-G6_IO4: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// I/O sampling control register
-pub const IOSCR = Register(IOSCR_val).init(base_address + 0x20);
-
-/// IOCCR
-const IOCCR_val = packed struct {
-/// G1_IO1 [0:0]
-/// G1_IO1 channel mode
-G1_IO1: u1 = 0,
-/// G1_IO2 [1:1]
-/// G1_IO2 channel mode
-G1_IO2: u1 = 0,
-/// G1_IO3 [2:2]
-/// G1_IO3 channel mode
-G1_IO3: u1 = 0,
-/// G1_IO4 [3:3]
-/// G1_IO4 channel mode
-G1_IO4: u1 = 0,
-/// G2_IO1 [4:4]
-/// G2_IO1 channel mode
-G2_IO1: u1 = 0,
-/// G2_IO2 [5:5]
-/// G2_IO2 channel mode
-G2_IO2: u1 = 0,
-/// G2_IO3 [6:6]
-/// G2_IO3 channel mode
-G2_IO3: u1 = 0,
-/// G2_IO4 [7:7]
-/// G2_IO4 channel mode
-G2_IO4: u1 = 0,
-/// G3_IO1 [8:8]
-/// G3_IO1 channel mode
-G3_IO1: u1 = 0,
-/// G3_IO2 [9:9]
-/// G3_IO2 channel mode
-G3_IO2: u1 = 0,
-/// G3_IO3 [10:10]
-/// G3_IO3 channel mode
-G3_IO3: u1 = 0,
-/// G3_IO4 [11:11]
-/// G3_IO4 channel mode
-G3_IO4: u1 = 0,
-/// G4_IO1 [12:12]
-/// G4_IO1 channel mode
-G4_IO1: u1 = 0,
-/// G4_IO2 [13:13]
-/// G4_IO2 channel mode
-G4_IO2: u1 = 0,
-/// G4_IO3 [14:14]
-/// G4_IO3 channel mode
-G4_IO3: u1 = 0,
-/// G4_IO4 [15:15]
-/// G4_IO4 channel mode
-G4_IO4: u1 = 0,
-/// G5_IO1 [16:16]
-/// G5_IO1 channel mode
-G5_IO1: u1 = 0,
-/// G5_IO2 [17:17]
-/// G5_IO2 channel mode
-G5_IO2: u1 = 0,
-/// G5_IO3 [18:18]
-/// G5_IO3 channel mode
-G5_IO3: u1 = 0,
-/// G5_IO4 [19:19]
-/// G5_IO4 channel mode
-G5_IO4: u1 = 0,
-/// G6_IO1 [20:20]
-/// G6_IO1 channel mode
-G6_IO1: u1 = 0,
-/// G6_IO2 [21:21]
-/// G6_IO2 channel mode
-G6_IO2: u1 = 0,
-/// G6_IO3 [22:22]
-/// G6_IO3 channel mode
-G6_IO3: u1 = 0,
-/// G6_IO4 [23:23]
-/// G6_IO4 channel mode
-G6_IO4: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// I/O channel control register
-pub const IOCCR = Register(IOCCR_val).init(base_address + 0x28);
-
-/// IOGCSR
-const IOGCSR_val = packed struct {
-/// G1E [0:0]
-/// Analog I/O group x enable
-G1E: u1 = 0,
-/// G2E [1:1]
-/// Analog I/O group x enable
-G2E: u1 = 0,
-/// G3E [2:2]
-/// Analog I/O group x enable
-G3E: u1 = 0,
-/// G4E [3:3]
-/// Analog I/O group x enable
-G4E: u1 = 0,
-/// G5E [4:4]
-/// Analog I/O group x enable
-G5E: u1 = 0,
-/// G6E [5:5]
-/// Analog I/O group x enable
-G6E: u1 = 0,
-/// G7E [6:6]
-/// Analog I/O group x enable
-G7E: u1 = 0,
-/// G8E [7:7]
-/// Analog I/O group x enable
-G8E: u1 = 0,
-/// unused [8:15]
-_unused8: u8 = 0,
-/// G1S [16:16]
-/// Analog I/O group x status
-G1S: u1 = 0,
-/// G2S [17:17]
-/// Analog I/O group x status
-G2S: u1 = 0,
-/// G3S [18:18]
-/// Analog I/O group x status
-G3S: u1 = 0,
-/// G4S [19:19]
-/// Analog I/O group x status
-G4S: u1 = 0,
-/// G5S [20:20]
-/// Analog I/O group x status
-G5S: u1 = 0,
-/// G6S [21:21]
-/// Analog I/O group x status
-G6S: u1 = 0,
-/// G7S [22:22]
-/// Analog I/O group x status
-G7S: u1 = 0,
-/// G8S [23:23]
-/// Analog I/O group x status
-G8S: u1 = 0,
-/// unused [24:31]
-_unused24: u8 = 0,
-};
-/// I/O group control status
-pub const IOGCSR = Register(IOGCSR_val).init(base_address + 0x30);
-
-/// IOG1CR
-const IOG1CR_val = packed struct {
-/// CNT [0:13]
-/// Counter value
-CNT: u14 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I/O group x counter register
-pub const IOG1CR = Register(IOG1CR_val).init(base_address + 0x34);
-
-/// IOG2CR
-const IOG2CR_val = packed struct {
-/// CNT [0:13]
-/// Counter value
-CNT: u14 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I/O group x counter register
-pub const IOG2CR = Register(IOG2CR_val).init(base_address + 0x38);
-
-/// IOG3CR
-const IOG3CR_val = packed struct {
-/// CNT [0:13]
-/// Counter value
-CNT: u14 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I/O group x counter register
-pub const IOG3CR = Register(IOG3CR_val).init(base_address + 0x3c);
-
-/// IOG4CR
-const IOG4CR_val = packed struct {
-/// CNT [0:13]
-/// Counter value
-CNT: u14 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I/O group x counter register
-pub const IOG4CR = Register(IOG4CR_val).init(base_address + 0x40);
-
-/// IOG5CR
-const IOG5CR_val = packed struct {
-/// CNT [0:13]
-/// Counter value
-CNT: u14 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I/O group x counter register
-pub const IOG5CR = Register(IOG5CR_val).init(base_address + 0x44);
-
-/// IOG6CR
-const IOG6CR_val = packed struct {
-/// CNT [0:13]
-/// Counter value
-CNT: u14 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// I/O group x counter register
-pub const IOG6CR = Register(IOG6CR_val).init(base_address + 0x48);
-};
-
-/// HDMI-CEC controller
-pub const CEC = struct {
-
-const base_address = 0x40007800;
-/// CR
-const CR_val = packed struct {
-/// CECEN [0:0]
-/// CEC Enable
-CECEN: u1 = 0,
-/// TXSOM [1:1]
-/// Tx start of message
-TXSOM: u1 = 0,
-/// TXEOM [2:2]
-/// Tx End Of Message
-TXEOM: u1 = 0,
-/// unused [3:31]
-_unused3: u5 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// control register
-pub const CR = Register(CR_val).init(base_address + 0x0);
-
-/// CFGR
-const CFGR_val = packed struct {
-/// OAR [0:3]
-/// Own Address
-OAR: u4 = 0,
-/// LSTN [4:4]
-/// Listen mode
-LSTN: u1 = 0,
-/// SFT [5:7]
-/// Signal Free Time
-SFT: u3 = 0,
-/// RXTOL [8:8]
-/// Rx-Tolerance
-RXTOL: u1 = 0,
-/// BRESTP [9:9]
-/// Rx-stop on bit rising
-BRESTP: u1 = 0,
-/// BREGEN [10:10]
-/// Generate error-bit on bit rising
-BREGEN: u1 = 0,
-/// LBPEGEN [11:11]
-/// Generate Error-Bit on Long Bit Period
-LBPEGEN: u1 = 0,
-/// unused [12:31]
-_unused12: u4 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// configuration register
-pub const CFGR = Register(CFGR_val).init(base_address + 0x4);
-
-/// TXDR
-const TXDR_val = packed struct {
-/// TXD [0:7]
-/// Tx Data register
-TXD: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Tx data register
-pub const TXDR = Register(TXDR_val).init(base_address + 0x8);
-
-/// RXDR
-const RXDR_val = packed struct {
-/// RXDR [0:7]
-/// CEC Rx Data Register
-RXDR: u8 = 0,
-/// unused [8:31]
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Rx Data Register
-pub const RXDR = Register(RXDR_val).init(base_address + 0xc);
-
-/// ISR
-const ISR_val = packed struct {
-/// RXBR [0:0]
-/// Rx-Byte Received
-RXBR: u1 = 0,
-/// RXEND [1:1]
-/// End Of Reception
-RXEND: u1 = 0,
-/// RXOVR [2:2]
-/// Rx-Overrun
-RXOVR: u1 = 0,
-/// BRE [3:3]
-/// Rx-Bit rising error
-BRE: u1 = 0,
-/// SBPE [4:4]
-/// Rx-Short Bit period error
-SBPE: u1 = 0,
-/// LBPE [5:5]
-/// Rx-Long Bit Period Error
-LBPE: u1 = 0,
-/// RXACKE [6:6]
-/// Rx-Missing Acknowledge
-RXACKE: u1 = 0,
-/// ARBLST [7:7]
-/// Arbitration Lost
-ARBLST: u1 = 0,
-/// TXBR [8:8]
-/// Tx-Byte Request
-TXBR: u1 = 0,
-/// TXEND [9:9]
-/// End of Transmission
-TXEND: u1 = 0,
-/// TXUDR [10:10]
-/// Tx-Buffer Underrun
-TXUDR: u1 = 0,
-/// TXERR [11:11]
-/// Tx-Error
-TXERR: u1 = 0,
-/// TXACKE [12:12]
-/// Tx-Missing acknowledge
-TXACKE: u1 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Interrupt and Status Register
-pub const ISR = Register(ISR_val).init(base_address + 0x10);
-
-/// IER
-const IER_val = packed struct {
-/// RXBRIE [0:0]
-/// Rx-Byte Received Interrupt
-RXBRIE: u1 = 0,
-/// RXENDIE [1:1]
-/// End Of Reception Interrupt
-RXENDIE: u1 = 0,
-/// RXOVRIE [2:2]
-/// Rx-Buffer Overrun Interrupt
-RXOVRIE: u1 = 0,
-/// BREIE [3:3]
-/// Bit Rising Error Interrupt
-BREIE: u1 = 0,
-/// SBPEIE [4:4]
-/// Short Bit Period Error Interrupt
-SBPEIE: u1 = 0,
-/// LBPEIE [5:5]
-/// Long Bit Period Error Interrupt
-LBPEIE: u1 = 0,
-/// RXACKIE [6:6]
-/// Rx-Missing Acknowledge Error Interrupt
-RXACKIE: u1 = 0,
-/// ARBLSTIE [7:7]
-/// Arbitration Lost Interrupt
-ARBLSTIE: u1 = 0,
-/// TXBRIE [8:8]
-/// Tx-Byte Request Interrupt
-TXBRIE: u1 = 0,
-/// TXENDIE [9:9]
-/// Tx-End of message interrupt
-TXENDIE: u1 = 0,
-/// TXUDRIE [10:10]
-/// Tx-Underrun interrupt
-TXUDRIE: u1 = 0,
-/// TXERRIE [11:11]
-/// Tx-Error Interrupt Enable
-TXERRIE: u1 = 0,
-/// TXACKIE [12:12]
-/// Tx-Missing Acknowledge Error Interrupt
-TXACKIE: u1 = 0,
-/// unused [13:31]
-_unused13: u3 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// interrupt enable register
-pub const IER = Register(IER_val).init(base_address + 0x14);
-};
-
-/// Flash
-pub const Flash = struct {
-
-const base_address = 0x40022000;
-/// ACR
-const ACR_val = packed struct {
-/// LATENCY [0:2]
-/// LATENCY
-LATENCY: u3 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// PRFTBE [4:4]
-/// PRFTBE
-PRFTBE: u1 = 1,
-/// PRFTBS [5:5]
-/// PRFTBS
-PRFTBS: u1 = 1,
-/// unused [6:31]
-_unused6: u2 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Flash access control register
-pub const ACR = Register(ACR_val).init(base_address + 0x0);
-
-/// KEYR
-const KEYR_val = packed struct {
-/// FKEYR [0:31]
-/// Flash Key
-FKEYR: u32 = 0,
-};
-/// Flash key register
-pub const KEYR = Register(KEYR_val).init(base_address + 0x4);
-
-/// OPTKEYR
-const OPTKEYR_val = packed struct {
-/// OPTKEYR [0:31]
-/// Option byte key
-OPTKEYR: u32 = 0,
-};
-/// Flash option key register
-pub const OPTKEYR = Register(OPTKEYR_val).init(base_address + 0x8);
-
-/// SR
-const SR_val = packed struct {
-/// BSY [0:0]
-/// Busy
-BSY: u1 = 0,
-/// unused [1:1]
-_unused1: u1 = 0,
-/// PGERR [2:2]
-/// Programming error
-PGERR: u1 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// WRPRT [4:4]
-/// Write protection error
-WRPRT: u1 = 0,
-/// EOP [5:5]
-/// End of operation
-EOP: u1 = 0,
-/// unused [6:31]
-_unused6: u2 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Flash status register
-pub const SR = Register(SR_val).init(base_address + 0xc);
-
-/// CR
-const CR_val = packed struct {
-/// PG [0:0]
-/// Programming
-PG: u1 = 0,
-/// PER [1:1]
-/// Page erase
-PER: u1 = 0,
-/// MER [2:2]
-/// Mass erase
-MER: u1 = 0,
-/// unused [3:3]
-_unused3: u1 = 0,
-/// OPTPG [4:4]
-/// Option byte programming
-OPTPG: u1 = 0,
-/// OPTER [5:5]
-/// Option byte erase
-OPTER: u1 = 0,
-/// STRT [6:6]
-/// Start
-STRT: u1 = 0,
-/// LOCK [7:7]
-/// Lock
-LOCK: u1 = 1,
-/// unused [8:8]
-_unused8: u1 = 0,
-/// OPTWRE [9:9]
-/// Option bytes write enable
-OPTWRE: u1 = 0,
-/// ERRIE [10:10]
-/// Error interrupt enable
-ERRIE: u1 = 0,
-/// unused [11:11]
-_unused11: u1 = 0,
-/// EOPIE [12:12]
-/// End of operation interrupt
-EOPIE: u1 = 0,
-/// FORCE_OPTLOAD [13:13]
-/// Force option byte loading
-FORCE_OPTLOAD: u1 = 0,
-/// unused [14:31]
-_unused14: u2 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Flash control register
-pub const CR = Register(CR_val).init(base_address + 0x10);
-
-/// AR
-const AR_val = packed struct {
-/// FAR [0:31]
-/// Flash address
-FAR: u32 = 0,
-};
-/// Flash address register
-pub const AR = Register(AR_val).init(base_address + 0x14);
-
-/// OBR
-const OBR_val = packed struct {
-/// OPTERR [0:0]
-/// Option byte error
-OPTERR: u1 = 0,
-/// LEVEL1_PROT [1:1]
-/// Level 1 protection status
-LEVEL1_PROT: u1 = 1,
-/// LEVEL2_PROT [2:2]
-/// Level 2 protection status
-LEVEL2_PROT: u1 = 0,
-/// unused [3:7]
-_unused3: u5 = 30,
-/// WDG_SW [8:8]
-/// WDG_SW
-WDG_SW: u1 = 1,
-/// nRST_STOP [9:9]
-/// nRST_STOP
-nRST_STOP: u1 = 1,
-/// nRST_STDBY [10:10]
-/// nRST_STDBY
-nRST_STDBY: u1 = 1,
-/// unused [11:11]
-_unused11: u1 = 1,
-/// BOOT1 [12:12]
-/// BOOT1
-BOOT1: u1 = 1,
-/// VDDA_MONITOR [13:13]
-/// VDDA_MONITOR
-VDDA_MONITOR: u1 = 1,
-/// unused [14:15]
-_unused14: u2 = 3,
-/// Data0 [16:23]
-/// Data0
-Data0: u8 = 255,
-/// Data1 [24:31]
-/// Data1
-Data1: u8 = 3,
-};
-/// Option byte register
-pub const OBR = Register(OBR_val).init(base_address + 0x1c);
-
-/// WRPR
-const WRPR_val = packed struct {
-/// WRP [0:15]
-/// Write protect
-WRP: u16 = 65535,
-/// unused [16:31]
-_unused16: u8 = 255,
-_unused24: u8 = 255,
-};
-/// Write protection register
-pub const WRPR = Register(WRPR_val).init(base_address + 0x20);
 };
 
-/// Debug support
-pub const DBGMCU = struct {
-
-const base_address = 0x40015800;
-/// IDCODE
-const IDCODE_val = packed struct {
-/// DEV_ID [0:11]
-/// Device Identifier
-DEV_ID: u12 = 0,
-/// DIV_ID [12:15]
-/// Division Identifier
-DIV_ID: u4 = 0,
-/// REV_ID [16:31]
-/// Revision Identifier
-REV_ID: u16 = 0,
-};
-/// MCU Device ID Code Register
-pub const IDCODE = Register(IDCODE_val).init(base_address + 0x0);
-
-/// CR
-const CR_val = packed struct {
-/// unused [0:0]
-_unused0: u1 = 0,
-/// DBG_STOP [1:1]
-/// Debug Stop Mode
-DBG_STOP: u1 = 0,
-/// DBG_STANDBY [2:2]
-/// Debug Standby Mode
-DBG_STANDBY: u1 = 0,
-/// unused [3:31]
-_unused3: u5 = 0,
-_unused8: u8 = 0,
-_unused16: u8 = 0,
-_unused24: u8 = 0,
-};
-/// Debug MCU Configuration
-pub const CR = Register(CR_val).init(base_address + 0x4);
-
-/// APBLFZ
-const APBLFZ_val = packed struct {
-/// DBG_TIMER2_STOP [0:0]
-/// Debug Timer 2 stopped when Core is
-DBG_TIMER2_STOP: u1 = 0,
-/// DBG_TIMER3_STOP [1:1]
-/// Debug Timer 3 stopped when Core is
-DBG_TIMER3_STOP: u1 = 0,
-/// unused [2:3]
-_unused2: u2 = 0,
-/// DBG_TIMER6_STOP [4:4]
-/// Debug Timer 6 stopped when Core is
-DBG_TIMER6_STOP: u1 = 0,
-/// unused [5:7]
-_unused5: u3 = 0,
-/// DBG_TIMER14_STOP [8:8]
-/// Debug Timer 14 stopped when Core is
-DBG_TIMER14_STOP: u1 = 0,
-/// unused [9:9]
-_unused9: u1 = 0,
-/// DBG_RTC_STOP [10:10]
-/// Debug RTC stopped when Core is
-DBG_RTC_STOP: u1 = 0,
-/// DBG_WWDG_STOP [11:11]
-/// Debug Window Wachdog stopped when Core
-DBG_WWDG_STOP: u1 = 0,
-/// DBG_IWDG_STOP [12:12]
-/// Debug Independent Wachdog stopped when
-DBG_IWDG_STOP: u1 = 0,
-/// unused [13:20]
-_unused13: u3 = 0,
-_unused16: u5 = 0,
-/// I2C1_SMBUS_TIMEOUT [21:21]
-/// SMBUS timeout mode stopped when Core is
-I2C1_SMBUS_TIMEOUT: u1 = 0,
-/// unused [22:31]
-_unused22: u2 = 0,
-_unused24: u8 = 0,
-};
-/// APB Low Freeze Register
-pub const APBLFZ = Register(APBLFZ_val).init(base_address + 0x8);
-
-/// APBHFZ
-const APBHFZ_val = packed struct {
-/// unused [0:10]
-_unused0: u8 = 0,
-_unused8: u3 = 0,
-/// DBG_TIMER1_STOP [11:11]
-/// Debug Timer 1 stopped when Core is
-DBG_TIMER1_STOP: u1 = 0,
-/// unused [12:15]
-_unused12: u4 = 0,
-/// DBG_TIMER15_STO [16:16]
-/// Debug Timer 15 stopped when Core is
-DBG_TIMER15_STO: u1 = 0,
-/// DBG_TIMER16_STO [17:17]
-/// Debug Timer 16 stopped when Core is
-DBG_TIMER16_STO: u1 = 0,
-/// DBG_TIMER17_STO [18:18]
-/// Debug Timer 17 stopped when Core is
-DBG_TIMER17_STO: u1 = 0,
-/// unused [19:31]
-_unused19: u5 = 0,
-_unused24: u8 = 0,
-};
-/// APB High Freeze Register
-pub const APBHFZ = Register(APBHFZ_val).init(base_address + 0xc);
-};
-pub const interrupts = struct {
-pub const SPI2_IRQ = 26;
-pub const FLASH_IRQ = 3;
-pub const TIM17_IRQ = 22;
-pub const TIM6_DAC_IRQ = 17;
-pub const DMA_CH1_IRQ = 9;
-pub const I2C1_IRQ = 23;
-pub const USART1_IRQ = 27;
-pub const EXTI2_3_IRQ = 6;
-pub const RTC_IRQ = 2;
-pub const TIM16_IRQ = 21;
-pub const EXTI4_15_IRQ = 7;
-pub const CEC_IRQ = 30;
-pub const USART2_IRQ = 28;
-pub const ADC_COMP_IRQ = 12;
-pub const WWDG_IRQ = 0;
-pub const TIM1_CC_IRQ = 14;
-pub const EXTI0_1_IRQ = 5;
-pub const TSC_IRQ = 8;
-pub const SPI1_IRQ = 25;
-pub const TIM3_IRQ = 16;
-pub const TIM15_IRQ = 20;
-pub const TIM14_IRQ = 19;
-pub const PVD_IRQ = 1;
-pub const RCC_IRQ = 4;
-pub const I2C2_IRQ = 24;
-pub const TIM1_BRK_UP_IRQ = 13;
-pub const DMA_CH4_5_IRQ = 11;
-pub const TIM2_IRQ = 15;
-pub const DMA_CH2_3_IRQ = 10;
+pub const types = struct {
+    ///  cyclic redundancy check calculation unit
+    pub const CRC = extern struct {
+        ///  Data register
+        DR: mmio.Mmio(32, packed struct {
+            ///  Data register bits
+            DR: u32,
+        }),
+        ///  Independent data register
+        IDR: mmio.Mmio(32, packed struct {
+            ///  General-purpose 8-bit data register bits
+            IDR: u8,
+            padding: u24 = 0,
+        }),
+        ///  Control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  reset bit
+            RESET: u1,
+            reserved5: u4 = 0,
+            ///  Reverse input data
+            REV_IN: u2,
+            ///  Reverse output data
+            REV_OUT: u1,
+            padding: u24 = 0,
+        }),
+        ///  Initial CRC value
+        INIT: mmio.Mmio(32, packed struct {
+            ///  Programmable initial CRC value
+            INIT: u32,
+        }),
+    };
+
+    ///  General-purpose I/Os
+    pub const GPIOF = extern struct {
+        ///  GPIO port mode register
+        MODER: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            MODER0: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER1: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER2: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER3: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER4: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER5: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER6: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER7: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER8: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER9: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER10: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER11: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER12: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER13: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER14: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER15: u2,
+        }),
+        ///  GPIO port output type register
+        OTYPER: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bit 0
+            OT0: u1,
+            ///  Port x configuration bit 1
+            OT1: u1,
+            ///  Port x configuration bit 2
+            OT2: u1,
+            ///  Port x configuration bit 3
+            OT3: u1,
+            ///  Port x configuration bit 4
+            OT4: u1,
+            ///  Port x configuration bit 5
+            OT5: u1,
+            ///  Port x configuration bit 6
+            OT6: u1,
+            ///  Port x configuration bit 7
+            OT7: u1,
+            ///  Port x configuration bit 8
+            OT8: u1,
+            ///  Port x configuration bit 9
+            OT9: u1,
+            ///  Port x configuration bit 10
+            OT10: u1,
+            ///  Port x configuration bit 11
+            OT11: u1,
+            ///  Port x configuration bit 12
+            OT12: u1,
+            ///  Port x configuration bit 13
+            OT13: u1,
+            ///  Port x configuration bit 14
+            OT14: u1,
+            ///  Port x configuration bit 15
+            OT15: u1,
+            padding: u16 = 0,
+        }),
+        ///  GPIO port output speed register
+        OSPEEDR: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR0: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR1: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR2: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR3: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR4: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR5: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR6: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR7: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR8: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR9: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR10: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR11: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR12: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR13: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR14: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR15: u2,
+        }),
+        ///  GPIO port pull-up/pull-down register
+        PUPDR: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR0: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR1: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR2: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR3: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR4: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR5: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR6: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR7: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR8: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR9: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR10: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR11: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR12: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR13: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR14: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR15: u2,
+        }),
+        ///  GPIO port input data register
+        IDR: mmio.Mmio(32, packed struct {
+            ///  Port input data (y = 0..15)
+            IDR0: u1,
+            ///  Port input data (y = 0..15)
+            IDR1: u1,
+            ///  Port input data (y = 0..15)
+            IDR2: u1,
+            ///  Port input data (y = 0..15)
+            IDR3: u1,
+            ///  Port input data (y = 0..15)
+            IDR4: u1,
+            ///  Port input data (y = 0..15)
+            IDR5: u1,
+            ///  Port input data (y = 0..15)
+            IDR6: u1,
+            ///  Port input data (y = 0..15)
+            IDR7: u1,
+            ///  Port input data (y = 0..15)
+            IDR8: u1,
+            ///  Port input data (y = 0..15)
+            IDR9: u1,
+            ///  Port input data (y = 0..15)
+            IDR10: u1,
+            ///  Port input data (y = 0..15)
+            IDR11: u1,
+            ///  Port input data (y = 0..15)
+            IDR12: u1,
+            ///  Port input data (y = 0..15)
+            IDR13: u1,
+            ///  Port input data (y = 0..15)
+            IDR14: u1,
+            ///  Port input data (y = 0..15)
+            IDR15: u1,
+            padding: u16 = 0,
+        }),
+        ///  GPIO port output data register
+        ODR: mmio.Mmio(32, packed struct {
+            ///  Port output data (y = 0..15)
+            ODR0: u1,
+            ///  Port output data (y = 0..15)
+            ODR1: u1,
+            ///  Port output data (y = 0..15)
+            ODR2: u1,
+            ///  Port output data (y = 0..15)
+            ODR3: u1,
+            ///  Port output data (y = 0..15)
+            ODR4: u1,
+            ///  Port output data (y = 0..15)
+            ODR5: u1,
+            ///  Port output data (y = 0..15)
+            ODR6: u1,
+            ///  Port output data (y = 0..15)
+            ODR7: u1,
+            ///  Port output data (y = 0..15)
+            ODR8: u1,
+            ///  Port output data (y = 0..15)
+            ODR9: u1,
+            ///  Port output data (y = 0..15)
+            ODR10: u1,
+            ///  Port output data (y = 0..15)
+            ODR11: u1,
+            ///  Port output data (y = 0..15)
+            ODR12: u1,
+            ///  Port output data (y = 0..15)
+            ODR13: u1,
+            ///  Port output data (y = 0..15)
+            ODR14: u1,
+            ///  Port output data (y = 0..15)
+            ODR15: u1,
+            padding: u16 = 0,
+        }),
+        ///  GPIO port bit set/reset register
+        BSRR: mmio.Mmio(32, packed struct {
+            ///  Port x set bit y (y= 0..15)
+            BS0: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS1: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS2: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS3: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS4: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS5: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS6: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS7: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS8: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS9: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS10: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS11: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS12: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS13: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS14: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS15: u1,
+            ///  Port x set bit y (y= 0..15)
+            BR0: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR1: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR2: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR3: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR4: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR5: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR6: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR7: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR8: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR9: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR10: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR11: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR12: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR13: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR14: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR15: u1,
+        }),
+        ///  GPIO port configuration lock register
+        LCKR: mmio.Mmio(32, packed struct {
+            ///  Port x lock bit y (y= 0..15)
+            LCK0: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK1: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK2: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK3: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK4: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK5: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK6: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK7: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK8: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK9: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK10: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK11: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK12: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK13: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK14: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK15: u1,
+            ///  Port x lock bit y
+            LCKK: u1,
+            padding: u15 = 0,
+        }),
+        ///  GPIO alternate function low register
+        AFRL: mmio.Mmio(32, packed struct {
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL0: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL1: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL2: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL3: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL4: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL5: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL6: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL7: u4,
+        }),
+        ///  GPIO alternate function high register
+        AFRH: mmio.Mmio(32, packed struct {
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH8: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH9: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH10: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH11: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH12: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH13: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH14: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH15: u4,
+        }),
+        ///  Port bit reset register
+        BRR: mmio.Mmio(32, packed struct {
+            ///  Port x Reset bit y
+            BR0: u1,
+            ///  Port x Reset bit y
+            BR1: u1,
+            ///  Port x Reset bit y
+            BR2: u1,
+            ///  Port x Reset bit y
+            BR3: u1,
+            ///  Port x Reset bit y
+            BR4: u1,
+            ///  Port x Reset bit y
+            BR5: u1,
+            ///  Port x Reset bit y
+            BR6: u1,
+            ///  Port x Reset bit y
+            BR7: u1,
+            ///  Port x Reset bit y
+            BR8: u1,
+            ///  Port x Reset bit y
+            BR9: u1,
+            ///  Port x Reset bit y
+            BR10: u1,
+            ///  Port x Reset bit y
+            BR11: u1,
+            ///  Port x Reset bit y
+            BR12: u1,
+            ///  Port x Reset bit y
+            BR13: u1,
+            ///  Port x Reset bit y
+            BR14: u1,
+            ///  Port x Reset bit y
+            BR15: u1,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  General-purpose I/Os
+    pub const GPIOA = extern struct {
+        ///  GPIO port mode register
+        MODER: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            MODER0: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER1: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER2: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER3: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER4: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER5: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER6: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER7: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER8: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER9: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER10: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER11: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER12: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER13: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER14: u2,
+            ///  Port x configuration bits (y = 0..15)
+            MODER15: u2,
+        }),
+        ///  GPIO port output type register
+        OTYPER: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            OT0: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT1: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT2: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT3: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT4: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT5: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT6: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT7: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT8: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT9: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT10: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT11: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT12: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT13: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT14: u1,
+            ///  Port x configuration bits (y = 0..15)
+            OT15: u1,
+            padding: u16 = 0,
+        }),
+        ///  GPIO port output speed register
+        OSPEEDR: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR0: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR1: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR2: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR3: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR4: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR5: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR6: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR7: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR8: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR9: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR10: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR11: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR12: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR13: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR14: u2,
+            ///  Port x configuration bits (y = 0..15)
+            OSPEEDR15: u2,
+        }),
+        ///  GPIO port pull-up/pull-down register
+        PUPDR: mmio.Mmio(32, packed struct {
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR0: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR1: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR2: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR3: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR4: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR5: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR6: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR7: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR8: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR9: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR10: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR11: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR12: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR13: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR14: u2,
+            ///  Port x configuration bits (y = 0..15)
+            PUPDR15: u2,
+        }),
+        ///  GPIO port input data register
+        IDR: mmio.Mmio(32, packed struct {
+            ///  Port input data (y = 0..15)
+            IDR0: u1,
+            ///  Port input data (y = 0..15)
+            IDR1: u1,
+            ///  Port input data (y = 0..15)
+            IDR2: u1,
+            ///  Port input data (y = 0..15)
+            IDR3: u1,
+            ///  Port input data (y = 0..15)
+            IDR4: u1,
+            ///  Port input data (y = 0..15)
+            IDR5: u1,
+            ///  Port input data (y = 0..15)
+            IDR6: u1,
+            ///  Port input data (y = 0..15)
+            IDR7: u1,
+            ///  Port input data (y = 0..15)
+            IDR8: u1,
+            ///  Port input data (y = 0..15)
+            IDR9: u1,
+            ///  Port input data (y = 0..15)
+            IDR10: u1,
+            ///  Port input data (y = 0..15)
+            IDR11: u1,
+            ///  Port input data (y = 0..15)
+            IDR12: u1,
+            ///  Port input data (y = 0..15)
+            IDR13: u1,
+            ///  Port input data (y = 0..15)
+            IDR14: u1,
+            ///  Port input data (y = 0..15)
+            IDR15: u1,
+            padding: u16 = 0,
+        }),
+        ///  GPIO port output data register
+        ODR: mmio.Mmio(32, packed struct {
+            ///  Port output data (y = 0..15)
+            ODR0: u1,
+            ///  Port output data (y = 0..15)
+            ODR1: u1,
+            ///  Port output data (y = 0..15)
+            ODR2: u1,
+            ///  Port output data (y = 0..15)
+            ODR3: u1,
+            ///  Port output data (y = 0..15)
+            ODR4: u1,
+            ///  Port output data (y = 0..15)
+            ODR5: u1,
+            ///  Port output data (y = 0..15)
+            ODR6: u1,
+            ///  Port output data (y = 0..15)
+            ODR7: u1,
+            ///  Port output data (y = 0..15)
+            ODR8: u1,
+            ///  Port output data (y = 0..15)
+            ODR9: u1,
+            ///  Port output data (y = 0..15)
+            ODR10: u1,
+            ///  Port output data (y = 0..15)
+            ODR11: u1,
+            ///  Port output data (y = 0..15)
+            ODR12: u1,
+            ///  Port output data (y = 0..15)
+            ODR13: u1,
+            ///  Port output data (y = 0..15)
+            ODR14: u1,
+            ///  Port output data (y = 0..15)
+            ODR15: u1,
+            padding: u16 = 0,
+        }),
+        ///  GPIO port bit set/reset register
+        BSRR: mmio.Mmio(32, packed struct {
+            ///  Port x set bit y (y= 0..15)
+            BS0: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS1: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS2: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS3: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS4: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS5: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS6: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS7: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS8: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS9: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS10: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS11: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS12: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS13: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS14: u1,
+            ///  Port x set bit y (y= 0..15)
+            BS15: u1,
+            ///  Port x set bit y (y= 0..15)
+            BR0: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR1: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR2: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR3: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR4: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR5: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR6: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR7: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR8: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR9: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR10: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR11: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR12: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR13: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR14: u1,
+            ///  Port x reset bit y (y = 0..15)
+            BR15: u1,
+        }),
+        ///  GPIO port configuration lock register
+        LCKR: mmio.Mmio(32, packed struct {
+            ///  Port x lock bit y (y= 0..15)
+            LCK0: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK1: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK2: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK3: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK4: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK5: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK6: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK7: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK8: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK9: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK10: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK11: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK12: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK13: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK14: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCK15: u1,
+            ///  Port x lock bit y (y= 0..15)
+            LCKK: u1,
+            padding: u15 = 0,
+        }),
+        ///  GPIO alternate function low register
+        AFRL: mmio.Mmio(32, packed struct {
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL0: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL1: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL2: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL3: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL4: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL5: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL6: u4,
+            ///  Alternate function selection for port x bit y (y = 0..7)
+            AFRL7: u4,
+        }),
+        ///  GPIO alternate function high register
+        AFRH: mmio.Mmio(32, packed struct {
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH8: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH9: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH10: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH11: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH12: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH13: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH14: u4,
+            ///  Alternate function selection for port x bit y (y = 8..15)
+            AFRH15: u4,
+        }),
+        ///  Port bit reset register
+        BRR: mmio.Mmio(32, packed struct {
+            ///  Port x Reset bit y
+            BR0: u1,
+            ///  Port x Reset bit y
+            BR1: u1,
+            ///  Port x Reset bit y
+            BR2: u1,
+            ///  Port x Reset bit y
+            BR3: u1,
+            ///  Port x Reset bit y
+            BR4: u1,
+            ///  Port x Reset bit y
+            BR5: u1,
+            ///  Port x Reset bit y
+            BR6: u1,
+            ///  Port x Reset bit y
+            BR7: u1,
+            ///  Port x Reset bit y
+            BR8: u1,
+            ///  Port x Reset bit y
+            BR9: u1,
+            ///  Port x Reset bit y
+            BR10: u1,
+            ///  Port x Reset bit y
+            BR11: u1,
+            ///  Port x Reset bit y
+            BR12: u1,
+            ///  Port x Reset bit y
+            BR13: u1,
+            ///  Port x Reset bit y
+            BR14: u1,
+            ///  Port x Reset bit y
+            BR15: u1,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  Serial peripheral interface
+    pub const SPI1 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Clock phase
+            CPHA: u1,
+            ///  Clock polarity
+            CPOL: u1,
+            ///  Master selection
+            MSTR: u1,
+            ///  Baud rate control
+            BR: u3,
+            ///  SPI enable
+            SPE: u1,
+            ///  Frame format
+            LSBFIRST: u1,
+            ///  Internal slave select
+            SSI: u1,
+            ///  Software slave management
+            SSM: u1,
+            ///  Receive only
+            RXONLY: u1,
+            ///  Data frame format
+            DFF: u1,
+            ///  CRC transfer next
+            CRCNEXT: u1,
+            ///  Hardware CRC calculation enable
+            CRCEN: u1,
+            ///  Output enable in bidirectional mode
+            BIDIOE: u1,
+            ///  Bidirectional data mode enable
+            BIDIMODE: u1,
+            padding: u16 = 0,
+        }),
+        ///  control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            ///  Rx buffer DMA enable
+            RXDMAEN: u1,
+            ///  Tx buffer DMA enable
+            TXDMAEN: u1,
+            ///  SS output enable
+            SSOE: u1,
+            ///  NSS pulse management
+            NSSP: u1,
+            ///  Frame format
+            FRF: u1,
+            ///  Error interrupt enable
+            ERRIE: u1,
+            ///  RX buffer not empty interrupt enable
+            RXNEIE: u1,
+            ///  Tx buffer empty interrupt enable
+            TXEIE: u1,
+            ///  Data size
+            DS: u4,
+            ///  FIFO reception threshold
+            FRXTH: u1,
+            ///  Last DMA transfer for reception
+            LDMA_RX: u1,
+            ///  Last DMA transfer for transmission
+            LDMA_TX: u1,
+            padding: u17 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Receive buffer not empty
+            RXNE: u1,
+            ///  Transmit buffer empty
+            TXE: u1,
+            ///  Channel side
+            CHSIDE: u1,
+            ///  Underrun flag
+            UDR: u1,
+            ///  CRC error flag
+            CRCERR: u1,
+            ///  Mode fault
+            MODF: u1,
+            ///  Overrun flag
+            OVR: u1,
+            ///  Busy flag
+            BSY: u1,
+            ///  TI frame format error
+            TIFRFE: u1,
+            ///  FIFO reception level
+            FRLVL: u2,
+            ///  FIFO transmission level
+            FTLVL: u2,
+            padding: u19 = 0,
+        }),
+        ///  data register
+        DR: mmio.Mmio(32, packed struct {
+            ///  Data register
+            DR: u16,
+            padding: u16 = 0,
+        }),
+        ///  CRC polynomial register
+        CRCPR: mmio.Mmio(32, packed struct {
+            ///  CRC polynomial register
+            CRCPOLY: u16,
+            padding: u16 = 0,
+        }),
+        ///  RX CRC register
+        RXCRCR: mmio.Mmio(32, packed struct {
+            ///  Rx CRC register
+            RxCRC: u16,
+            padding: u16 = 0,
+        }),
+        ///  TX CRC register
+        TXCRCR: mmio.Mmio(32, packed struct {
+            ///  Tx CRC register
+            TxCRC: u16,
+            padding: u16 = 0,
+        }),
+        ///  I2S configuration register
+        I2SCFGR: mmio.Mmio(32, packed struct {
+            ///  Channel length (number of bits per audio channel)
+            CHLEN: u1,
+            ///  Data length to be transferred
+            DATLEN: u2,
+            ///  Steady state clock polarity
+            CKPOL: u1,
+            ///  I2S standard selection
+            I2SSTD: u2,
+            reserved7: u1 = 0,
+            ///  PCM frame synchronization
+            PCMSYNC: u1,
+            ///  I2S configuration mode
+            I2SCFG: u2,
+            ///  I2S Enable
+            I2SE: u1,
+            ///  I2S mode selection
+            I2SMOD: u1,
+            padding: u20 = 0,
+        }),
+        ///  I2S prescaler register
+        I2SPR: mmio.Mmio(32, packed struct {
+            ///  I2S Linear prescaler
+            I2SDIV: u8,
+            ///  Odd factor for the prescaler
+            ODD: u1,
+            ///  Master clock output enable
+            MCKOE: u1,
+            padding: u22 = 0,
+        }),
+    };
+
+    ///  Digital-to-analog converter
+    pub const DAC = extern struct {
+        ///  control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  DAC channel1 enable
+            EN1: u1,
+            ///  DAC channel1 output buffer disable
+            BOFF1: u1,
+            ///  DAC channel1 trigger enable
+            TEN1: u1,
+            ///  DAC channel1 trigger selection
+            TSEL10: u1,
+            ///  DAC channel1 trigger selection
+            TSEL11: u1,
+            ///  DAC channel1 trigger selection
+            TSEL12: u1,
+            reserved12: u6 = 0,
+            ///  DAC channel1 DMA enable
+            DMAEN1: u1,
+            ///  DAC channel1 DMA Underrun Interrupt enable
+            DMAUDRIE1: u1,
+            padding: u18 = 0,
+        }),
+        ///  software trigger register
+        SWTRIGR: mmio.Mmio(32, packed struct {
+            ///  DAC channel1 software trigger
+            SWTRIG1: u1,
+            padding: u31 = 0,
+        }),
+        ///  channel1 12-bit right-aligned data holding register
+        DHR12R1: mmio.Mmio(32, packed struct {
+            ///  DAC channel1 12-bit right-aligned data
+            DACC1DHR: u12,
+            padding: u20 = 0,
+        }),
+        ///  channel1 12-bit left aligned data holding register
+        DHR12L1: mmio.Mmio(32, packed struct {
+            reserved4: u4 = 0,
+            ///  DAC channel1 12-bit left-aligned data
+            DACC1DHR: u12,
+            padding: u16 = 0,
+        }),
+        ///  channel1 8-bit right aligned data holding register
+        DHR8R1: mmio.Mmio(32, packed struct {
+            ///  DAC channel1 8-bit right-aligned data
+            DACC1DHR: u8,
+            padding: u24 = 0,
+        }),
+        reserved44: [24]u8,
+        ///  channel1 data output register
+        DOR1: mmio.Mmio(32, packed struct {
+            ///  DAC channel1 data output
+            DACC1DOR: u12,
+            padding: u20 = 0,
+        }),
+        reserved52: [4]u8,
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            reserved13: u13 = 0,
+            ///  DAC channel1 DMA underrun flag
+            DMAUDR1: u1,
+            reserved29: u15 = 0,
+            ///  DAC channel2 DMA underrun flag
+            DMAUDR2: u1,
+            padding: u2 = 0,
+        }),
+    };
+
+    ///  Power control
+    pub const PWR = extern struct {
+        ///  power control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  Low-power deep sleep
+            LPDS: u1,
+            ///  Power down deepsleep
+            PDDS: u1,
+            ///  Clear wakeup flag
+            CWUF: u1,
+            ///  Clear standby flag
+            CSBF: u1,
+            ///  Power voltage detector enable
+            PVDE: u1,
+            ///  PVD level selection
+            PLS: u3,
+            ///  Disable backup domain write protection
+            DBP: u1,
+            ///  Flash power down in Stop mode
+            FPDS: u1,
+            padding: u22 = 0,
+        }),
+        ///  power control/status register
+        CSR: mmio.Mmio(32, packed struct {
+            ///  Wakeup flag
+            WUF: u1,
+            ///  Standby flag
+            SBF: u1,
+            ///  PVD output
+            PVDO: u1,
+            ///  Backup regulator ready
+            BRR: u1,
+            reserved8: u4 = 0,
+            ///  Enable WKUP pin
+            EWUP: u1,
+            ///  Backup regulator enable
+            BRE: u1,
+            padding: u22 = 0,
+        }),
+    };
+
+    ///  Inter-integrated circuit
+    pub const I2C1 = extern struct {
+        ///  Control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Peripheral enable
+            PE: u1,
+            ///  TX Interrupt enable
+            TXIE: u1,
+            ///  RX Interrupt enable
+            RXIE: u1,
+            ///  Address match interrupt enable (slave only)
+            ADDRIE: u1,
+            ///  Not acknowledge received interrupt enable
+            NACKIE: u1,
+            ///  STOP detection Interrupt enable
+            STOPIE: u1,
+            ///  Transfer Complete interrupt enable
+            TCIE: u1,
+            ///  Error interrupts enable
+            ERRIE: u1,
+            ///  Digital noise filter
+            DNF: u4,
+            ///  Analog noise filter OFF
+            ANFOFF: u1,
+            ///  Software reset
+            SWRST: u1,
+            ///  DMA transmission requests enable
+            TXDMAEN: u1,
+            ///  DMA reception requests enable
+            RXDMAEN: u1,
+            ///  Slave byte control
+            SBC: u1,
+            ///  Clock stretching disable
+            NOSTRETCH: u1,
+            ///  Wakeup from STOP enable
+            WUPEN: u1,
+            ///  General call enable
+            GCEN: u1,
+            ///  SMBus Host address enable
+            SMBHEN: u1,
+            ///  SMBus Device Default address enable
+            SMBDEN: u1,
+            ///  SMBUS alert enable
+            ALERTEN: u1,
+            ///  PEC enable
+            PECEN: u1,
+            padding: u8 = 0,
+        }),
+        ///  Control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            ///  Slave address bit 0 (master mode)
+            SADD0: u1,
+            ///  Slave address bit 7:1 (master mode)
+            SADD1: u7,
+            ///  Slave address bit 9:8 (master mode)
+            SADD8: u2,
+            ///  Transfer direction (master mode)
+            RD_WRN: u1,
+            ///  10-bit addressing mode (master mode)
+            ADD10: u1,
+            ///  10-bit address header only read direction (master receiver mode)
+            HEAD10R: u1,
+            ///  Start generation
+            START: u1,
+            ///  Stop generation (master mode)
+            STOP: u1,
+            ///  NACK generation (slave mode)
+            NACK: u1,
+            ///  Number of bytes
+            NBYTES: u8,
+            ///  NBYTES reload mode
+            RELOAD: u1,
+            ///  Automatic end mode (master mode)
+            AUTOEND: u1,
+            ///  Packet error checking byte
+            PECBYTE: u1,
+            padding: u5 = 0,
+        }),
+        ///  Own address register 1
+        OAR1: mmio.Mmio(32, packed struct {
+            ///  Interface address
+            OA1_0: u1,
+            ///  Interface address
+            OA1_1: u7,
+            ///  Interface address
+            OA1_8: u2,
+            ///  Own Address 1 10-bit mode
+            OA1MODE: u1,
+            reserved15: u4 = 0,
+            ///  Own Address 1 enable
+            OA1EN: u1,
+            padding: u16 = 0,
+        }),
+        ///  Own address register 2
+        OAR2: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  Interface address
+            OA2: u7,
+            ///  Own Address 2 masks
+            OA2MSK: u3,
+            reserved15: u4 = 0,
+            ///  Own Address 2 enable
+            OA2EN: u1,
+            padding: u16 = 0,
+        }),
+        ///  Timing register
+        TIMINGR: mmio.Mmio(32, packed struct {
+            ///  SCL low period (master mode)
+            SCLL: u8,
+            ///  SCL high period (master mode)
+            SCLH: u8,
+            ///  Data hold time
+            SDADEL: u4,
+            ///  Data setup time
+            SCLDEL: u4,
+            reserved28: u4 = 0,
+            ///  Timing prescaler
+            PRESC: u4,
+        }),
+        ///  Status register 1
+        TIMEOUTR: mmio.Mmio(32, packed struct {
+            ///  Bus timeout A
+            TIMEOUTA: u12,
+            ///  Idle clock timeout detection
+            TIDLE: u1,
+            reserved15: u2 = 0,
+            ///  Clock timeout enable
+            TIMOUTEN: u1,
+            ///  Bus timeout B
+            TIMEOUTB: u12,
+            reserved31: u3 = 0,
+            ///  Extended clock timeout enable
+            TEXTEN: u1,
+        }),
+        ///  Interrupt and Status register
+        ISR: mmio.Mmio(32, packed struct {
+            ///  Transmit data register empty (transmitters)
+            TXE: u1,
+            ///  Transmit interrupt status (transmitters)
+            TXIS: u1,
+            ///  Receive data register not empty (receivers)
+            RXNE: u1,
+            ///  Address matched (slave mode)
+            ADDR: u1,
+            ///  Not acknowledge received flag
+            NACKF: u1,
+            ///  Stop detection flag
+            STOPF: u1,
+            ///  Transfer Complete (master mode)
+            TC: u1,
+            ///  Transfer Complete Reload
+            TCR: u1,
+            ///  Bus error
+            BERR: u1,
+            ///  Arbitration lost
+            ARLO: u1,
+            ///  Overrun/Underrun (slave mode)
+            OVR: u1,
+            ///  PEC Error in reception
+            PECERR: u1,
+            ///  Timeout or t_low detection flag
+            TIMEOUT: u1,
+            ///  SMBus alert
+            ALERT: u1,
+            reserved15: u1 = 0,
+            ///  Bus busy
+            BUSY: u1,
+            ///  Transfer direction (Slave mode)
+            DIR: u1,
+            ///  Address match code (Slave mode)
+            ADDCODE: u7,
+            padding: u8 = 0,
+        }),
+        ///  Interrupt clear register
+        ICR: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  Address Matched flag clear
+            ADDRCF: u1,
+            ///  Not Acknowledge flag clear
+            NACKCF: u1,
+            ///  Stop detection flag clear
+            STOPCF: u1,
+            reserved8: u2 = 0,
+            ///  Bus error flag clear
+            BERRCF: u1,
+            ///  Arbitration lost flag clear
+            ARLOCF: u1,
+            ///  Overrun/Underrun flag clear
+            OVRCF: u1,
+            ///  PEC Error flag clear
+            PECCF: u1,
+            ///  Timeout detection flag clear
+            TIMOUTCF: u1,
+            ///  Alert flag clear
+            ALERTCF: u1,
+            padding: u18 = 0,
+        }),
+        ///  PEC register
+        PECR: mmio.Mmio(32, packed struct {
+            ///  Packet error checking register
+            PEC: u8,
+            padding: u24 = 0,
+        }),
+        ///  Receive data register
+        RXDR: mmio.Mmio(32, packed struct {
+            ///  8-bit receive data
+            RXDATA: u8,
+            padding: u24 = 0,
+        }),
+        ///  Transmit data register
+        TXDR: mmio.Mmio(32, packed struct {
+            ///  8-bit transmit data
+            TXDATA: u8,
+            padding: u24 = 0,
+        }),
+    };
+
+    ///  Independent watchdog
+    pub const IWDG = extern struct {
+        ///  Key register
+        KR: mmio.Mmio(32, packed struct {
+            ///  Key value
+            KEY: u16,
+            padding: u16 = 0,
+        }),
+        ///  Prescaler register
+        PR: mmio.Mmio(32, packed struct {
+            ///  Prescaler divider
+            PR: u3,
+            padding: u29 = 0,
+        }),
+        ///  Reload register
+        RLR: mmio.Mmio(32, packed struct {
+            ///  Watchdog counter reload value
+            RL: u12,
+            padding: u20 = 0,
+        }),
+        ///  Status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Watchdog prescaler value update
+            PVU: u1,
+            ///  Watchdog counter reload value update
+            RVU: u1,
+            ///  Watchdog counter window value update
+            WVU: u1,
+            padding: u29 = 0,
+        }),
+        ///  Window register
+        WINR: mmio.Mmio(32, packed struct {
+            ///  Watchdog counter window value
+            WIN: u12,
+            padding: u20 = 0,
+        }),
+    };
+
+    ///  Window watchdog
+    pub const WWDG = extern struct {
+        ///  Control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  7-bit counter
+            T: u7,
+            ///  Activation bit
+            WDGA: u1,
+            padding: u24 = 0,
+        }),
+        ///  Configuration register
+        CFR: mmio.Mmio(32, packed struct {
+            ///  7-bit window value
+            W: u7,
+            ///  Timer base
+            WDGTB: u2,
+            ///  Early wakeup interrupt
+            EWI: u1,
+            padding: u22 = 0,
+        }),
+        ///  Status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Early wakeup interrupt flag
+            EWIF: u1,
+            padding: u31 = 0,
+        }),
+    };
+
+    ///  Advanced-timers
+    pub const TIM1 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            CEN: u1,
+            ///  Update disable
+            UDIS: u1,
+            ///  Update request source
+            URS: u1,
+            ///  One-pulse mode
+            OPM: u1,
+            ///  Direction
+            DIR: u1,
+            ///  Center-aligned mode selection
+            CMS: u2,
+            ///  Auto-reload preload enable
+            ARPE: u1,
+            ///  Clock division
+            CKD: u2,
+            padding: u22 = 0,
+        }),
+        ///  control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            ///  Capture/compare preloaded control
+            CCPC: u1,
+            reserved2: u1 = 0,
+            ///  Capture/compare control update selection
+            CCUS: u1,
+            ///  Capture/compare DMA selection
+            CCDS: u1,
+            ///  Master mode selection
+            MMS: u3,
+            ///  TI1 selection
+            TI1S: u1,
+            ///  Output Idle state 1
+            OIS1: u1,
+            ///  Output Idle state 1
+            OIS1N: u1,
+            ///  Output Idle state 2
+            OIS2: u1,
+            ///  Output Idle state 2
+            OIS2N: u1,
+            ///  Output Idle state 3
+            OIS3: u1,
+            ///  Output Idle state 3
+            OIS3N: u1,
+            ///  Output Idle state 4
+            OIS4: u1,
+            padding: u17 = 0,
+        }),
+        ///  slave mode control register
+        SMCR: mmio.Mmio(32, packed struct {
+            ///  Slave mode selection
+            SMS: u3,
+            reserved4: u1 = 0,
+            ///  Trigger selection
+            TS: u3,
+            ///  Master/Slave mode
+            MSM: u1,
+            ///  External trigger filter
+            ETF: u4,
+            ///  External trigger prescaler
+            ETPS: u2,
+            ///  External clock enable
+            ECE: u1,
+            ///  External trigger polarity
+            ETP: u1,
+            padding: u16 = 0,
+        }),
+        ///  DMA/Interrupt enable register
+        DIER: mmio.Mmio(32, packed struct {
+            ///  Update interrupt enable
+            UIE: u1,
+            ///  Capture/Compare 1 interrupt enable
+            CC1IE: u1,
+            ///  Capture/Compare 2 interrupt enable
+            CC2IE: u1,
+            ///  Capture/Compare 3 interrupt enable
+            CC3IE: u1,
+            ///  Capture/Compare 4 interrupt enable
+            CC4IE: u1,
+            ///  COM interrupt enable
+            COMIE: u1,
+            ///  Trigger interrupt enable
+            TIE: u1,
+            ///  Break interrupt enable
+            BIE: u1,
+            ///  Update DMA request enable
+            UDE: u1,
+            ///  Capture/Compare 1 DMA request enable
+            CC1DE: u1,
+            ///  Capture/Compare 2 DMA request enable
+            CC2DE: u1,
+            ///  Capture/Compare 3 DMA request enable
+            CC3DE: u1,
+            ///  Capture/Compare 4 DMA request enable
+            CC4DE: u1,
+            ///  Reserved
+            COMDE: u1,
+            ///  Trigger DMA request enable
+            TDE: u1,
+            padding: u17 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Update interrupt flag
+            UIF: u1,
+            ///  Capture/compare 1 interrupt flag
+            CC1IF: u1,
+            ///  Capture/Compare 2 interrupt flag
+            CC2IF: u1,
+            ///  Capture/Compare 3 interrupt flag
+            CC3IF: u1,
+            ///  Capture/Compare 4 interrupt flag
+            CC4IF: u1,
+            ///  COM interrupt flag
+            COMIF: u1,
+            ///  Trigger interrupt flag
+            TIF: u1,
+            ///  Break interrupt flag
+            BIF: u1,
+            reserved9: u1 = 0,
+            ///  Capture/Compare 1 overcapture flag
+            CC1OF: u1,
+            ///  Capture/compare 2 overcapture flag
+            CC2OF: u1,
+            ///  Capture/Compare 3 overcapture flag
+            CC3OF: u1,
+            ///  Capture/Compare 4 overcapture flag
+            CC4OF: u1,
+            padding: u19 = 0,
+        }),
+        ///  event generation register
+        EGR: mmio.Mmio(32, packed struct {
+            ///  Update generation
+            UG: u1,
+            ///  Capture/compare 1 generation
+            CC1G: u1,
+            ///  Capture/compare 2 generation
+            CC2G: u1,
+            ///  Capture/compare 3 generation
+            CC3G: u1,
+            ///  Capture/compare 4 generation
+            CC4G: u1,
+            ///  Capture/Compare control update generation
+            COMG: u1,
+            ///  Trigger generation
+            TG: u1,
+            ///  Break generation
+            BG: u1,
+            padding: u24 = 0,
+        }),
+        ///  capture/compare mode register (output mode)
+        CCMR1_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 selection
+            CC1S: u2,
+            ///  Output Compare 1 fast enable
+            OC1FE: u1,
+            ///  Output Compare 1 preload enable
+            OC1PE: u1,
+            ///  Output Compare 1 mode
+            OC1M: u3,
+            ///  Output Compare 1 clear enable
+            OC1CE: u1,
+            ///  Capture/Compare 2 selection
+            CC2S: u2,
+            ///  Output Compare 2 fast enable
+            OC2FE: u1,
+            ///  Output Compare 2 preload enable
+            OC2PE: u1,
+            ///  Output Compare 2 mode
+            OC2M: u3,
+            ///  Output Compare 2 clear enable
+            OC2CE: u1,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare mode register (output mode)
+        CCMR2_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 3 selection
+            CC3S: u2,
+            ///  Output compare 3 fast enable
+            OC3FE: u1,
+            ///  Output compare 3 preload enable
+            OC3PE: u1,
+            ///  Output compare 3 mode
+            OC3M: u3,
+            ///  Output compare 3 clear enable
+            OC3CE: u1,
+            ///  Capture/Compare 4 selection
+            CC4S: u2,
+            ///  Output compare 4 fast enable
+            OC4FE: u1,
+            ///  Output compare 4 preload enable
+            OC4PE: u1,
+            ///  Output compare 4 mode
+            OC4M: u3,
+            ///  Output compare 4 clear enable
+            OC4CE: u1,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare enable register
+        CCER: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 output enable
+            CC1E: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1P: u1,
+            ///  Capture/Compare 1 complementary output enable
+            CC1NE: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1NP: u1,
+            ///  Capture/Compare 2 output enable
+            CC2E: u1,
+            ///  Capture/Compare 2 output Polarity
+            CC2P: u1,
+            ///  Capture/Compare 2 complementary output enable
+            CC2NE: u1,
+            ///  Capture/Compare 2 output Polarity
+            CC2NP: u1,
+            ///  Capture/Compare 3 output enable
+            CC3E: u1,
+            ///  Capture/Compare 3 output Polarity
+            CC3P: u1,
+            ///  Capture/Compare 3 complementary output enable
+            CC3NE: u1,
+            ///  Capture/Compare 3 output Polarity
+            CC3NP: u1,
+            ///  Capture/Compare 4 output enable
+            CC4E: u1,
+            ///  Capture/Compare 3 output Polarity
+            CC4P: u1,
+            padding: u18 = 0,
+        }),
+        ///  counter
+        CNT: mmio.Mmio(32, packed struct {
+            ///  counter value
+            CNT: u16,
+            padding: u16 = 0,
+        }),
+        ///  prescaler
+        PSC: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u16,
+            padding: u16 = 0,
+        }),
+        ///  auto-reload register
+        ARR: mmio.Mmio(32, packed struct {
+            ///  Auto-reload value
+            ARR: u16,
+            padding: u16 = 0,
+        }),
+        ///  repetition counter register
+        RCR: mmio.Mmio(32, packed struct {
+            ///  Repetition counter value
+            REP: u8,
+            padding: u24 = 0,
+        }),
+        ///  capture/compare register 1
+        CCR1: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 value
+            CCR1: u16,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare register 2
+        CCR2: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 2 value
+            CCR2: u16,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare register 3
+        CCR3: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 3 value
+            CCR3: u16,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare register 4
+        CCR4: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 3 value
+            CCR4: u16,
+            padding: u16 = 0,
+        }),
+        ///  break and dead-time register
+        BDTR: mmio.Mmio(32, packed struct {
+            ///  Dead-time generator setup
+            DTG: u8,
+            ///  Lock configuration
+            LOCK: u2,
+            ///  Off-state selection for Idle mode
+            OSSI: u1,
+            ///  Off-state selection for Run mode
+            OSSR: u1,
+            ///  Break enable
+            BKE: u1,
+            ///  Break polarity
+            BKP: u1,
+            ///  Automatic output enable
+            AOE: u1,
+            ///  Main output enable
+            MOE: u1,
+            padding: u16 = 0,
+        }),
+        ///  DMA control register
+        DCR: mmio.Mmio(32, packed struct {
+            ///  DMA base address
+            DBA: u5,
+            reserved8: u3 = 0,
+            ///  DMA burst length
+            DBL: u5,
+            padding: u19 = 0,
+        }),
+        ///  DMA address for full transfer
+        DMAR: mmio.Mmio(32, packed struct {
+            ///  DMA register for burst accesses
+            DMAB: u16,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  General-purpose-timers
+    pub const TIM2 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            CEN: u1,
+            ///  Update disable
+            UDIS: u1,
+            ///  Update request source
+            URS: u1,
+            ///  One-pulse mode
+            OPM: u1,
+            ///  Direction
+            DIR: u1,
+            ///  Center-aligned mode selection
+            CMS: u2,
+            ///  Auto-reload preload enable
+            ARPE: u1,
+            ///  Clock division
+            CKD: u2,
+            padding: u22 = 0,
+        }),
+        ///  control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  Capture/compare DMA selection
+            CCDS: u1,
+            ///  Master mode selection
+            MMS: u3,
+            ///  TI1 selection
+            TI1S: u1,
+            padding: u24 = 0,
+        }),
+        ///  slave mode control register
+        SMCR: mmio.Mmio(32, packed struct {
+            ///  Slave mode selection
+            SMS: u3,
+            reserved4: u1 = 0,
+            ///  Trigger selection
+            TS: u3,
+            ///  Master/Slave mode
+            MSM: u1,
+            ///  External trigger filter
+            ETF: u4,
+            ///  External trigger prescaler
+            ETPS: u2,
+            ///  External clock enable
+            ECE: u1,
+            ///  External trigger polarity
+            ETP: u1,
+            padding: u16 = 0,
+        }),
+        ///  DMA/Interrupt enable register
+        DIER: mmio.Mmio(32, packed struct {
+            ///  Update interrupt enable
+            UIE: u1,
+            ///  Capture/Compare 1 interrupt enable
+            CC1IE: u1,
+            ///  Capture/Compare 2 interrupt enable
+            CC2IE: u1,
+            ///  Capture/Compare 3 interrupt enable
+            CC3IE: u1,
+            ///  Capture/Compare 4 interrupt enable
+            CC4IE: u1,
+            reserved6: u1 = 0,
+            ///  Trigger interrupt enable
+            TIE: u1,
+            reserved8: u1 = 0,
+            ///  Update DMA request enable
+            UDE: u1,
+            ///  Capture/Compare 1 DMA request enable
+            CC1DE: u1,
+            ///  Capture/Compare 2 DMA request enable
+            CC2DE: u1,
+            ///  Capture/Compare 3 DMA request enable
+            CC3DE: u1,
+            ///  Capture/Compare 4 DMA request enable
+            CC4DE: u1,
+            ///  Reserved
+            COMDE: u1,
+            ///  Trigger DMA request enable
+            TDE: u1,
+            padding: u17 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Update interrupt flag
+            UIF: u1,
+            ///  Capture/compare 1 interrupt flag
+            CC1IF: u1,
+            ///  Capture/Compare 2 interrupt flag
+            CC2IF: u1,
+            ///  Capture/Compare 3 interrupt flag
+            CC3IF: u1,
+            ///  Capture/Compare 4 interrupt flag
+            CC4IF: u1,
+            reserved6: u1 = 0,
+            ///  Trigger interrupt flag
+            TIF: u1,
+            reserved9: u2 = 0,
+            ///  Capture/Compare 1 overcapture flag
+            CC1OF: u1,
+            ///  Capture/compare 2 overcapture flag
+            CC2OF: u1,
+            ///  Capture/Compare 3 overcapture flag
+            CC3OF: u1,
+            ///  Capture/Compare 4 overcapture flag
+            CC4OF: u1,
+            padding: u19 = 0,
+        }),
+        ///  event generation register
+        EGR: mmio.Mmio(32, packed struct {
+            ///  Update generation
+            UG: u1,
+            ///  Capture/compare 1 generation
+            CC1G: u1,
+            ///  Capture/compare 2 generation
+            CC2G: u1,
+            ///  Capture/compare 3 generation
+            CC3G: u1,
+            ///  Capture/compare 4 generation
+            CC4G: u1,
+            reserved6: u1 = 0,
+            ///  Trigger generation
+            TG: u1,
+            padding: u25 = 0,
+        }),
+        ///  capture/compare mode register 1 (output mode)
+        CCMR1_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 selection
+            CC1S: u2,
+            ///  Output compare 1 fast enable
+            OC1FE: u1,
+            ///  Output compare 1 preload enable
+            OC1PE: u1,
+            ///  Output compare 1 mode
+            OC1M: u3,
+            ///  Output compare 1 clear enable
+            OC1CE: u1,
+            ///  Capture/Compare 2 selection
+            CC2S: u2,
+            ///  Output compare 2 fast enable
+            OC2FE: u1,
+            ///  Output compare 2 preload enable
+            OC2PE: u1,
+            ///  Output compare 2 mode
+            OC2M: u3,
+            ///  Output compare 2 clear enable
+            OC2CE: u1,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare mode register 2 (output mode)
+        CCMR2_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 3 selection
+            CC3S: u2,
+            ///  Output compare 3 fast enable
+            OC3FE: u1,
+            ///  Output compare 3 preload enable
+            OC3PE: u1,
+            ///  Output compare 3 mode
+            OC3M: u3,
+            ///  Output compare 3 clear enable
+            OC3CE: u1,
+            ///  Capture/Compare 4 selection
+            CC4S: u2,
+            ///  Output compare 4 fast enable
+            OC4FE: u1,
+            ///  Output compare 4 preload enable
+            OC4PE: u1,
+            ///  Output compare 4 mode
+            OC4M: u3,
+            ///  Output compare 4 clear enable
+            OC4CE: u1,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare enable register
+        CCER: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 output enable
+            CC1E: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1P: u1,
+            reserved3: u1 = 0,
+            ///  Capture/Compare 1 output Polarity
+            CC1NP: u1,
+            ///  Capture/Compare 2 output enable
+            CC2E: u1,
+            ///  Capture/Compare 2 output Polarity
+            CC2P: u1,
+            reserved7: u1 = 0,
+            ///  Capture/Compare 2 output Polarity
+            CC2NP: u1,
+            ///  Capture/Compare 3 output enable
+            CC3E: u1,
+            ///  Capture/Compare 3 output Polarity
+            CC3P: u1,
+            reserved11: u1 = 0,
+            ///  Capture/Compare 3 output Polarity
+            CC3NP: u1,
+            ///  Capture/Compare 4 output enable
+            CC4E: u1,
+            ///  Capture/Compare 3 output Polarity
+            CC4P: u1,
+            reserved15: u1 = 0,
+            ///  Capture/Compare 4 output Polarity
+            CC4NP: u1,
+            padding: u16 = 0,
+        }),
+        ///  counter
+        CNT: mmio.Mmio(32, packed struct {
+            ///  Low counter value
+            CNT_L: u16,
+            ///  High counter value (TIM2 only)
+            CNT_H: u16,
+        }),
+        ///  prescaler
+        PSC: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u16,
+            padding: u16 = 0,
+        }),
+        ///  auto-reload register
+        ARR: mmio.Mmio(32, packed struct {
+            ///  Low Auto-reload value
+            ARR_L: u16,
+            ///  High Auto-reload value (TIM2 only)
+            ARR_H: u16,
+        }),
+        reserved52: [4]u8,
+        ///  capture/compare register 1
+        CCR1: mmio.Mmio(32, packed struct {
+            ///  Low Capture/Compare 1 value
+            CCR1_L: u16,
+            ///  High Capture/Compare 1 value (TIM2 only)
+            CCR1_H: u16,
+        }),
+        ///  capture/compare register 2
+        CCR2: mmio.Mmio(32, packed struct {
+            ///  Low Capture/Compare 2 value
+            CCR2_L: u16,
+            ///  High Capture/Compare 2 value (TIM2 only)
+            CCR2_H: u16,
+        }),
+        ///  capture/compare register 3
+        CCR3: mmio.Mmio(32, packed struct {
+            ///  Low Capture/Compare value
+            CCR3_L: u16,
+            ///  High Capture/Compare value (TIM2 only)
+            CCR3_H: u16,
+        }),
+        ///  capture/compare register 4
+        CCR4: mmio.Mmio(32, packed struct {
+            ///  Low Capture/Compare value
+            CCR4_L: u16,
+            ///  High Capture/Compare value (TIM2 only)
+            CCR4_H: u16,
+        }),
+        reserved72: [4]u8,
+        ///  DMA control register
+        DCR: mmio.Mmio(32, packed struct {
+            ///  DMA base address
+            DBA: u5,
+            reserved8: u3 = 0,
+            ///  DMA burst length
+            DBL: u5,
+            padding: u19 = 0,
+        }),
+        ///  DMA address for full transfer
+        DMAR: mmio.Mmio(32, packed struct {
+            ///  DMA register for burst accesses
+            DMAR: u16,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  General-purpose-timers
+    pub const TIM14 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            CEN: u1,
+            ///  Update disable
+            UDIS: u1,
+            ///  Update request source
+            URS: u1,
+            reserved7: u4 = 0,
+            ///  Auto-reload preload enable
+            ARPE: u1,
+            ///  Clock division
+            CKD: u2,
+            padding: u22 = 0,
+        }),
+        reserved12: [8]u8,
+        ///  DMA/Interrupt enable register
+        DIER: mmio.Mmio(32, packed struct {
+            ///  Update interrupt enable
+            UIE: u1,
+            ///  Capture/Compare 1 interrupt enable
+            CC1IE: u1,
+            padding: u30 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Update interrupt flag
+            UIF: u1,
+            ///  Capture/compare 1 interrupt flag
+            CC1IF: u1,
+            reserved9: u7 = 0,
+            ///  Capture/Compare 1 overcapture flag
+            CC1OF: u1,
+            padding: u22 = 0,
+        }),
+        ///  event generation register
+        EGR: mmio.Mmio(32, packed struct {
+            ///  Update generation
+            UG: u1,
+            ///  Capture/compare 1 generation
+            CC1G: u1,
+            padding: u30 = 0,
+        }),
+        ///  capture/compare mode register (output mode)
+        CCMR1_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 selection
+            CC1S: u2,
+            ///  Output compare 1 fast enable
+            OC1FE: u1,
+            ///  Output Compare 1 preload enable
+            OC1PE: u1,
+            ///  Output Compare 1 mode
+            OC1M: u3,
+            padding: u25 = 0,
+        }),
+        reserved32: [4]u8,
+        ///  capture/compare enable register
+        CCER: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 output enable
+            CC1E: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1P: u1,
+            reserved3: u1 = 0,
+            ///  Capture/Compare 1 output Polarity
+            CC1NP: u1,
+            padding: u28 = 0,
+        }),
+        ///  counter
+        CNT: mmio.Mmio(32, packed struct {
+            ///  counter value
+            CNT: u16,
+            padding: u16 = 0,
+        }),
+        ///  prescaler
+        PSC: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u16,
+            padding: u16 = 0,
+        }),
+        ///  auto-reload register
+        ARR: mmio.Mmio(32, packed struct {
+            ///  Auto-reload value
+            ARR: u16,
+            padding: u16 = 0,
+        }),
+        reserved52: [4]u8,
+        ///  capture/compare register 1
+        CCR1: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 value
+            CCR1: u16,
+            padding: u16 = 0,
+        }),
+        reserved80: [24]u8,
+        ///  option register
+        OR: mmio.Mmio(32, packed struct {
+            ///  Timer input 1 remap
+            RMP: u2,
+            padding: u30 = 0,
+        }),
+    };
+
+    ///  Basic-timers
+    pub const TIM6 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            CEN: u1,
+            ///  Update disable
+            UDIS: u1,
+            ///  Update request source
+            URS: u1,
+            ///  One-pulse mode
+            OPM: u1,
+            reserved7: u3 = 0,
+            ///  Auto-reload preload enable
+            ARPE: u1,
+            padding: u24 = 0,
+        }),
+        ///  control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            reserved4: u4 = 0,
+            ///  Master mode selection
+            MMS: u3,
+            padding: u25 = 0,
+        }),
+        reserved12: [4]u8,
+        ///  DMA/Interrupt enable register
+        DIER: mmio.Mmio(32, packed struct {
+            ///  Update interrupt enable
+            UIE: u1,
+            reserved8: u7 = 0,
+            ///  Update DMA request enable
+            UDE: u1,
+            padding: u23 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Update interrupt flag
+            UIF: u1,
+            padding: u31 = 0,
+        }),
+        ///  event generation register
+        EGR: mmio.Mmio(32, packed struct {
+            ///  Update generation
+            UG: u1,
+            padding: u31 = 0,
+        }),
+        reserved36: [12]u8,
+        ///  counter
+        CNT: mmio.Mmio(32, packed struct {
+            ///  Low counter value
+            CNT: u16,
+            padding: u16 = 0,
+        }),
+        ///  prescaler
+        PSC: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u16,
+            padding: u16 = 0,
+        }),
+        ///  auto-reload register
+        ARR: mmio.Mmio(32, packed struct {
+            ///  Low Auto-reload value
+            ARR: u16,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  External interrupt/event controller
+    pub const EXTI = extern struct {
+        ///  Interrupt mask register (EXTI_IMR)
+        IMR: mmio.Mmio(32, packed struct {
+            ///  Interrupt Mask on line 0
+            MR0: u1,
+            ///  Interrupt Mask on line 1
+            MR1: u1,
+            ///  Interrupt Mask on line 2
+            MR2: u1,
+            ///  Interrupt Mask on line 3
+            MR3: u1,
+            ///  Interrupt Mask on line 4
+            MR4: u1,
+            ///  Interrupt Mask on line 5
+            MR5: u1,
+            ///  Interrupt Mask on line 6
+            MR6: u1,
+            ///  Interrupt Mask on line 7
+            MR7: u1,
+            ///  Interrupt Mask on line 8
+            MR8: u1,
+            ///  Interrupt Mask on line 9
+            MR9: u1,
+            ///  Interrupt Mask on line 10
+            MR10: u1,
+            ///  Interrupt Mask on line 11
+            MR11: u1,
+            ///  Interrupt Mask on line 12
+            MR12: u1,
+            ///  Interrupt Mask on line 13
+            MR13: u1,
+            ///  Interrupt Mask on line 14
+            MR14: u1,
+            ///  Interrupt Mask on line 15
+            MR15: u1,
+            ///  Interrupt Mask on line 16
+            MR16: u1,
+            ///  Interrupt Mask on line 17
+            MR17: u1,
+            ///  Interrupt Mask on line 18
+            MR18: u1,
+            ///  Interrupt Mask on line 19
+            MR19: u1,
+            ///  Interrupt Mask on line 20
+            MR20: u1,
+            ///  Interrupt Mask on line 21
+            MR21: u1,
+            ///  Interrupt Mask on line 22
+            MR22: u1,
+            ///  Interrupt Mask on line 23
+            MR23: u1,
+            ///  Interrupt Mask on line 24
+            MR24: u1,
+            ///  Interrupt Mask on line 25
+            MR25: u1,
+            ///  Interrupt Mask on line 26
+            MR26: u1,
+            ///  Interrupt Mask on line 27
+            MR27: u1,
+            padding: u4 = 0,
+        }),
+        ///  Event mask register (EXTI_EMR)
+        EMR: mmio.Mmio(32, packed struct {
+            ///  Event Mask on line 0
+            MR0: u1,
+            ///  Event Mask on line 1
+            MR1: u1,
+            ///  Event Mask on line 2
+            MR2: u1,
+            ///  Event Mask on line 3
+            MR3: u1,
+            ///  Event Mask on line 4
+            MR4: u1,
+            ///  Event Mask on line 5
+            MR5: u1,
+            ///  Event Mask on line 6
+            MR6: u1,
+            ///  Event Mask on line 7
+            MR7: u1,
+            ///  Event Mask on line 8
+            MR8: u1,
+            ///  Event Mask on line 9
+            MR9: u1,
+            ///  Event Mask on line 10
+            MR10: u1,
+            ///  Event Mask on line 11
+            MR11: u1,
+            ///  Event Mask on line 12
+            MR12: u1,
+            ///  Event Mask on line 13
+            MR13: u1,
+            ///  Event Mask on line 14
+            MR14: u1,
+            ///  Event Mask on line 15
+            MR15: u1,
+            ///  Event Mask on line 16
+            MR16: u1,
+            ///  Event Mask on line 17
+            MR17: u1,
+            ///  Event Mask on line 18
+            MR18: u1,
+            ///  Event Mask on line 19
+            MR19: u1,
+            ///  Event Mask on line 20
+            MR20: u1,
+            ///  Event Mask on line 21
+            MR21: u1,
+            ///  Event Mask on line 22
+            MR22: u1,
+            ///  Event Mask on line 23
+            MR23: u1,
+            ///  Event Mask on line 24
+            MR24: u1,
+            ///  Event Mask on line 25
+            MR25: u1,
+            ///  Event Mask on line 26
+            MR26: u1,
+            ///  Event Mask on line 27
+            MR27: u1,
+            padding: u4 = 0,
+        }),
+        ///  Rising Trigger selection register (EXTI_RTSR)
+        RTSR: mmio.Mmio(32, packed struct {
+            ///  Rising trigger event configuration of line 0
+            TR0: u1,
+            ///  Rising trigger event configuration of line 1
+            TR1: u1,
+            ///  Rising trigger event configuration of line 2
+            TR2: u1,
+            ///  Rising trigger event configuration of line 3
+            TR3: u1,
+            ///  Rising trigger event configuration of line 4
+            TR4: u1,
+            ///  Rising trigger event configuration of line 5
+            TR5: u1,
+            ///  Rising trigger event configuration of line 6
+            TR6: u1,
+            ///  Rising trigger event configuration of line 7
+            TR7: u1,
+            ///  Rising trigger event configuration of line 8
+            TR8: u1,
+            ///  Rising trigger event configuration of line 9
+            TR9: u1,
+            ///  Rising trigger event configuration of line 10
+            TR10: u1,
+            ///  Rising trigger event configuration of line 11
+            TR11: u1,
+            ///  Rising trigger event configuration of line 12
+            TR12: u1,
+            ///  Rising trigger event configuration of line 13
+            TR13: u1,
+            ///  Rising trigger event configuration of line 14
+            TR14: u1,
+            ///  Rising trigger event configuration of line 15
+            TR15: u1,
+            ///  Rising trigger event configuration of line 16
+            TR16: u1,
+            ///  Rising trigger event configuration of line 17
+            TR17: u1,
+            reserved19: u1 = 0,
+            ///  Rising trigger event configuration of line 19
+            TR19: u1,
+            padding: u12 = 0,
+        }),
+        ///  Falling Trigger selection register (EXTI_FTSR)
+        FTSR: mmio.Mmio(32, packed struct {
+            ///  Falling trigger event configuration of line 0
+            TR0: u1,
+            ///  Falling trigger event configuration of line 1
+            TR1: u1,
+            ///  Falling trigger event configuration of line 2
+            TR2: u1,
+            ///  Falling trigger event configuration of line 3
+            TR3: u1,
+            ///  Falling trigger event configuration of line 4
+            TR4: u1,
+            ///  Falling trigger event configuration of line 5
+            TR5: u1,
+            ///  Falling trigger event configuration of line 6
+            TR6: u1,
+            ///  Falling trigger event configuration of line 7
+            TR7: u1,
+            ///  Falling trigger event configuration of line 8
+            TR8: u1,
+            ///  Falling trigger event configuration of line 9
+            TR9: u1,
+            ///  Falling trigger event configuration of line 10
+            TR10: u1,
+            ///  Falling trigger event configuration of line 11
+            TR11: u1,
+            ///  Falling trigger event configuration of line 12
+            TR12: u1,
+            ///  Falling trigger event configuration of line 13
+            TR13: u1,
+            ///  Falling trigger event configuration of line 14
+            TR14: u1,
+            ///  Falling trigger event configuration of line 15
+            TR15: u1,
+            ///  Falling trigger event configuration of line 16
+            TR16: u1,
+            ///  Falling trigger event configuration of line 17
+            TR17: u1,
+            reserved19: u1 = 0,
+            ///  Falling trigger event configuration of line 19
+            TR19: u1,
+            padding: u12 = 0,
+        }),
+        ///  Software interrupt event register (EXTI_SWIER)
+        SWIER: mmio.Mmio(32, packed struct {
+            ///  Software Interrupt on line 0
+            SWIER0: u1,
+            ///  Software Interrupt on line 1
+            SWIER1: u1,
+            ///  Software Interrupt on line 2
+            SWIER2: u1,
+            ///  Software Interrupt on line 3
+            SWIER3: u1,
+            ///  Software Interrupt on line 4
+            SWIER4: u1,
+            ///  Software Interrupt on line 5
+            SWIER5: u1,
+            ///  Software Interrupt on line 6
+            SWIER6: u1,
+            ///  Software Interrupt on line 7
+            SWIER7: u1,
+            ///  Software Interrupt on line 8
+            SWIER8: u1,
+            ///  Software Interrupt on line 9
+            SWIER9: u1,
+            ///  Software Interrupt on line 10
+            SWIER10: u1,
+            ///  Software Interrupt on line 11
+            SWIER11: u1,
+            ///  Software Interrupt on line 12
+            SWIER12: u1,
+            ///  Software Interrupt on line 13
+            SWIER13: u1,
+            ///  Software Interrupt on line 14
+            SWIER14: u1,
+            ///  Software Interrupt on line 15
+            SWIER15: u1,
+            ///  Software Interrupt on line 16
+            SWIER16: u1,
+            ///  Software Interrupt on line 17
+            SWIER17: u1,
+            reserved19: u1 = 0,
+            ///  Software Interrupt on line 19
+            SWIER19: u1,
+            padding: u12 = 0,
+        }),
+        ///  Pending register (EXTI_PR)
+        PR: mmio.Mmio(32, packed struct {
+            ///  Pending bit 0
+            PR0: u1,
+            ///  Pending bit 1
+            PR1: u1,
+            ///  Pending bit 2
+            PR2: u1,
+            ///  Pending bit 3
+            PR3: u1,
+            ///  Pending bit 4
+            PR4: u1,
+            ///  Pending bit 5
+            PR5: u1,
+            ///  Pending bit 6
+            PR6: u1,
+            ///  Pending bit 7
+            PR7: u1,
+            ///  Pending bit 8
+            PR8: u1,
+            ///  Pending bit 9
+            PR9: u1,
+            ///  Pending bit 10
+            PR10: u1,
+            ///  Pending bit 11
+            PR11: u1,
+            ///  Pending bit 12
+            PR12: u1,
+            ///  Pending bit 13
+            PR13: u1,
+            ///  Pending bit 14
+            PR14: u1,
+            ///  Pending bit 15
+            PR15: u1,
+            ///  Pending bit 16
+            PR16: u1,
+            ///  Pending bit 17
+            PR17: u1,
+            reserved19: u1 = 0,
+            ///  Pending bit 19
+            PR19: u1,
+            padding: u12 = 0,
+        }),
+    };
+
+    ///  Nested Vectored Interrupt Controller
+    pub const NVIC = extern struct {
+        ///  Interrupt Set Enable Register
+        ISER: mmio.Mmio(32, packed struct {
+            ///  SETENA
+            SETENA: u32,
+        }),
+        reserved128: [124]u8,
+        ///  Interrupt Clear Enable Register
+        ICER: mmio.Mmio(32, packed struct {
+            ///  CLRENA
+            CLRENA: u32,
+        }),
+        reserved256: [124]u8,
+        ///  Interrupt Set-Pending Register
+        ISPR: mmio.Mmio(32, packed struct {
+            ///  SETPEND
+            SETPEND: u32,
+        }),
+        reserved384: [124]u8,
+        ///  Interrupt Clear-Pending Register
+        ICPR: mmio.Mmio(32, packed struct {
+            ///  CLRPEND
+            CLRPEND: u32,
+        }),
+        reserved768: [380]u8,
+        ///  Interrupt Priority Register 0
+        IPR0: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_00
+            PRI_00: u2,
+            reserved14: u6 = 0,
+            ///  PRI_01
+            PRI_01: u2,
+            reserved22: u6 = 0,
+            ///  PRI_02
+            PRI_02: u2,
+            reserved30: u6 = 0,
+            ///  PRI_03
+            PRI_03: u2,
+        }),
+        ///  Interrupt Priority Register 1
+        IPR1: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_40
+            PRI_40: u2,
+            reserved14: u6 = 0,
+            ///  PRI_41
+            PRI_41: u2,
+            reserved22: u6 = 0,
+            ///  PRI_42
+            PRI_42: u2,
+            reserved30: u6 = 0,
+            ///  PRI_43
+            PRI_43: u2,
+        }),
+        ///  Interrupt Priority Register 2
+        IPR2: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_80
+            PRI_80: u2,
+            reserved14: u6 = 0,
+            ///  PRI_81
+            PRI_81: u2,
+            reserved22: u6 = 0,
+            ///  PRI_82
+            PRI_82: u2,
+            reserved30: u6 = 0,
+            ///  PRI_83
+            PRI_83: u2,
+        }),
+        ///  Interrupt Priority Register 3
+        IPR3: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_120
+            PRI_120: u2,
+            reserved14: u6 = 0,
+            ///  PRI_121
+            PRI_121: u2,
+            reserved22: u6 = 0,
+            ///  PRI_122
+            PRI_122: u2,
+            reserved30: u6 = 0,
+            ///  PRI_123
+            PRI_123: u2,
+        }),
+        ///  Interrupt Priority Register 4
+        IPR4: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_160
+            PRI_160: u2,
+            reserved14: u6 = 0,
+            ///  PRI_161
+            PRI_161: u2,
+            reserved22: u6 = 0,
+            ///  PRI_162
+            PRI_162: u2,
+            reserved30: u6 = 0,
+            ///  PRI_163
+            PRI_163: u2,
+        }),
+        ///  Interrupt Priority Register 5
+        IPR5: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_200
+            PRI_200: u2,
+            reserved14: u6 = 0,
+            ///  PRI_201
+            PRI_201: u2,
+            reserved22: u6 = 0,
+            ///  PRI_202
+            PRI_202: u2,
+            reserved30: u6 = 0,
+            ///  PRI_203
+            PRI_203: u2,
+        }),
+        ///  Interrupt Priority Register 6
+        IPR6: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_240
+            PRI_240: u2,
+            reserved14: u6 = 0,
+            ///  PRI_241
+            PRI_241: u2,
+            reserved22: u6 = 0,
+            ///  PRI_242
+            PRI_242: u2,
+            reserved30: u6 = 0,
+            ///  PRI_243
+            PRI_243: u2,
+        }),
+        ///  Interrupt Priority Register 7
+        IPR7: mmio.Mmio(32, packed struct {
+            reserved6: u6 = 0,
+            ///  PRI_280
+            PRI_280: u2,
+            reserved14: u6 = 0,
+            ///  PRI_281
+            PRI_281: u2,
+            reserved22: u6 = 0,
+            ///  PRI_282
+            PRI_282: u2,
+            reserved30: u6 = 0,
+            ///  PRI_283
+            PRI_283: u2,
+        }),
+    };
+
+    ///  DMA controller
+    pub const DMA = extern struct {
+        ///  DMA interrupt status register (DMA_ISR)
+        ISR: mmio.Mmio(32, packed struct {
+            ///  Channel 1 Global interrupt flag
+            GIF1: u1,
+            ///  Channel 1 Transfer Complete flag
+            TCIF1: u1,
+            ///  Channel 1 Half Transfer Complete flag
+            HTIF1: u1,
+            ///  Channel 1 Transfer Error flag
+            TEIF1: u1,
+            ///  Channel 2 Global interrupt flag
+            GIF2: u1,
+            ///  Channel 2 Transfer Complete flag
+            TCIF2: u1,
+            ///  Channel 2 Half Transfer Complete flag
+            HTIF2: u1,
+            ///  Channel 2 Transfer Error flag
+            TEIF2: u1,
+            ///  Channel 3 Global interrupt flag
+            GIF3: u1,
+            ///  Channel 3 Transfer Complete flag
+            TCIF3: u1,
+            ///  Channel 3 Half Transfer Complete flag
+            HTIF3: u1,
+            ///  Channel 3 Transfer Error flag
+            TEIF3: u1,
+            ///  Channel 4 Global interrupt flag
+            GIF4: u1,
+            ///  Channel 4 Transfer Complete flag
+            TCIF4: u1,
+            ///  Channel 4 Half Transfer Complete flag
+            HTIF4: u1,
+            ///  Channel 4 Transfer Error flag
+            TEIF4: u1,
+            ///  Channel 5 Global interrupt flag
+            GIF5: u1,
+            ///  Channel 5 Transfer Complete flag
+            TCIF5: u1,
+            ///  Channel 5 Half Transfer Complete flag
+            HTIF5: u1,
+            ///  Channel 5 Transfer Error flag
+            TEIF5: u1,
+            ///  Channel 6 Global interrupt flag
+            GIF6: u1,
+            ///  Channel 6 Transfer Complete flag
+            TCIF6: u1,
+            ///  Channel 6 Half Transfer Complete flag
+            HTIF6: u1,
+            ///  Channel 6 Transfer Error flag
+            TEIF6: u1,
+            ///  Channel 7 Global interrupt flag
+            GIF7: u1,
+            ///  Channel 7 Transfer Complete flag
+            TCIF7: u1,
+            ///  Channel 7 Half Transfer Complete flag
+            HTIF7: u1,
+            ///  Channel 7 Transfer Error flag
+            TEIF7: u1,
+            padding: u4 = 0,
+        }),
+        ///  DMA interrupt flag clear register (DMA_IFCR)
+        IFCR: mmio.Mmio(32, packed struct {
+            ///  Channel 1 Global interrupt clear
+            CGIF1: u1,
+            ///  Channel 1 Transfer Complete clear
+            CTCIF1: u1,
+            ///  Channel 1 Half Transfer clear
+            CHTIF1: u1,
+            ///  Channel 1 Transfer Error clear
+            CTEIF1: u1,
+            ///  Channel 2 Global interrupt clear
+            CGIF2: u1,
+            ///  Channel 2 Transfer Complete clear
+            CTCIF2: u1,
+            ///  Channel 2 Half Transfer clear
+            CHTIF2: u1,
+            ///  Channel 2 Transfer Error clear
+            CTEIF2: u1,
+            ///  Channel 3 Global interrupt clear
+            CGIF3: u1,
+            ///  Channel 3 Transfer Complete clear
+            CTCIF3: u1,
+            ///  Channel 3 Half Transfer clear
+            CHTIF3: u1,
+            ///  Channel 3 Transfer Error clear
+            CTEIF3: u1,
+            ///  Channel 4 Global interrupt clear
+            CGIF4: u1,
+            ///  Channel 4 Transfer Complete clear
+            CTCIF4: u1,
+            ///  Channel 4 Half Transfer clear
+            CHTIF4: u1,
+            ///  Channel 4 Transfer Error clear
+            CTEIF4: u1,
+            ///  Channel 5 Global interrupt clear
+            CGIF5: u1,
+            ///  Channel 5 Transfer Complete clear
+            CTCIF5: u1,
+            ///  Channel 5 Half Transfer clear
+            CHTIF5: u1,
+            ///  Channel 5 Transfer Error clear
+            CTEIF5: u1,
+            ///  Channel 6 Global interrupt clear
+            CGIF6: u1,
+            ///  Channel 6 Transfer Complete clear
+            CTCIF6: u1,
+            ///  Channel 6 Half Transfer clear
+            CHTIF6: u1,
+            ///  Channel 6 Transfer Error clear
+            CTEIF6: u1,
+            ///  Channel 7 Global interrupt clear
+            CGIF7: u1,
+            ///  Channel 7 Transfer Complete clear
+            CTCIF7: u1,
+            ///  Channel 7 Half Transfer clear
+            CHTIF7: u1,
+            ///  Channel 7 Transfer Error clear
+            CTEIF7: u1,
+            padding: u4 = 0,
+        }),
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR1: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 1 number of data register
+        CNDTR1: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 1 peripheral address register
+        CPAR1: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 1 memory address register
+        CMAR1: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+        reserved28: [4]u8,
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR2: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 2 number of data register
+        CNDTR2: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 2 peripheral address register
+        CPAR2: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 2 memory address register
+        CMAR2: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+        reserved48: [4]u8,
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR3: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 3 number of data register
+        CNDTR3: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 3 peripheral address register
+        CPAR3: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 3 memory address register
+        CMAR3: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+        reserved68: [4]u8,
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR4: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 4 number of data register
+        CNDTR4: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 4 peripheral address register
+        CPAR4: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 4 memory address register
+        CMAR4: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+        reserved88: [4]u8,
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR5: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 5 number of data register
+        CNDTR5: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 5 peripheral address register
+        CPAR5: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 5 memory address register
+        CMAR5: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+        reserved108: [4]u8,
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR6: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 6 number of data register
+        CNDTR6: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 6 peripheral address register
+        CPAR6: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 6 memory address register
+        CMAR6: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+        reserved128: [4]u8,
+        ///  DMA channel configuration register (DMA_CCR)
+        CCR7: mmio.Mmio(32, packed struct {
+            ///  Channel enable
+            EN: u1,
+            ///  Transfer complete interrupt enable
+            TCIE: u1,
+            ///  Half Transfer interrupt enable
+            HTIE: u1,
+            ///  Transfer error interrupt enable
+            TEIE: u1,
+            ///  Data transfer direction
+            DIR: u1,
+            ///  Circular mode
+            CIRC: u1,
+            ///  Peripheral increment mode
+            PINC: u1,
+            ///  Memory increment mode
+            MINC: u1,
+            ///  Peripheral size
+            PSIZE: u2,
+            ///  Memory size
+            MSIZE: u2,
+            ///  Channel Priority level
+            PL: u2,
+            ///  Memory to memory mode
+            MEM2MEM: u1,
+            padding: u17 = 0,
+        }),
+        ///  DMA channel 7 number of data register
+        CNDTR7: mmio.Mmio(32, packed struct {
+            ///  Number of data to transfer
+            NDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  DMA channel 7 peripheral address register
+        CPAR7: mmio.Mmio(32, packed struct {
+            ///  Peripheral address
+            PA: u32,
+        }),
+        ///  DMA channel 7 memory address register
+        CMAR7: mmio.Mmio(32, packed struct {
+            ///  Memory address
+            MA: u32,
+        }),
+    };
+
+    ///  Reset and clock control
+    pub const RCC = extern struct {
+        ///  Clock control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  Internal High Speed clock enable
+            HSION: u1,
+            ///  Internal High Speed clock ready flag
+            HSIRDY: u1,
+            reserved3: u1 = 0,
+            ///  Internal High Speed clock trimming
+            HSITRIM: u5,
+            ///  Internal High Speed clock Calibration
+            HSICAL: u8,
+            ///  External High Speed clock enable
+            HSEON: u1,
+            ///  External High Speed clock ready flag
+            HSERDY: u1,
+            ///  External High Speed clock Bypass
+            HSEBYP: u1,
+            ///  Clock Security System enable
+            CSSON: u1,
+            reserved24: u4 = 0,
+            ///  PLL enable
+            PLLON: u1,
+            ///  PLL clock ready flag
+            PLLRDY: u1,
+            padding: u6 = 0,
+        }),
+        ///  Clock configuration register (RCC_CFGR)
+        CFGR: mmio.Mmio(32, packed struct {
+            ///  System clock Switch
+            SW: u2,
+            ///  System Clock Switch Status
+            SWS: u2,
+            ///  AHB prescaler
+            HPRE: u4,
+            ///  APB Low speed prescaler (APB1)
+            PPRE: u3,
+            reserved14: u3 = 0,
+            ///  ADC prescaler
+            ADCPRE: u2,
+            ///  PLL entry clock source
+            PLLSRC: u1,
+            ///  HSE divider for PLL entry
+            PLLXTPRE: u1,
+            ///  PLL Multiplication Factor
+            PLLMUL: u4,
+            reserved24: u2 = 0,
+            ///  Microcontroller clock output
+            MCO: u3,
+            padding: u5 = 0,
+        }),
+        ///  Clock interrupt register (RCC_CIR)
+        CIR: mmio.Mmio(32, packed struct {
+            ///  LSI Ready Interrupt flag
+            LSIRDYF: u1,
+            ///  LSE Ready Interrupt flag
+            LSERDYF: u1,
+            ///  HSI Ready Interrupt flag
+            HSIRDYF: u1,
+            ///  HSE Ready Interrupt flag
+            HSERDYF: u1,
+            ///  PLL Ready Interrupt flag
+            PLLRDYF: u1,
+            ///  HSI14 ready interrupt flag
+            HSI14RDYF: u1,
+            reserved7: u1 = 0,
+            ///  Clock Security System Interrupt flag
+            CSSF: u1,
+            ///  LSI Ready Interrupt Enable
+            LSIRDYIE: u1,
+            ///  LSE Ready Interrupt Enable
+            LSERDYIE: u1,
+            ///  HSI Ready Interrupt Enable
+            HSIRDYIE: u1,
+            ///  HSE Ready Interrupt Enable
+            HSERDYIE: u1,
+            ///  PLL Ready Interrupt Enable
+            PLLRDYIE: u1,
+            ///  HSI14 ready interrupt enable
+            HSI14RDYE: u1,
+            reserved16: u2 = 0,
+            ///  LSI Ready Interrupt Clear
+            LSIRDYC: u1,
+            ///  LSE Ready Interrupt Clear
+            LSERDYC: u1,
+            ///  HSI Ready Interrupt Clear
+            HSIRDYC: u1,
+            ///  HSE Ready Interrupt Clear
+            HSERDYC: u1,
+            ///  PLL Ready Interrupt Clear
+            PLLRDYC: u1,
+            ///  HSI 14 MHz Ready Interrupt Clear
+            HSI14RDYC: u1,
+            reserved23: u1 = 0,
+            ///  Clock security system interrupt clear
+            CSSC: u1,
+            padding: u8 = 0,
+        }),
+        ///  APB2 peripheral reset register (RCC_APB2RSTR)
+        APB2RSTR: mmio.Mmio(32, packed struct {
+            ///  SYSCFG and COMP reset
+            SYSCFGRST: u1,
+            reserved9: u8 = 0,
+            ///  ADC interface reset
+            ADCRST: u1,
+            reserved11: u1 = 0,
+            ///  TIM1 timer reset
+            TIM1RST: u1,
+            ///  SPI 1 reset
+            SPI1RST: u1,
+            reserved14: u1 = 0,
+            ///  USART1 reset
+            USART1RST: u1,
+            reserved16: u1 = 0,
+            ///  TIM15 timer reset
+            TIM15RST: u1,
+            ///  TIM16 timer reset
+            TIM16RST: u1,
+            ///  TIM17 timer reset
+            TIM17RST: u1,
+            reserved22: u3 = 0,
+            ///  Debug MCU reset
+            DBGMCURST: u1,
+            padding: u9 = 0,
+        }),
+        ///  APB1 peripheral reset register (RCC_APB1RSTR)
+        APB1RSTR: mmio.Mmio(32, packed struct {
+            ///  Timer 2 reset
+            TIM2RST: u1,
+            ///  Timer 3 reset
+            TIM3RST: u1,
+            reserved4: u2 = 0,
+            ///  Timer 6 reset
+            TIM6RST: u1,
+            reserved8: u3 = 0,
+            ///  Timer 14 reset
+            TIM14RST: u1,
+            reserved11: u2 = 0,
+            ///  Window watchdog reset
+            WWDGRST: u1,
+            reserved14: u2 = 0,
+            ///  SPI2 reset
+            SPI2RST: u1,
+            reserved17: u2 = 0,
+            ///  USART 2 reset
+            USART2RST: u1,
+            reserved21: u3 = 0,
+            ///  I2C1 reset
+            I2C1RST: u1,
+            ///  I2C2 reset
+            I2C2RST: u1,
+            reserved28: u5 = 0,
+            ///  Power interface reset
+            PWRRST: u1,
+            ///  DAC interface reset
+            DACRST: u1,
+            ///  HDMI CEC reset
+            CECRST: u1,
+            padding: u1 = 0,
+        }),
+        ///  AHB Peripheral Clock enable register (RCC_AHBENR)
+        AHBENR: mmio.Mmio(32, packed struct {
+            ///  DMA1 clock enable
+            DMAEN: u1,
+            reserved2: u1 = 0,
+            ///  SRAM interface clock enable
+            SRAMEN: u1,
+            reserved4: u1 = 0,
+            ///  FLITF clock enable
+            FLITFEN: u1,
+            reserved6: u1 = 0,
+            ///  CRC clock enable
+            CRCEN: u1,
+            reserved17: u10 = 0,
+            ///  I/O port A clock enable
+            IOPAEN: u1,
+            ///  I/O port B clock enable
+            IOPBEN: u1,
+            ///  I/O port C clock enable
+            IOPCEN: u1,
+            ///  I/O port D clock enable
+            IOPDEN: u1,
+            reserved22: u1 = 0,
+            ///  I/O port F clock enable
+            IOPFEN: u1,
+            reserved24: u1 = 0,
+            ///  Touch sensing controller clock enable
+            TSCEN: u1,
+            padding: u7 = 0,
+        }),
+        ///  APB2 peripheral clock enable register (RCC_APB2ENR)
+        APB2ENR: mmio.Mmio(32, packed struct {
+            ///  SYSCFG clock enable
+            SYSCFGEN: u1,
+            reserved9: u8 = 0,
+            ///  ADC 1 interface clock enable
+            ADCEN: u1,
+            reserved11: u1 = 0,
+            ///  TIM1 Timer clock enable
+            TIM1EN: u1,
+            ///  SPI 1 clock enable
+            SPI1EN: u1,
+            reserved14: u1 = 0,
+            ///  USART1 clock enable
+            USART1EN: u1,
+            reserved16: u1 = 0,
+            ///  TIM15 timer clock enable
+            TIM15EN: u1,
+            ///  TIM16 timer clock enable
+            TIM16EN: u1,
+            ///  TIM17 timer clock enable
+            TIM17EN: u1,
+            reserved22: u3 = 0,
+            ///  MCU debug module clock enable
+            DBGMCUEN: u1,
+            padding: u9 = 0,
+        }),
+        ///  APB1 peripheral clock enable register (RCC_APB1ENR)
+        APB1ENR: mmio.Mmio(32, packed struct {
+            ///  Timer 2 clock enable
+            TIM2EN: u1,
+            ///  Timer 3 clock enable
+            TIM3EN: u1,
+            reserved4: u2 = 0,
+            ///  Timer 6 clock enable
+            TIM6EN: u1,
+            reserved8: u3 = 0,
+            ///  Timer 14 clock enable
+            TIM14EN: u1,
+            reserved11: u2 = 0,
+            ///  Window watchdog clock enable
+            WWDGEN: u1,
+            reserved14: u2 = 0,
+            ///  SPI 2 clock enable
+            SPI2EN: u1,
+            reserved17: u2 = 0,
+            ///  USART 2 clock enable
+            USART2EN: u1,
+            reserved21: u3 = 0,
+            ///  I2C 1 clock enable
+            I2C1EN: u1,
+            ///  I2C 2 clock enable
+            I2C2EN: u1,
+            reserved28: u5 = 0,
+            ///  Power interface clock enable
+            PWREN: u1,
+            ///  DAC interface clock enable
+            DACEN: u1,
+            ///  HDMI CEC interface clock enable
+            CECEN: u1,
+            padding: u1 = 0,
+        }),
+        ///  Backup domain control register (RCC_BDCR)
+        BDCR: mmio.Mmio(32, packed struct {
+            ///  External Low Speed oscillator enable
+            LSEON: u1,
+            ///  External Low Speed oscillator ready
+            LSERDY: u1,
+            ///  External Low Speed oscillator bypass
+            LSEBYP: u1,
+            ///  LSE oscillator drive capability
+            LSEDRV: u2,
+            reserved8: u3 = 0,
+            ///  RTC clock source selection
+            RTCSEL: u2,
+            reserved15: u5 = 0,
+            ///  RTC clock enable
+            RTCEN: u1,
+            ///  Backup domain software reset
+            BDRST: u1,
+            padding: u15 = 0,
+        }),
+        ///  Control/status register (RCC_CSR)
+        CSR: mmio.Mmio(32, packed struct {
+            ///  Internal low speed oscillator enable
+            LSION: u1,
+            ///  Internal low speed oscillator ready
+            LSIRDY: u1,
+            reserved24: u22 = 0,
+            ///  Remove reset flag
+            RMVF: u1,
+            ///  Option byte loader reset flag
+            OBLRSTF: u1,
+            ///  PIN reset flag
+            PINRSTF: u1,
+            ///  POR/PDR reset flag
+            PORRSTF: u1,
+            ///  Software reset flag
+            SFTRSTF: u1,
+            ///  Independent watchdog reset flag
+            IWDGRSTF: u1,
+            ///  Window watchdog reset flag
+            WWDGRSTF: u1,
+            ///  Low-power reset flag
+            LPWRRSTF: u1,
+        }),
+        ///  AHB peripheral reset register
+        AHBRSTR: mmio.Mmio(32, packed struct {
+            reserved17: u17 = 0,
+            ///  I/O port A reset
+            IOPARST: u1,
+            ///  I/O port B reset
+            IOPBRST: u1,
+            ///  I/O port C reset
+            IOPCRST: u1,
+            ///  I/O port D reset
+            IOPDRST: u1,
+            reserved22: u1 = 0,
+            ///  I/O port F reset
+            IOPFRST: u1,
+            reserved24: u1 = 0,
+            ///  Touch sensing controller reset
+            TSCRST: u1,
+            padding: u7 = 0,
+        }),
+        ///  Clock configuration register 2
+        CFGR2: mmio.Mmio(32, packed struct {
+            ///  PREDIV division factor
+            PREDIV: u4,
+            padding: u28 = 0,
+        }),
+        ///  Clock configuration register 3
+        CFGR3: mmio.Mmio(32, packed struct {
+            ///  USART1 clock source selection
+            USART1SW: u2,
+            reserved4: u2 = 0,
+            ///  I2C1 clock source selection
+            I2C1SW: u1,
+            reserved6: u1 = 0,
+            ///  HDMI CEC clock source selection
+            CECSW: u1,
+            reserved8: u1 = 0,
+            ///  ADC clock source selection
+            ADCSW: u1,
+            padding: u23 = 0,
+        }),
+        ///  Clock control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            ///  HSI14 clock enable
+            HSI14ON: u1,
+            ///  HR14 clock ready flag
+            HSI14RDY: u1,
+            ///  HSI14 clock request from ADC disable
+            HSI14DIS: u1,
+            ///  HSI14 clock trimming
+            HSI14TRIM: u5,
+            ///  HSI14 clock calibration
+            HSI14CAL: u8,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  System configuration controller
+    pub const SYSCFG = extern struct {
+        ///  configuration register 1
+        CFGR1: mmio.Mmio(32, packed struct {
+            ///  Memory mapping selection bits
+            MEM_MODE: u2,
+            reserved8: u6 = 0,
+            ///  ADC DMA remapping bit
+            ADC_DMA_RMP: u1,
+            ///  USART1_TX DMA remapping bit
+            USART1_TX_DMA_RMP: u1,
+            ///  USART1_RX DMA request remapping bit
+            USART1_RX_DMA_RMP: u1,
+            ///  TIM16 DMA request remapping bit
+            TIM16_DMA_RMP: u1,
+            ///  TIM17 DMA request remapping bit
+            TIM17_DMA_RMP: u1,
+            reserved16: u3 = 0,
+            ///  Fast Mode Plus (FM+) driving capability activation bits.
+            I2C_PB6_FM: u1,
+            ///  Fast Mode Plus (FM+) driving capability activation bits.
+            I2C_PB7_FM: u1,
+            ///  Fast Mode Plus (FM+) driving capability activation bits.
+            I2C_PB8_FM: u1,
+            ///  Fast Mode Plus (FM+) driving capability activation bits.
+            I2C_PB9_FM: u1,
+            padding: u12 = 0,
+        }),
+        reserved8: [4]u8,
+        ///  external interrupt configuration register 1
+        EXTICR1: mmio.Mmio(32, packed struct {
+            ///  EXTI 0 configuration bits
+            EXTI0: u4,
+            ///  EXTI 1 configuration bits
+            EXTI1: u4,
+            ///  EXTI 2 configuration bits
+            EXTI2: u4,
+            ///  EXTI 3 configuration bits
+            EXTI3: u4,
+            padding: u16 = 0,
+        }),
+        ///  external interrupt configuration register 2
+        EXTICR2: mmio.Mmio(32, packed struct {
+            ///  EXTI 4 configuration bits
+            EXTI4: u4,
+            ///  EXTI 5 configuration bits
+            EXTI5: u4,
+            ///  EXTI 6 configuration bits
+            EXTI6: u4,
+            ///  EXTI 7 configuration bits
+            EXTI7: u4,
+            padding: u16 = 0,
+        }),
+        ///  external interrupt configuration register 3
+        EXTICR3: mmio.Mmio(32, packed struct {
+            ///  EXTI 8 configuration bits
+            EXTI8: u4,
+            ///  EXTI 9 configuration bits
+            EXTI9: u4,
+            ///  EXTI 10 configuration bits
+            EXTI10: u4,
+            ///  EXTI 11 configuration bits
+            EXTI11: u4,
+            padding: u16 = 0,
+        }),
+        ///  external interrupt configuration register 4
+        EXTICR4: mmio.Mmio(32, packed struct {
+            ///  EXTI 12 configuration bits
+            EXTI12: u4,
+            ///  EXTI 13 configuration bits
+            EXTI13: u4,
+            ///  EXTI 14 configuration bits
+            EXTI14: u4,
+            ///  EXTI 15 configuration bits
+            EXTI15: u4,
+            padding: u16 = 0,
+        }),
+        ///  configuration register 2
+        CFGR2: mmio.Mmio(32, packed struct {
+            ///  Cortex-M0 LOCKUP bit enable bit
+            LOCUP_LOCK: u1,
+            ///  SRAM parity lock bit
+            SRAM_PARITY_LOCK: u1,
+            ///  PVD lock enable bit
+            PVD_LOCK: u1,
+            reserved8: u5 = 0,
+            ///  SRAM parity flag
+            SRAM_PEF: u1,
+            padding: u23 = 0,
+        }),
+    };
+
+    ///  Analog-to-digital converter
+    pub const ADC = extern struct {
+        ///  interrupt and status register
+        ISR: mmio.Mmio(32, packed struct {
+            ///  ADC ready
+            ADRDY: u1,
+            ///  End of sampling flag
+            EOSMP: u1,
+            ///  End of conversion flag
+            EOC: u1,
+            ///  End of sequence flag
+            EOS: u1,
+            ///  ADC overrun
+            OVR: u1,
+            reserved7: u2 = 0,
+            ///  Analog watchdog flag
+            AWD: u1,
+            padding: u24 = 0,
+        }),
+        ///  interrupt enable register
+        IER: mmio.Mmio(32, packed struct {
+            ///  ADC ready interrupt enable
+            ADRDYIE: u1,
+            ///  End of sampling flag interrupt enable
+            EOSMPIE: u1,
+            ///  End of conversion interrupt enable
+            EOCIE: u1,
+            ///  End of conversion sequence interrupt enable
+            EOSIE: u1,
+            ///  Overrun interrupt enable
+            OVRIE: u1,
+            reserved7: u2 = 0,
+            ///  Analog watchdog interrupt enable
+            AWDIE: u1,
+            padding: u24 = 0,
+        }),
+        ///  control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  ADC enable command
+            ADEN: u1,
+            ///  ADC disable command
+            ADDIS: u1,
+            ///  ADC start conversion command
+            ADSTART: u1,
+            reserved4: u1 = 0,
+            ///  ADC stop conversion command
+            ADSTP: u1,
+            reserved31: u26 = 0,
+            ///  ADC calibration
+            ADCAL: u1,
+        }),
+        ///  configuration register 1
+        CFGR1: mmio.Mmio(32, packed struct {
+            ///  Direct memory access enable
+            DMAEN: u1,
+            ///  Direct memery access configuration
+            DMACFG: u1,
+            ///  Scan sequence direction
+            SCANDIR: u1,
+            ///  Data resolution
+            RES: u2,
+            ///  Data alignment
+            ALIGN: u1,
+            ///  External trigger selection
+            EXTSEL: u3,
+            reserved10: u1 = 0,
+            ///  External trigger enable and polarity selection
+            EXTEN: u2,
+            ///  Overrun management mode
+            OVRMOD: u1,
+            ///  Single / continuous conversion mode
+            CONT: u1,
+            ///  Auto-delayed conversion mode
+            AUTDLY: u1,
+            ///  Auto-off mode
+            AUTOFF: u1,
+            ///  Discontinuous mode
+            DISCEN: u1,
+            reserved22: u5 = 0,
+            ///  Enable the watchdog on a single channel or on all channels
+            AWDSGL: u1,
+            ///  Analog watchdog enable
+            AWDEN: u1,
+            reserved26: u2 = 0,
+            ///  Analog watchdog channel selection
+            AWDCH: u5,
+            padding: u1 = 0,
+        }),
+        ///  configuration register 2
+        CFGR2: mmio.Mmio(32, packed struct {
+            reserved30: u30 = 0,
+            ///  JITOFF_D2
+            JITOFF_D2: u1,
+            ///  JITOFF_D4
+            JITOFF_D4: u1,
+        }),
+        ///  sampling time register
+        SMPR: mmio.Mmio(32, packed struct {
+            ///  Sampling time selection
+            SMPR: u3,
+            padding: u29 = 0,
+        }),
+        reserved32: [8]u8,
+        ///  watchdog threshold register
+        TR: mmio.Mmio(32, packed struct {
+            ///  Analog watchdog lower threshold
+            LT: u12,
+            reserved16: u4 = 0,
+            ///  Analog watchdog higher threshold
+            HT: u12,
+            padding: u4 = 0,
+        }),
+        reserved40: [4]u8,
+        ///  channel selection register
+        CHSELR: mmio.Mmio(32, packed struct {
+            ///  Channel-x selection
+            CHSEL0: u1,
+            ///  Channel-x selection
+            CHSEL1: u1,
+            ///  Channel-x selection
+            CHSEL2: u1,
+            ///  Channel-x selection
+            CHSEL3: u1,
+            ///  Channel-x selection
+            CHSEL4: u1,
+            ///  Channel-x selection
+            CHSEL5: u1,
+            ///  Channel-x selection
+            CHSEL6: u1,
+            ///  Channel-x selection
+            CHSEL7: u1,
+            ///  Channel-x selection
+            CHSEL8: u1,
+            ///  Channel-x selection
+            CHSEL9: u1,
+            ///  Channel-x selection
+            CHSEL10: u1,
+            ///  Channel-x selection
+            CHSEL11: u1,
+            ///  Channel-x selection
+            CHSEL12: u1,
+            ///  Channel-x selection
+            CHSEL13: u1,
+            ///  Channel-x selection
+            CHSEL14: u1,
+            ///  Channel-x selection
+            CHSEL15: u1,
+            ///  Channel-x selection
+            CHSEL16: u1,
+            ///  Channel-x selection
+            CHSEL17: u1,
+            ///  Channel-x selection
+            CHSEL18: u1,
+            padding: u13 = 0,
+        }),
+        reserved64: [20]u8,
+        ///  data register
+        DR: mmio.Mmio(32, packed struct {
+            ///  Converted data
+            DATA: u16,
+            padding: u16 = 0,
+        }),
+        reserved776: [708]u8,
+        ///  common configuration register
+        CCR: mmio.Mmio(32, packed struct {
+            reserved22: u22 = 0,
+            ///  Temperature sensor and VREFINT enable
+            VREFEN: u1,
+            ///  Temperature sensor enable
+            TSEN: u1,
+            ///  VBAT enable
+            VBATEN: u1,
+            padding: u7 = 0,
+        }),
+    };
+
+    ///  Universal synchronous asynchronous receiver transmitter
+    pub const USART1 = extern struct {
+        ///  Control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  USART enable
+            UE: u1,
+            ///  USART enable in Stop mode
+            UESM: u1,
+            ///  Receiver enable
+            RE: u1,
+            ///  Transmitter enable
+            TE: u1,
+            ///  IDLE interrupt enable
+            IDLEIE: u1,
+            ///  RXNE interrupt enable
+            RXNEIE: u1,
+            ///  Transmission complete interrupt enable
+            TCIE: u1,
+            ///  interrupt enable
+            TXEIE: u1,
+            ///  PE interrupt enable
+            PEIE: u1,
+            ///  Parity selection
+            PS: u1,
+            ///  Parity control enable
+            PCE: u1,
+            ///  Receiver wakeup method
+            WAKE: u1,
+            ///  Word length
+            M: u1,
+            ///  Mute mode enable
+            MME: u1,
+            ///  Character match interrupt enable
+            CMIE: u1,
+            ///  Oversampling mode
+            OVER8: u1,
+            ///  Driver Enable deassertion time
+            DEDT: u5,
+            ///  Driver Enable assertion time
+            DEAT: u5,
+            ///  Receiver timeout interrupt enable
+            RTOIE: u1,
+            ///  End of Block interrupt enable
+            EOBIE: u1,
+            padding: u4 = 0,
+        }),
+        ///  Control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            reserved4: u4 = 0,
+            ///  7-bit Address Detection/4-bit Address Detection
+            ADDM7: u1,
+            ///  LIN break detection length
+            LBDL: u1,
+            ///  LIN break detection interrupt enable
+            LBDIE: u1,
+            reserved8: u1 = 0,
+            ///  Last bit clock pulse
+            LBCL: u1,
+            ///  Clock phase
+            CPHA: u1,
+            ///  Clock polarity
+            CPOL: u1,
+            ///  Clock enable
+            CLKEN: u1,
+            ///  STOP bits
+            STOP: u2,
+            ///  LIN mode enable
+            LINEN: u1,
+            ///  Swap TX/RX pins
+            SWAP: u1,
+            ///  RX pin active level inversion
+            RXINV: u1,
+            ///  TX pin active level inversion
+            TXINV: u1,
+            ///  Binary data inversion
+            DATAINV: u1,
+            ///  Most significant bit first
+            MSBFIRST: u1,
+            ///  Auto baud rate enable
+            ABREN: u1,
+            ///  Auto baud rate mode
+            ABRMOD: u2,
+            ///  Receiver timeout enable
+            RTOEN: u1,
+            ///  Address of the USART node
+            ADD0: u4,
+            ///  Address of the USART node
+            ADD4: u4,
+        }),
+        ///  Control register 3
+        CR3: mmio.Mmio(32, packed struct {
+            ///  Error interrupt enable
+            EIE: u1,
+            ///  IrDA mode enable
+            IREN: u1,
+            ///  IrDA low-power
+            IRLP: u1,
+            ///  Half-duplex selection
+            HDSEL: u1,
+            ///  Smartcard NACK enable
+            NACK: u1,
+            ///  Smartcard mode enable
+            SCEN: u1,
+            ///  DMA enable receiver
+            DMAR: u1,
+            ///  DMA enable transmitter
+            DMAT: u1,
+            ///  RTS enable
+            RTSE: u1,
+            ///  CTS enable
+            CTSE: u1,
+            ///  CTS interrupt enable
+            CTSIE: u1,
+            ///  One sample bit method enable
+            ONEBIT: u1,
+            ///  Overrun Disable
+            OVRDIS: u1,
+            ///  DMA Disable on Reception Error
+            DDRE: u1,
+            ///  Driver enable mode
+            DEM: u1,
+            ///  Driver enable polarity selection
+            DEP: u1,
+            reserved17: u1 = 0,
+            ///  Smartcard auto-retry count
+            SCARCNT: u3,
+            ///  Wakeup from Stop mode interrupt flag selection
+            WUS: u2,
+            ///  Wakeup from Stop mode interrupt enable
+            WUFIE: u1,
+            padding: u9 = 0,
+        }),
+        ///  Baud rate register
+        BRR: mmio.Mmio(32, packed struct {
+            ///  fraction of USARTDIV
+            DIV_Fraction: u4,
+            ///  mantissa of USARTDIV
+            DIV_Mantissa: u12,
+            padding: u16 = 0,
+        }),
+        ///  Guard time and prescaler register
+        GTPR: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u8,
+            ///  Guard time value
+            GT: u8,
+            padding: u16 = 0,
+        }),
+        ///  Receiver timeout register
+        RTOR: mmio.Mmio(32, packed struct {
+            ///  Receiver timeout value
+            RTO: u24,
+            ///  Block Length
+            BLEN: u8,
+        }),
+        ///  Request register
+        RQR: mmio.Mmio(32, packed struct {
+            ///  Auto baud rate request
+            ABRRQ: u1,
+            ///  Send break request
+            SBKRQ: u1,
+            ///  Mute mode request
+            MMRQ: u1,
+            ///  Receive data flush request
+            RXFRQ: u1,
+            ///  Transmit data flush request
+            TXFRQ: u1,
+            padding: u27 = 0,
+        }),
+        ///  Interrupt & status register
+        ISR: mmio.Mmio(32, packed struct {
+            ///  Parity error
+            PE: u1,
+            ///  Framing error
+            FE: u1,
+            ///  Noise detected flag
+            NF: u1,
+            ///  Overrun error
+            ORE: u1,
+            ///  Idle line detected
+            IDLE: u1,
+            ///  Read data register not empty
+            RXNE: u1,
+            ///  Transmission complete
+            TC: u1,
+            ///  Transmit data register empty
+            TXE: u1,
+            ///  LIN break detection flag
+            LBDF: u1,
+            ///  CTS interrupt flag
+            CTSIF: u1,
+            ///  CTS flag
+            CTS: u1,
+            ///  Receiver timeout
+            RTOF: u1,
+            ///  End of block flag
+            EOBF: u1,
+            reserved14: u1 = 0,
+            ///  Auto baud rate error
+            ABRE: u1,
+            ///  Auto baud rate flag
+            ABRF: u1,
+            ///  Busy flag
+            BUSY: u1,
+            ///  character match flag
+            CMF: u1,
+            ///  Send break flag
+            SBKF: u1,
+            ///  Receiver wakeup from Mute mode
+            RWU: u1,
+            ///  Wakeup from Stop mode flag
+            WUF: u1,
+            ///  Transmit enable acknowledge flag
+            TEACK: u1,
+            ///  Receive enable acknowledge flag
+            REACK: u1,
+            padding: u9 = 0,
+        }),
+        ///  Interrupt flag clear register
+        ICR: mmio.Mmio(32, packed struct {
+            ///  Parity error clear flag
+            PECF: u1,
+            ///  Framing error clear flag
+            FECF: u1,
+            ///  Noise detected clear flag
+            NCF: u1,
+            ///  Overrun error clear flag
+            ORECF: u1,
+            ///  Idle line detected clear flag
+            IDLECF: u1,
+            reserved6: u1 = 0,
+            ///  Transmission complete clear flag
+            TCCF: u1,
+            reserved8: u1 = 0,
+            ///  LIN break detection clear flag
+            LBDCF: u1,
+            ///  CTS clear flag
+            CTSCF: u1,
+            reserved11: u1 = 0,
+            ///  Receiver timeout clear flag
+            RTOCF: u1,
+            ///  End of timeout clear flag
+            EOBCF: u1,
+            reserved17: u4 = 0,
+            ///  Character match clear flag
+            CMCF: u1,
+            reserved20: u2 = 0,
+            ///  Wakeup from Stop mode clear flag
+            WUCF: u1,
+            padding: u11 = 0,
+        }),
+        ///  Receive data register
+        RDR: mmio.Mmio(32, packed struct {
+            ///  Receive data value
+            RDR: u9,
+            padding: u23 = 0,
+        }),
+        ///  Transmit data register
+        TDR: mmio.Mmio(32, packed struct {
+            ///  Transmit data value
+            TDR: u9,
+            padding: u23 = 0,
+        }),
+    };
+
+    ///  Comparator
+    pub const COMP = extern struct {
+        ///  control and status register
+        CSR: mmio.Mmio(32, packed struct {
+            ///  Comparator 1 enable
+            COMP1EN: u1,
+            ///  COMP1_INP_DAC
+            COMP1_INP_DAC: u1,
+            ///  Comparator 1 mode
+            COMP1MODE: u2,
+            ///  Comparator 1 inverting input selection
+            COMP1INSEL: u3,
+            reserved8: u1 = 0,
+            ///  Comparator 1 output selection
+            COMP1OUTSEL: u3,
+            ///  Comparator 1 output polarity
+            COMP1POL: u1,
+            ///  Comparator 1 hysteresis
+            COMP1HYST: u2,
+            ///  Comparator 1 output
+            COMP1OUT: u1,
+            ///  Comparator 1 lock
+            COMP1LOCK: u1,
+            ///  Comparator 2 enable
+            COMP2EN: u1,
+            reserved18: u1 = 0,
+            ///  Comparator 2 mode
+            COMP2MODE: u2,
+            ///  Comparator 2 inverting input selection
+            COMP2INSEL: u3,
+            ///  Window mode enable
+            WNDWEN: u1,
+            ///  Comparator 2 output selection
+            COMP2OUTSEL: u3,
+            ///  Comparator 2 output polarity
+            COMP2POL: u1,
+            ///  Comparator 2 hysteresis
+            COMP2HYST: u2,
+            ///  Comparator 2 output
+            COMP2OUT: u1,
+            ///  Comparator 2 lock
+            COMP2LOCK: u1,
+        }),
+    };
+
+    ///  Real-time clock
+    pub const RTC = extern struct {
+        ///  time register
+        TR: mmio.Mmio(32, packed struct {
+            ///  Second units in BCD format
+            SU: u4,
+            ///  Second tens in BCD format
+            ST: u3,
+            reserved8: u1 = 0,
+            ///  Minute units in BCD format
+            MNU: u4,
+            ///  Minute tens in BCD format
+            MNT: u3,
+            reserved16: u1 = 0,
+            ///  Hour units in BCD format
+            HU: u4,
+            ///  Hour tens in BCD format
+            HT: u2,
+            ///  AM/PM notation
+            PM: u1,
+            padding: u9 = 0,
+        }),
+        ///  date register
+        DR: mmio.Mmio(32, packed struct {
+            ///  Date units in BCD format
+            DU: u4,
+            ///  Date tens in BCD format
+            DT: u2,
+            reserved8: u2 = 0,
+            ///  Month units in BCD format
+            MU: u4,
+            ///  Month tens in BCD format
+            MT: u1,
+            ///  Week day units
+            WDU: u3,
+            ///  Year units in BCD format
+            YU: u4,
+            ///  Year tens in BCD format
+            YT: u4,
+            padding: u8 = 0,
+        }),
+        ///  control register
+        CR: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  Time-stamp event active edge
+            TSEDGE: u1,
+            ///  RTC_REFIN reference clock detection enable (50 or 60 Hz)
+            REFCKON: u1,
+            ///  Bypass the shadow registers
+            BYPSHAD: u1,
+            ///  Hour format
+            FMT: u1,
+            reserved8: u1 = 0,
+            ///  Alarm A enable
+            ALRAE: u1,
+            reserved11: u2 = 0,
+            ///  timestamp enable
+            TSE: u1,
+            ///  Alarm A interrupt enable
+            ALRAIE: u1,
+            reserved15: u2 = 0,
+            ///  Time-stamp interrupt enable
+            TSIE: u1,
+            ///  Add 1 hour (summer time change)
+            ADD1H: u1,
+            ///  Subtract 1 hour (winter time change)
+            SUB1H: u1,
+            ///  Backup
+            BKP: u1,
+            ///  Calibration output selection
+            COSEL: u1,
+            ///  Output polarity
+            POL: u1,
+            ///  Output selection
+            OSEL: u2,
+            ///  Calibration output enable
+            COE: u1,
+            padding: u8 = 0,
+        }),
+        ///  initialization and status register
+        ISR: mmio.Mmio(32, packed struct {
+            ///  Alarm A write flag
+            ALRAWF: u1,
+            reserved3: u2 = 0,
+            ///  Shift operation pending
+            SHPF: u1,
+            ///  Initialization status flag
+            INITS: u1,
+            ///  Registers synchronization flag
+            RSF: u1,
+            ///  Initialization flag
+            INITF: u1,
+            ///  Initialization mode
+            INIT: u1,
+            ///  Alarm A flag
+            ALRAF: u1,
+            reserved11: u2 = 0,
+            ///  Time-stamp flag
+            TSF: u1,
+            ///  Time-stamp overflow flag
+            TSOVF: u1,
+            ///  RTC_TAMP1 detection flag
+            TAMP1F: u1,
+            ///  RTC_TAMP2 detection flag
+            TAMP2F: u1,
+            reserved16: u1 = 0,
+            ///  Recalibration pending Flag
+            RECALPF: u1,
+            padding: u15 = 0,
+        }),
+        ///  prescaler register
+        PRER: mmio.Mmio(32, packed struct {
+            ///  Synchronous prescaler factor
+            PREDIV_S: u15,
+            reserved16: u1 = 0,
+            ///  Asynchronous prescaler factor
+            PREDIV_A: u7,
+            padding: u9 = 0,
+        }),
+        reserved28: [8]u8,
+        ///  alarm A register
+        ALRMAR: mmio.Mmio(32, packed struct {
+            ///  Second units in BCD format.
+            SU: u4,
+            ///  Second tens in BCD format.
+            ST: u3,
+            ///  Alarm A seconds mask
+            MSK1: u1,
+            ///  Minute units in BCD format.
+            MNU: u4,
+            ///  Minute tens in BCD format.
+            MNT: u3,
+            ///  Alarm A minutes mask
+            MSK2: u1,
+            ///  Hour units in BCD format.
+            HU: u4,
+            ///  Hour tens in BCD format.
+            HT: u2,
+            ///  AM/PM notation
+            PM: u1,
+            ///  Alarm A hours mask
+            MSK3: u1,
+            ///  Date units or day in BCD format.
+            DU: u4,
+            ///  Date tens in BCD format.
+            DT: u2,
+            ///  Week day selection
+            WDSEL: u1,
+            ///  Alarm A date mask
+            MSK4: u1,
+        }),
+        reserved36: [4]u8,
+        ///  write protection register
+        WPR: mmio.Mmio(32, packed struct {
+            ///  Write protection key
+            KEY: u8,
+            padding: u24 = 0,
+        }),
+        ///  sub second register
+        SSR: mmio.Mmio(32, packed struct {
+            ///  Sub second value
+            SS: u16,
+            padding: u16 = 0,
+        }),
+        ///  shift control register
+        SHIFTR: mmio.Mmio(32, packed struct {
+            ///  Subtract a fraction of a second
+            SUBFS: u15,
+            reserved31: u16 = 0,
+            ///  Reserved
+            ADD1S: u1,
+        }),
+        ///  timestamp time register
+        TSTR: mmio.Mmio(32, packed struct {
+            ///  Second units in BCD format.
+            SU: u4,
+            ///  Second tens in BCD format.
+            ST: u3,
+            reserved8: u1 = 0,
+            ///  Minute units in BCD format.
+            MNU: u4,
+            ///  Minute tens in BCD format.
+            MNT: u3,
+            reserved16: u1 = 0,
+            ///  Hour units in BCD format.
+            HU: u4,
+            ///  Hour tens in BCD format.
+            HT: u2,
+            ///  AM/PM notation
+            PM: u1,
+            padding: u9 = 0,
+        }),
+        ///  timestamp date register
+        TSDR: mmio.Mmio(32, packed struct {
+            ///  Date units in BCD format
+            DU: u4,
+            ///  Date tens in BCD format
+            DT: u2,
+            reserved8: u2 = 0,
+            ///  Month units in BCD format
+            MU: u4,
+            ///  Month tens in BCD format
+            MT: u1,
+            ///  Week day units
+            WDU: u3,
+            padding: u16 = 0,
+        }),
+        ///  time-stamp sub second register
+        TSSSR: mmio.Mmio(32, packed struct {
+            ///  Sub second value
+            SS: u16,
+            padding: u16 = 0,
+        }),
+        ///  calibration register
+        CALR: mmio.Mmio(32, packed struct {
+            ///  Calibration minus
+            CALM: u9,
+            reserved13: u4 = 0,
+            ///  Reserved
+            CALW16: u1,
+            ///  Use a 16-second calibration cycle period
+            CALW8: u1,
+            ///  Use an 8-second calibration cycle period
+            CALP: u1,
+            padding: u16 = 0,
+        }),
+        ///  tamper and alternate function configuration register
+        TAFCR: mmio.Mmio(32, packed struct {
+            ///  RTC_TAMP1 input detection enable
+            TAMP1E: u1,
+            ///  Active level for RTC_TAMP1 input
+            TAMP1TRG: u1,
+            ///  Tamper interrupt enable
+            TAMPIE: u1,
+            ///  RTC_TAMP2 input detection enable
+            TAMP2E: u1,
+            ///  Active level for RTC_TAMP2 input
+            TAMP2_TRG: u1,
+            reserved7: u2 = 0,
+            ///  Activate timestamp on tamper detection event
+            TAMPTS: u1,
+            ///  Tamper sampling frequency
+            TAMPFREQ: u3,
+            ///  RTC_TAMPx filter count
+            TAMPFLT: u2,
+            ///  RTC_TAMPx precharge duration
+            TAMP_PRCH: u2,
+            ///  RTC_TAMPx pull-up disable
+            TAMP_PUDIS: u1,
+            reserved18: u2 = 0,
+            ///  RTC_ALARM output type/PC13 value
+            PC13VALUE: u1,
+            ///  PC13 mode
+            PC13MODE: u1,
+            ///  PC14 value
+            PC14VALUE: u1,
+            ///  PC14 mode
+            PC14MODE: u1,
+            ///  PC15 value
+            PC15VALUE: u1,
+            ///  PC15 mode
+            PC15MODE: u1,
+            padding: u8 = 0,
+        }),
+        ///  alarm A sub second register
+        ALRMASSR: mmio.Mmio(32, packed struct {
+            ///  Sub seconds value
+            SS: u15,
+            reserved24: u9 = 0,
+            ///  Mask the most-significant bits starting at this bit
+            MASKSS: u4,
+            padding: u4 = 0,
+        }),
+        reserved80: [8]u8,
+        ///  backup register
+        BKP0R: mmio.Mmio(32, packed struct {
+            ///  BKP
+            BKP: u32,
+        }),
+        ///  backup register
+        BKP1R: mmio.Mmio(32, packed struct {
+            ///  BKP
+            BKP: u32,
+        }),
+        ///  backup register
+        BKP2R: mmio.Mmio(32, packed struct {
+            ///  BKP
+            BKP: u32,
+        }),
+        ///  backup register
+        BKP3R: mmio.Mmio(32, packed struct {
+            ///  BKP
+            BKP: u32,
+        }),
+        ///  backup register
+        BKP4R: mmio.Mmio(32, packed struct {
+            ///  BKP
+            BKP: u32,
+        }),
+    };
+
+    ///  General-purpose-timers
+    pub const TIM15 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            CEN: u1,
+            ///  Update disable
+            UDIS: u1,
+            ///  Update request source
+            URS: u1,
+            ///  One-pulse mode
+            OPM: u1,
+            reserved7: u3 = 0,
+            ///  Auto-reload preload enable
+            ARPE: u1,
+            ///  Clock division
+            CKD: u2,
+            padding: u22 = 0,
+        }),
+        ///  control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            ///  Capture/compare preloaded control
+            CCPC: u1,
+            reserved2: u1 = 0,
+            ///  Capture/compare control update selection
+            CCUS: u1,
+            ///  Capture/compare DMA selection
+            CCDS: u1,
+            ///  Master mode selection
+            MMS: u3,
+            reserved8: u1 = 0,
+            ///  Output Idle state 1
+            OIS1: u1,
+            ///  Output Idle state 1
+            OIS1N: u1,
+            ///  Output Idle state 2
+            OIS2: u1,
+            padding: u21 = 0,
+        }),
+        ///  slave mode control register
+        SMCR: mmio.Mmio(32, packed struct {
+            ///  Slave mode selection
+            SMS: u3,
+            reserved4: u1 = 0,
+            ///  Trigger selection
+            TS: u3,
+            ///  Master/Slave mode
+            MSM: u1,
+            padding: u24 = 0,
+        }),
+        ///  DMA/Interrupt enable register
+        DIER: mmio.Mmio(32, packed struct {
+            ///  Update interrupt enable
+            UIE: u1,
+            ///  Capture/Compare 1 interrupt enable
+            CC1IE: u1,
+            ///  Capture/Compare 2 interrupt enable
+            CC2IE: u1,
+            reserved5: u2 = 0,
+            ///  COM interrupt enable
+            COMIE: u1,
+            ///  Trigger interrupt enable
+            TIE: u1,
+            ///  Break interrupt enable
+            BIE: u1,
+            ///  Update DMA request enable
+            UDE: u1,
+            ///  Capture/Compare 1 DMA request enable
+            CC1DE: u1,
+            ///  Capture/Compare 2 DMA request enable
+            CC2DE: u1,
+            reserved14: u3 = 0,
+            ///  Trigger DMA request enable
+            TDE: u1,
+            padding: u17 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Update interrupt flag
+            UIF: u1,
+            ///  Capture/compare 1 interrupt flag
+            CC1IF: u1,
+            ///  Capture/Compare 2 interrupt flag
+            CC2IF: u1,
+            reserved5: u2 = 0,
+            ///  COM interrupt flag
+            COMIF: u1,
+            ///  Trigger interrupt flag
+            TIF: u1,
+            ///  Break interrupt flag
+            BIF: u1,
+            reserved9: u1 = 0,
+            ///  Capture/Compare 1 overcapture flag
+            CC1OF: u1,
+            ///  Capture/compare 2 overcapture flag
+            CC2OF: u1,
+            padding: u21 = 0,
+        }),
+        ///  event generation register
+        EGR: mmio.Mmio(32, packed struct {
+            ///  Update generation
+            UG: u1,
+            ///  Capture/compare 1 generation
+            CC1G: u1,
+            ///  Capture/compare 2 generation
+            CC2G: u1,
+            reserved5: u2 = 0,
+            ///  Capture/Compare control update generation
+            COMG: u1,
+            ///  Trigger generation
+            TG: u1,
+            ///  Break generation
+            BG: u1,
+            padding: u24 = 0,
+        }),
+        ///  capture/compare mode register (output mode)
+        CCMR1_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 selection
+            CC1S: u2,
+            ///  Output Compare 1 fast enable
+            OC1FE: u1,
+            ///  Output Compare 1 preload enable
+            OC1PE: u1,
+            ///  Output Compare 1 mode
+            OC1M: u3,
+            reserved8: u1 = 0,
+            ///  Capture/Compare 2 selection
+            CC2S: u2,
+            ///  Output Compare 2 fast enable
+            OC2FE: u1,
+            ///  Output Compare 2 preload enable
+            OC2PE: u1,
+            ///  Output Compare 2 mode
+            OC2M: u3,
+            padding: u17 = 0,
+        }),
+        reserved32: [4]u8,
+        ///  capture/compare enable register
+        CCER: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 output enable
+            CC1E: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1P: u1,
+            ///  Capture/Compare 1 complementary output enable
+            CC1NE: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1NP: u1,
+            ///  Capture/Compare 2 output enable
+            CC2E: u1,
+            ///  Capture/Compare 2 output Polarity
+            CC2P: u1,
+            reserved7: u1 = 0,
+            ///  Capture/Compare 2 output Polarity
+            CC2NP: u1,
+            padding: u24 = 0,
+        }),
+        ///  counter
+        CNT: mmio.Mmio(32, packed struct {
+            ///  counter value
+            CNT: u16,
+            padding: u16 = 0,
+        }),
+        ///  prescaler
+        PSC: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u16,
+            padding: u16 = 0,
+        }),
+        ///  auto-reload register
+        ARR: mmio.Mmio(32, packed struct {
+            ///  Auto-reload value
+            ARR: u16,
+            padding: u16 = 0,
+        }),
+        ///  repetition counter register
+        RCR: mmio.Mmio(32, packed struct {
+            ///  Repetition counter value
+            REP: u8,
+            padding: u24 = 0,
+        }),
+        ///  capture/compare register 1
+        CCR1: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 value
+            CCR1: u16,
+            padding: u16 = 0,
+        }),
+        ///  capture/compare register 2
+        CCR2: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 2 value
+            CCR2: u16,
+            padding: u16 = 0,
+        }),
+        reserved68: [8]u8,
+        ///  break and dead-time register
+        BDTR: mmio.Mmio(32, packed struct {
+            ///  Dead-time generator setup
+            DTG: u8,
+            ///  Lock configuration
+            LOCK: u2,
+            ///  Off-state selection for Idle mode
+            OSSI: u1,
+            ///  Off-state selection for Run mode
+            OSSR: u1,
+            ///  Break enable
+            BKE: u1,
+            ///  Break polarity
+            BKP: u1,
+            ///  Automatic output enable
+            AOE: u1,
+            ///  Main output enable
+            MOE: u1,
+            padding: u16 = 0,
+        }),
+        ///  DMA control register
+        DCR: mmio.Mmio(32, packed struct {
+            ///  DMA base address
+            DBA: u5,
+            reserved8: u3 = 0,
+            ///  DMA burst length
+            DBL: u5,
+            padding: u19 = 0,
+        }),
+        ///  DMA address for full transfer
+        DMAR: mmio.Mmio(32, packed struct {
+            ///  DMA register for burst accesses
+            DMAB: u16,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  General-purpose-timers
+    pub const TIM16 = extern struct {
+        ///  control register 1
+        CR1: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            CEN: u1,
+            ///  Update disable
+            UDIS: u1,
+            ///  Update request source
+            URS: u1,
+            ///  One-pulse mode
+            OPM: u1,
+            reserved7: u3 = 0,
+            ///  Auto-reload preload enable
+            ARPE: u1,
+            ///  Clock division
+            CKD: u2,
+            padding: u22 = 0,
+        }),
+        ///  control register 2
+        CR2: mmio.Mmio(32, packed struct {
+            ///  Capture/compare preloaded control
+            CCPC: u1,
+            reserved2: u1 = 0,
+            ///  Capture/compare control update selection
+            CCUS: u1,
+            ///  Capture/compare DMA selection
+            CCDS: u1,
+            reserved8: u4 = 0,
+            ///  Output Idle state 1
+            OIS1: u1,
+            ///  Output Idle state 1
+            OIS1N: u1,
+            padding: u22 = 0,
+        }),
+        reserved12: [4]u8,
+        ///  DMA/Interrupt enable register
+        DIER: mmio.Mmio(32, packed struct {
+            ///  Update interrupt enable
+            UIE: u1,
+            ///  Capture/Compare 1 interrupt enable
+            CC1IE: u1,
+            reserved5: u3 = 0,
+            ///  COM interrupt enable
+            COMIE: u1,
+            ///  Trigger interrupt enable
+            TIE: u1,
+            ///  Break interrupt enable
+            BIE: u1,
+            ///  Update DMA request enable
+            UDE: u1,
+            ///  Capture/Compare 1 DMA request enable
+            CC1DE: u1,
+            reserved14: u4 = 0,
+            ///  Trigger DMA request enable
+            TDE: u1,
+            padding: u17 = 0,
+        }),
+        ///  status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Update interrupt flag
+            UIF: u1,
+            ///  Capture/compare 1 interrupt flag
+            CC1IF: u1,
+            reserved5: u3 = 0,
+            ///  COM interrupt flag
+            COMIF: u1,
+            ///  Trigger interrupt flag
+            TIF: u1,
+            ///  Break interrupt flag
+            BIF: u1,
+            reserved9: u1 = 0,
+            ///  Capture/Compare 1 overcapture flag
+            CC1OF: u1,
+            padding: u22 = 0,
+        }),
+        ///  event generation register
+        EGR: mmio.Mmio(32, packed struct {
+            ///  Update generation
+            UG: u1,
+            ///  Capture/compare 1 generation
+            CC1G: u1,
+            reserved5: u3 = 0,
+            ///  Capture/Compare control update generation
+            COMG: u1,
+            ///  Trigger generation
+            TG: u1,
+            ///  Break generation
+            BG: u1,
+            padding: u24 = 0,
+        }),
+        ///  capture/compare mode register (output mode)
+        CCMR1_Output: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 selection
+            CC1S: u2,
+            ///  Output Compare 1 fast enable
+            OC1FE: u1,
+            ///  Output Compare 1 preload enable
+            OC1PE: u1,
+            ///  Output Compare 1 mode
+            OC1M: u3,
+            padding: u25 = 0,
+        }),
+        reserved32: [4]u8,
+        ///  capture/compare enable register
+        CCER: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 output enable
+            CC1E: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1P: u1,
+            ///  Capture/Compare 1 complementary output enable
+            CC1NE: u1,
+            ///  Capture/Compare 1 output Polarity
+            CC1NP: u1,
+            padding: u28 = 0,
+        }),
+        ///  counter
+        CNT: mmio.Mmio(32, packed struct {
+            ///  counter value
+            CNT: u16,
+            padding: u16 = 0,
+        }),
+        ///  prescaler
+        PSC: mmio.Mmio(32, packed struct {
+            ///  Prescaler value
+            PSC: u16,
+            padding: u16 = 0,
+        }),
+        ///  auto-reload register
+        ARR: mmio.Mmio(32, packed struct {
+            ///  Auto-reload value
+            ARR: u16,
+            padding: u16 = 0,
+        }),
+        ///  repetition counter register
+        RCR: mmio.Mmio(32, packed struct {
+            ///  Repetition counter value
+            REP: u8,
+            padding: u24 = 0,
+        }),
+        ///  capture/compare register 1
+        CCR1: mmio.Mmio(32, packed struct {
+            ///  Capture/Compare 1 value
+            CCR1: u16,
+            padding: u16 = 0,
+        }),
+        reserved68: [12]u8,
+        ///  break and dead-time register
+        BDTR: mmio.Mmio(32, packed struct {
+            ///  Dead-time generator setup
+            DTG: u8,
+            ///  Lock configuration
+            LOCK: u2,
+            ///  Off-state selection for Idle mode
+            OSSI: u1,
+            ///  Off-state selection for Run mode
+            OSSR: u1,
+            ///  Break enable
+            BKE: u1,
+            ///  Break polarity
+            BKP: u1,
+            ///  Automatic output enable
+            AOE: u1,
+            ///  Main output enable
+            MOE: u1,
+            padding: u16 = 0,
+        }),
+        ///  DMA control register
+        DCR: mmio.Mmio(32, packed struct {
+            ///  DMA base address
+            DBA: u5,
+            reserved8: u3 = 0,
+            ///  DMA burst length
+            DBL: u5,
+            padding: u19 = 0,
+        }),
+        ///  DMA address for full transfer
+        DMAR: mmio.Mmio(32, packed struct {
+            ///  DMA register for burst accesses
+            DMAB: u16,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  Touch sensing controller
+    pub const TSC = extern struct {
+        ///  control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  Touch sensing controller enable
+            TSCE: u1,
+            ///  Start a new acquisition
+            START: u1,
+            ///  Acquisition mode
+            AM: u1,
+            ///  Synchronization pin polarity
+            SYNCPOL: u1,
+            ///  I/O Default mode
+            IODEF: u1,
+            ///  Max count value
+            MCV: u3,
+            reserved12: u4 = 0,
+            ///  pulse generator prescaler
+            PGPSC: u3,
+            ///  Spread spectrum prescaler
+            SSPSC: u1,
+            ///  Spread spectrum enable
+            SSE: u1,
+            ///  Spread spectrum deviation
+            SSD: u7,
+            ///  Charge transfer pulse low
+            CTPL: u4,
+            ///  Charge transfer pulse high
+            CTPH: u4,
+        }),
+        ///  interrupt enable register
+        IER: mmio.Mmio(32, packed struct {
+            ///  End of acquisition interrupt enable
+            EOAIE: u1,
+            ///  Max count error interrupt enable
+            MCEIE: u1,
+            padding: u30 = 0,
+        }),
+        ///  interrupt clear register
+        ICR: mmio.Mmio(32, packed struct {
+            ///  End of acquisition interrupt clear
+            EOAIC: u1,
+            ///  Max count error interrupt clear
+            MCEIC: u1,
+            padding: u30 = 0,
+        }),
+        ///  interrupt status register
+        ISR: mmio.Mmio(32, packed struct {
+            ///  End of acquisition flag
+            EOAF: u1,
+            ///  Max count error flag
+            MCEF: u1,
+            padding: u30 = 0,
+        }),
+        ///  I/O hysteresis control register
+        IOHCR: mmio.Mmio(32, packed struct {
+            ///  G1_IO1 Schmitt trigger hysteresis mode
+            G1_IO1: u1,
+            ///  G1_IO2 Schmitt trigger hysteresis mode
+            G1_IO2: u1,
+            ///  G1_IO3 Schmitt trigger hysteresis mode
+            G1_IO3: u1,
+            ///  G1_IO4 Schmitt trigger hysteresis mode
+            G1_IO4: u1,
+            ///  G2_IO1 Schmitt trigger hysteresis mode
+            G2_IO1: u1,
+            ///  G2_IO2 Schmitt trigger hysteresis mode
+            G2_IO2: u1,
+            ///  G2_IO3 Schmitt trigger hysteresis mode
+            G2_IO3: u1,
+            ///  G2_IO4 Schmitt trigger hysteresis mode
+            G2_IO4: u1,
+            ///  G3_IO1 Schmitt trigger hysteresis mode
+            G3_IO1: u1,
+            ///  G3_IO2 Schmitt trigger hysteresis mode
+            G3_IO2: u1,
+            ///  G3_IO3 Schmitt trigger hysteresis mode
+            G3_IO3: u1,
+            ///  G3_IO4 Schmitt trigger hysteresis mode
+            G3_IO4: u1,
+            ///  G4_IO1 Schmitt trigger hysteresis mode
+            G4_IO1: u1,
+            ///  G4_IO2 Schmitt trigger hysteresis mode
+            G4_IO2: u1,
+            ///  G4_IO3 Schmitt trigger hysteresis mode
+            G4_IO3: u1,
+            ///  G4_IO4 Schmitt trigger hysteresis mode
+            G4_IO4: u1,
+            ///  G5_IO1 Schmitt trigger hysteresis mode
+            G5_IO1: u1,
+            ///  G5_IO2 Schmitt trigger hysteresis mode
+            G5_IO2: u1,
+            ///  G5_IO3 Schmitt trigger hysteresis mode
+            G5_IO3: u1,
+            ///  G5_IO4 Schmitt trigger hysteresis mode
+            G5_IO4: u1,
+            ///  G6_IO1 Schmitt trigger hysteresis mode
+            G6_IO1: u1,
+            ///  G6_IO2 Schmitt trigger hysteresis mode
+            G6_IO2: u1,
+            ///  G6_IO3 Schmitt trigger hysteresis mode
+            G6_IO3: u1,
+            ///  G6_IO4 Schmitt trigger hysteresis mode
+            G6_IO4: u1,
+            padding: u8 = 0,
+        }),
+        reserved24: [4]u8,
+        ///  I/O analog switch control register
+        IOASCR: mmio.Mmio(32, packed struct {
+            ///  G1_IO1 analog switch enable
+            G1_IO1: u1,
+            ///  G1_IO2 analog switch enable
+            G1_IO2: u1,
+            ///  G1_IO3 analog switch enable
+            G1_IO3: u1,
+            ///  G1_IO4 analog switch enable
+            G1_IO4: u1,
+            ///  G2_IO1 analog switch enable
+            G2_IO1: u1,
+            ///  G2_IO2 analog switch enable
+            G2_IO2: u1,
+            ///  G2_IO3 analog switch enable
+            G2_IO3: u1,
+            ///  G2_IO4 analog switch enable
+            G2_IO4: u1,
+            ///  G3_IO1 analog switch enable
+            G3_IO1: u1,
+            ///  G3_IO2 analog switch enable
+            G3_IO2: u1,
+            ///  G3_IO3 analog switch enable
+            G3_IO3: u1,
+            ///  G3_IO4 analog switch enable
+            G3_IO4: u1,
+            ///  G4_IO1 analog switch enable
+            G4_IO1: u1,
+            ///  G4_IO2 analog switch enable
+            G4_IO2: u1,
+            ///  G4_IO3 analog switch enable
+            G4_IO3: u1,
+            ///  G4_IO4 analog switch enable
+            G4_IO4: u1,
+            ///  G5_IO1 analog switch enable
+            G5_IO1: u1,
+            ///  G5_IO2 analog switch enable
+            G5_IO2: u1,
+            ///  G5_IO3 analog switch enable
+            G5_IO3: u1,
+            ///  G5_IO4 analog switch enable
+            G5_IO4: u1,
+            ///  G6_IO1 analog switch enable
+            G6_IO1: u1,
+            ///  G6_IO2 analog switch enable
+            G6_IO2: u1,
+            ///  G6_IO3 analog switch enable
+            G6_IO3: u1,
+            ///  G6_IO4 analog switch enable
+            G6_IO4: u1,
+            padding: u8 = 0,
+        }),
+        reserved32: [4]u8,
+        ///  I/O sampling control register
+        IOSCR: mmio.Mmio(32, packed struct {
+            ///  G1_IO1 sampling mode
+            G1_IO1: u1,
+            ///  G1_IO2 sampling mode
+            G1_IO2: u1,
+            ///  G1_IO3 sampling mode
+            G1_IO3: u1,
+            ///  G1_IO4 sampling mode
+            G1_IO4: u1,
+            ///  G2_IO1 sampling mode
+            G2_IO1: u1,
+            ///  G2_IO2 sampling mode
+            G2_IO2: u1,
+            ///  G2_IO3 sampling mode
+            G2_IO3: u1,
+            ///  G2_IO4 sampling mode
+            G2_IO4: u1,
+            ///  G3_IO1 sampling mode
+            G3_IO1: u1,
+            ///  G3_IO2 sampling mode
+            G3_IO2: u1,
+            ///  G3_IO3 sampling mode
+            G3_IO3: u1,
+            ///  G3_IO4 sampling mode
+            G3_IO4: u1,
+            ///  G4_IO1 sampling mode
+            G4_IO1: u1,
+            ///  G4_IO2 sampling mode
+            G4_IO2: u1,
+            ///  G4_IO3 sampling mode
+            G4_IO3: u1,
+            ///  G4_IO4 sampling mode
+            G4_IO4: u1,
+            ///  G5_IO1 sampling mode
+            G5_IO1: u1,
+            ///  G5_IO2 sampling mode
+            G5_IO2: u1,
+            ///  G5_IO3 sampling mode
+            G5_IO3: u1,
+            ///  G5_IO4 sampling mode
+            G5_IO4: u1,
+            ///  G6_IO1 sampling mode
+            G6_IO1: u1,
+            ///  G6_IO2 sampling mode
+            G6_IO2: u1,
+            ///  G6_IO3 sampling mode
+            G6_IO3: u1,
+            ///  G6_IO4 sampling mode
+            G6_IO4: u1,
+            padding: u8 = 0,
+        }),
+        reserved40: [4]u8,
+        ///  I/O channel control register
+        IOCCR: mmio.Mmio(32, packed struct {
+            ///  G1_IO1 channel mode
+            G1_IO1: u1,
+            ///  G1_IO2 channel mode
+            G1_IO2: u1,
+            ///  G1_IO3 channel mode
+            G1_IO3: u1,
+            ///  G1_IO4 channel mode
+            G1_IO4: u1,
+            ///  G2_IO1 channel mode
+            G2_IO1: u1,
+            ///  G2_IO2 channel mode
+            G2_IO2: u1,
+            ///  G2_IO3 channel mode
+            G2_IO3: u1,
+            ///  G2_IO4 channel mode
+            G2_IO4: u1,
+            ///  G3_IO1 channel mode
+            G3_IO1: u1,
+            ///  G3_IO2 channel mode
+            G3_IO2: u1,
+            ///  G3_IO3 channel mode
+            G3_IO3: u1,
+            ///  G3_IO4 channel mode
+            G3_IO4: u1,
+            ///  G4_IO1 channel mode
+            G4_IO1: u1,
+            ///  G4_IO2 channel mode
+            G4_IO2: u1,
+            ///  G4_IO3 channel mode
+            G4_IO3: u1,
+            ///  G4_IO4 channel mode
+            G4_IO4: u1,
+            ///  G5_IO1 channel mode
+            G5_IO1: u1,
+            ///  G5_IO2 channel mode
+            G5_IO2: u1,
+            ///  G5_IO3 channel mode
+            G5_IO3: u1,
+            ///  G5_IO4 channel mode
+            G5_IO4: u1,
+            ///  G6_IO1 channel mode
+            G6_IO1: u1,
+            ///  G6_IO2 channel mode
+            G6_IO2: u1,
+            ///  G6_IO3 channel mode
+            G6_IO3: u1,
+            ///  G6_IO4 channel mode
+            G6_IO4: u1,
+            padding: u8 = 0,
+        }),
+        reserved48: [4]u8,
+        ///  I/O group control status register
+        IOGCSR: mmio.Mmio(32, packed struct {
+            ///  Analog I/O group x enable
+            G1E: u1,
+            ///  Analog I/O group x enable
+            G2E: u1,
+            ///  Analog I/O group x enable
+            G3E: u1,
+            ///  Analog I/O group x enable
+            G4E: u1,
+            ///  Analog I/O group x enable
+            G5E: u1,
+            ///  Analog I/O group x enable
+            G6E: u1,
+            ///  Analog I/O group x enable
+            G7E: u1,
+            ///  Analog I/O group x enable
+            G8E: u1,
+            reserved16: u8 = 0,
+            ///  Analog I/O group x status
+            G1S: u1,
+            ///  Analog I/O group x status
+            G2S: u1,
+            ///  Analog I/O group x status
+            G3S: u1,
+            ///  Analog I/O group x status
+            G4S: u1,
+            ///  Analog I/O group x status
+            G5S: u1,
+            ///  Analog I/O group x status
+            G6S: u1,
+            ///  Analog I/O group x status
+            G7S: u1,
+            ///  Analog I/O group x status
+            G8S: u1,
+            padding: u8 = 0,
+        }),
+        ///  I/O group x counter register
+        IOG1CR: mmio.Mmio(32, packed struct {
+            ///  Counter value
+            CNT: u14,
+            padding: u18 = 0,
+        }),
+        ///  I/O group x counter register
+        IOG2CR: mmio.Mmio(32, packed struct {
+            ///  Counter value
+            CNT: u14,
+            padding: u18 = 0,
+        }),
+        ///  I/O group x counter register
+        IOG3CR: mmio.Mmio(32, packed struct {
+            ///  Counter value
+            CNT: u14,
+            padding: u18 = 0,
+        }),
+        ///  I/O group x counter register
+        IOG4CR: mmio.Mmio(32, packed struct {
+            ///  Counter value
+            CNT: u14,
+            padding: u18 = 0,
+        }),
+        ///  I/O group x counter register
+        IOG5CR: mmio.Mmio(32, packed struct {
+            ///  Counter value
+            CNT: u14,
+            padding: u18 = 0,
+        }),
+        ///  I/O group x counter register
+        IOG6CR: mmio.Mmio(32, packed struct {
+            ///  Counter value
+            CNT: u14,
+            padding: u18 = 0,
+        }),
+    };
+
+    ///  HDMI-CEC controller
+    pub const CEC = extern struct {
+        ///  control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  CEC Enable
+            CECEN: u1,
+            ///  Tx start of message
+            TXSOM: u1,
+            ///  Tx End Of Message
+            TXEOM: u1,
+            padding: u29 = 0,
+        }),
+        ///  configuration register
+        CFGR: mmio.Mmio(32, packed struct {
+            ///  Own Address
+            OAR: u4,
+            ///  Listen mode
+            LSTN: u1,
+            ///  Signal Free Time
+            SFT: u3,
+            ///  Rx-Tolerance
+            RXTOL: u1,
+            ///  Rx-stop on bit rising error
+            BRESTP: u1,
+            ///  Generate error-bit on bit rising error
+            BREGEN: u1,
+            ///  Generate Error-Bit on Long Bit Period Error
+            LBPEGEN: u1,
+            padding: u20 = 0,
+        }),
+        ///  Tx data register
+        TXDR: mmio.Mmio(32, packed struct {
+            ///  Tx Data register
+            TXD: u8,
+            padding: u24 = 0,
+        }),
+        ///  Rx Data Register
+        RXDR: mmio.Mmio(32, packed struct {
+            ///  CEC Rx Data Register
+            RXDR: u8,
+            padding: u24 = 0,
+        }),
+        ///  Interrupt and Status Register
+        ISR: mmio.Mmio(32, packed struct {
+            ///  Rx-Byte Received
+            RXBR: u1,
+            ///  End Of Reception
+            RXEND: u1,
+            ///  Rx-Overrun
+            RXOVR: u1,
+            ///  Rx-Bit rising error
+            BRE: u1,
+            ///  Rx-Short Bit period error
+            SBPE: u1,
+            ///  Rx-Long Bit Period Error
+            LBPE: u1,
+            ///  Rx-Missing Acknowledge
+            RXACKE: u1,
+            ///  Arbitration Lost
+            ARBLST: u1,
+            ///  Tx-Byte Request
+            TXBR: u1,
+            ///  End of Transmission
+            TXEND: u1,
+            ///  Tx-Buffer Underrun
+            TXUDR: u1,
+            ///  Tx-Error
+            TXERR: u1,
+            ///  Tx-Missing acknowledge error
+            TXACKE: u1,
+            padding: u19 = 0,
+        }),
+        ///  interrupt enable register
+        IER: mmio.Mmio(32, packed struct {
+            ///  Rx-Byte Received Interrupt Enable
+            RXBRIE: u1,
+            ///  End Of Reception Interrupt Enable
+            RXENDIE: u1,
+            ///  Rx-Buffer Overrun Interrupt Enable
+            RXOVRIE: u1,
+            ///  Bit Rising Error Interrupt Enable
+            BREIE: u1,
+            ///  Short Bit Period Error Interrupt Enable
+            SBPEIE: u1,
+            ///  Long Bit Period Error Interrupt Enable
+            LBPEIE: u1,
+            ///  Rx-Missing Acknowledge Error Interrupt Enable
+            RXACKIE: u1,
+            ///  Arbitration Lost Interrupt Enable
+            ARBLSTIE: u1,
+            ///  Tx-Byte Request Interrupt Enable
+            TXBRIE: u1,
+            ///  Tx-End of message interrupt enable
+            TXENDIE: u1,
+            ///  Tx-Underrun interrupt enable
+            TXUDRIE: u1,
+            ///  Tx-Error Interrupt Enable
+            TXERRIE: u1,
+            ///  Tx-Missing Acknowledge Error Interrupt Enable
+            TXACKIE: u1,
+            padding: u19 = 0,
+        }),
+    };
+
+    ///  Flash
+    pub const Flash = extern struct {
+        ///  Flash access control register
+        ACR: mmio.Mmio(32, packed struct {
+            ///  LATENCY
+            LATENCY: u3,
+            reserved4: u1 = 0,
+            ///  PRFTBE
+            PRFTBE: u1,
+            ///  PRFTBS
+            PRFTBS: u1,
+            padding: u26 = 0,
+        }),
+        ///  Flash key register
+        KEYR: mmio.Mmio(32, packed struct {
+            ///  Flash Key
+            FKEYR: u32,
+        }),
+        ///  Flash option key register
+        OPTKEYR: mmio.Mmio(32, packed struct {
+            ///  Option byte key
+            OPTKEYR: u32,
+        }),
+        ///  Flash status register
+        SR: mmio.Mmio(32, packed struct {
+            ///  Busy
+            BSY: u1,
+            reserved2: u1 = 0,
+            ///  Programming error
+            PGERR: u1,
+            reserved4: u1 = 0,
+            ///  Write protection error
+            WRPRT: u1,
+            ///  End of operation
+            EOP: u1,
+            padding: u26 = 0,
+        }),
+        ///  Flash control register
+        CR: mmio.Mmio(32, packed struct {
+            ///  Programming
+            PG: u1,
+            ///  Page erase
+            PER: u1,
+            ///  Mass erase
+            MER: u1,
+            reserved4: u1 = 0,
+            ///  Option byte programming
+            OPTPG: u1,
+            ///  Option byte erase
+            OPTER: u1,
+            ///  Start
+            STRT: u1,
+            ///  Lock
+            LOCK: u1,
+            reserved9: u1 = 0,
+            ///  Option bytes write enable
+            OPTWRE: u1,
+            ///  Error interrupt enable
+            ERRIE: u1,
+            reserved12: u1 = 0,
+            ///  End of operation interrupt enable
+            EOPIE: u1,
+            ///  Force option byte loading
+            FORCE_OPTLOAD: u1,
+            padding: u18 = 0,
+        }),
+        ///  Flash address register
+        AR: mmio.Mmio(32, packed struct {
+            ///  Flash address
+            FAR: u32,
+        }),
+        reserved28: [4]u8,
+        ///  Option byte register
+        OBR: mmio.Mmio(32, packed struct {
+            ///  Option byte error
+            OPTERR: u1,
+            ///  Level 1 protection status
+            LEVEL1_PROT: u1,
+            ///  Level 2 protection status
+            LEVEL2_PROT: u1,
+            reserved8: u5 = 0,
+            ///  WDG_SW
+            WDG_SW: u1,
+            ///  nRST_STOP
+            nRST_STOP: u1,
+            ///  nRST_STDBY
+            nRST_STDBY: u1,
+            reserved12: u1 = 0,
+            ///  BOOT1
+            BOOT1: u1,
+            ///  VDDA_MONITOR
+            VDDA_MONITOR: u1,
+            reserved16: u2 = 0,
+            ///  Data0
+            Data0: u8,
+            ///  Data1
+            Data1: u8,
+        }),
+        ///  Write protection register
+        WRPR: mmio.Mmio(32, packed struct {
+            ///  Write protect
+            WRP: u16,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  Debug support
+    pub const DBGMCU = extern struct {
+        ///  MCU Device ID Code Register
+        IDCODE: mmio.Mmio(32, packed struct {
+            ///  Device Identifier
+            DEV_ID: u12,
+            ///  Division Identifier
+            DIV_ID: u4,
+            ///  Revision Identifier
+            REV_ID: u16,
+        }),
+        ///  Debug MCU Configuration Register
+        CR: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  Debug Stop Mode
+            DBG_STOP: u1,
+            ///  Debug Standby Mode
+            DBG_STANDBY: u1,
+            padding: u29 = 0,
+        }),
+        ///  APB Low Freeze Register
+        APBLFZ: mmio.Mmio(32, packed struct {
+            ///  Debug Timer 2 stopped when Core is halted
+            DBG_TIMER2_STOP: u1,
+            ///  Debug Timer 3 stopped when Core is halted
+            DBG_TIMER3_STOP: u1,
+            reserved4: u2 = 0,
+            ///  Debug Timer 6 stopped when Core is halted
+            DBG_TIMER6_STOP: u1,
+            reserved8: u3 = 0,
+            ///  Debug Timer 14 stopped when Core is halted
+            DBG_TIMER14_STOP: u1,
+            reserved10: u1 = 0,
+            ///  Debug RTC stopped when Core is halted
+            DBG_RTC_STOP: u1,
+            ///  Debug Window Wachdog stopped when Core is halted
+            DBG_WWDG_STOP: u1,
+            ///  Debug Independent Wachdog stopped when Core is halted
+            DBG_IWDG_STOP: u1,
+            reserved21: u8 = 0,
+            ///  SMBUS timeout mode stopped when Core is halted
+            I2C1_SMBUS_TIMEOUT: u1,
+            padding: u10 = 0,
+        }),
+        ///  APB High Freeze Register
+        APBHFZ: mmio.Mmio(32, packed struct {
+            reserved11: u11 = 0,
+            ///  Debug Timer 1 stopped when Core is halted
+            DBG_TIMER1_STOP: u1,
+            reserved16: u4 = 0,
+            ///  Debug Timer 15 stopped when Core is halted
+            DBG_TIMER15_STO: u1,
+            ///  Debug Timer 16 stopped when Core is halted
+            DBG_TIMER16_STO: u1,
+            ///  Debug Timer 17 stopped when Core is halted
+            DBG_TIMER17_STO: u1,
+            padding: u13 = 0,
+        }),
+    };
 };

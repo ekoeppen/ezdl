@@ -1,10 +1,10 @@
-pub fn Spi(comptime Periph: type) type {
+pub fn Spi(comptime Periph: anytype) type {
     return struct {
         const DR = @ptrCast(*volatile u8, Periph.DR.raw_ptr);
 
         pub fn init() void {
-            Periph.CR1.write(.{ .MSTR = 1, .SSI = 1, .SSM = 1, .BR = 0 });
-            Periph.CR2.write(.{ .DS = 7, .FRXTH = 1 });
+            Periph.CR1.modify(.{ .MSTR = 1, .SSI = 1, .SSM = 1, .BR = 0 });
+            Periph.CR2.modify(.{ .DS = 7, .FRXTH = 1 });
             Periph.CR1.modify(.{ .SPE = 1 });
         }
 

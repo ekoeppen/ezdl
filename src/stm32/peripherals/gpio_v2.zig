@@ -40,17 +40,11 @@ const Config = union(PinMode) {
     analog,
 };
 
-fn modify(comptime reg: anytype, comptime offset: u5, comptime width: u5, value: u32) void {
-    const mask: u32 = 0xffffffff ^ (((1 << width) - 1) << offset);
-    const bits: u32 = value << offset;
-    reg.write_raw((reg.read_raw() & mask) | bits);
-}
-
 pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config) type {
     return struct {
         pub const pin_number: u4 = pin;
-        pub const port_number: u4 = @truncate(u4, @ptrToInt(periph.MODER.raw_ptr) >> 10);
         pub const pin_bit: u32 = 1 << pin;
+        pub const port_number: u4 = @truncate(u4, @ptrToInt(periph) >> 10);
         pub const pin_config: Config = config;
 
         pub fn init() void {
@@ -58,10 +52,10 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
         }
 
         pub fn setConfig(comptime c: Config) void {
-            modify(periph.MODER, pin * 2, 2, @enumToInt(c));
+            periph.MODER.modify_raw(pin * 2, 2, @enumToInt(c));
             switch (c) {
                 .input => |input| {
-                    modify(periph.PUPDR, pin * 2, 2, @enumToInt(input.pull));
+                    periph.PUPDR.modify_raw(pin * 2, 2, @enumToInt(input.pull));
                     if (input.trigger == .none) {
                         return;
                     }
@@ -76,16 +70,16 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
                     }
                 },
                 .output => |output| {
-                    modify(periph.OTYPER, pin, 1, @enumToInt(output.mode));
-                    modify(periph.PUPDR, pin * 2, 2, @enumToInt(output.pull));
+                    periph.OTYPER.modify_raw(pin, 1, @enumToInt(output.mode));
+                    periph.PUPDR.modify_raw(pin * 2, 2, @enumToInt(output.pull));
                 },
                 .alternate => |alternate| {
-                    modify(periph.OTYPER, pin, 1, @enumToInt(alternate.mode));
-                    modify(periph.PUPDR, pin * 2, 2, @enumToInt(alternate.pull));
+                    periph.OTYPER.modify_raw(pin, 1, @enumToInt(alternate.mode));
+                    periph.PUPDR.modify_raw(pin * 2, 2, @enumToInt(alternate.pull));
                     if (pin < 8) {
-                        modify(periph.AFRL, pin * 4, 4, alternate.function);
+                        periph.AFRL.modify_raw(pin * 4, 4, alternate.function);
                     } else {
-                        modify(periph.AFRH, (pin - 8) * 4, 4, alternate.function);
+                        periph.AFRH.modify_raw((pin - 8) * 4, 4, alternate.function);
                     }
                 },
                 .analog => {},
