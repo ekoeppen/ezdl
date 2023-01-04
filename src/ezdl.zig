@@ -96,6 +96,7 @@ pub fn addExecutable(
     main: []const u8,
     board: *const Board,
     board_file: []const u8,
+    family_path: []const u8,
 ) anyerror!*std.build.LibExeObjStep {
     const linker_script_path = "zig-cache/memory.ld";
     const exe = b.addExecutable(elf_name, main);
@@ -135,6 +136,12 @@ pub fn addExecutable(
     exe.addPackage(ezdl_pkg);
     exe.addPackage(board_pkg);
     exe.addPackage(info_pkg);
+
+    const startup = b.addObject("startup", b.pathJoin(&.{ family_path, "startup.zig" }));
+    startup.setTarget(exe.target);
+    startup.setBuildMode(b.standardReleaseOptions());
+    exe.addObject(startup);
+    exe.addLibraryPath(family_path);
 
     const size_cmd = b.addSystemCommand(&[_][]const u8{"size"});
     size_cmd.addArtifactArg(exe);

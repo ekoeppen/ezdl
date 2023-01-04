@@ -13,13 +13,14 @@ pub fn addExecutable(
 ) anyerror!*std.build.LibExeObjStep {
     const board = try ezdl.readBoardSettings(b, b.pathJoin(&.{ board_path, "board.json" }));
     const board_file = b.pathJoin(&.{ board_path, "board.zig" });
-    const exe = try ezdl.addExecutable(b, elf_name, main_file, &board, board_file);
-
-    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
-    startup.setTarget(exe.target);
-    startup.setBuildMode(b.standardReleaseOptions());
-    exe.addObject(startup);
-    exe.addLibraryPath(ezdl.mkPath(@src(), ""));
+    const exe = try ezdl.addExecutable(
+        b,
+        elf_name,
+        main_file,
+        &board,
+        board_file,
+        ezdl.mkPath(@src(), ""),
+    );
 
     const hex_cmd = try build_tools.addObjCopyStep(b, exe, .hex);
     _ = build_tools.addFlashStep(b, hex_cmd, .mspdebug, &board);

@@ -36,16 +36,16 @@ const handlers: []const stm32.IrqHandler = &.{
     .{ .number = svd.interrupts.EXTI4_15_IRQ, .handler = defaultHandler },
 };
 
-export const vectors linksection(".vectors") = stm32.mkVectors(svd.interrupts, handlers);
+// export const vectors linksection(".vectors") = stm32.mkVectors(svd.interrupts, handlers);
 
 pub fn init() void {
-    svd.RCC.AHBENR.write(.{ .IOPAEN = 1, .IOPBEN = 1 });
-    svd.RCC.APB2ENR.write(.{ .SPI1EN = 1, .USART1EN = 1, .SYSCFGEN = 1 });
-    svd.RCC.APB1ENR.write(.{ .I2C2EN = 1, .PWREN = 1 });
-    svd.RCC.CSR.write(.{ .LSION = 1 });
+    svd.RCC.AHBENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1 });
+    svd.RCC.APB2ENR.modify(.{ .SPI1EN = 1, .USART1EN = 1, .SYSCFGEN = 1 });
+    svd.RCC.APB1ENR.modify(.{ .I2C2EN = 1, .PWREN = 1 });
+    svd.RCC.CSR.modify(.{ .LSION = 1 });
     while (svd.RCC.CSR.read().LSIRDY == 0) {}
-    svd.PWR.CR.write(.{ .DBP = 1 });
-    svd.RCC.BDCR.write(.{ .BDRST = 0, .RTCSEL = 0b10, .RTCEN = 1 });
+    svd.PWR.CR.modify(.{ .DBP = 1 });
+    svd.RCC.BDCR.modify(.{ .BDRST = 0, .RTCSEL = 0b10, .RTCEN = 1 });
 
     led.init();
     led2.init();

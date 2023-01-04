@@ -3,80 +3,82 @@ const mmio = @import("mmio");
 pub const devices = struct {
     ///  STM32F0xx
     pub const STM32F0xx = struct {
-        ///  General-purpose-timers
-        pub const TIM2 = @intToPtr(*volatile types.TIM2, 0x40000000);
-        ///  General-purpose-timers
-        pub const TIM3 = @intToPtr(*volatile types.TIM2, 0x40000400);
-        ///  Basic-timers
-        pub const TIM6 = @intToPtr(*volatile types.TIM6, 0x40001000);
-        ///  General-purpose-timers
-        pub const TIM14 = @intToPtr(*volatile types.TIM14, 0x40002000);
-        ///  Real-time clock
-        pub const RTC = @intToPtr(*volatile types.RTC, 0x40002800);
-        ///  Window watchdog
-        pub const WWDG = @intToPtr(*volatile types.WWDG, 0x40002c00);
-        ///  Independent watchdog
-        pub const IWDG = @intToPtr(*volatile types.IWDG, 0x40003000);
-        ///  Serial peripheral interface
-        pub const SPI2 = @intToPtr(*volatile types.SPI1, 0x40003800);
-        ///  Universal synchronous asynchronous receiver transmitter
-        pub const USART2 = @intToPtr(*volatile types.USART1, 0x40004400);
-        ///  Inter-integrated circuit
-        pub const I2C1 = @intToPtr(*volatile types.I2C1, 0x40005400);
-        ///  Inter-integrated circuit
-        pub const I2C2 = @intToPtr(*volatile types.I2C1, 0x40005800);
-        ///  Power control
-        pub const PWR = @intToPtr(*volatile types.PWR, 0x40007000);
-        ///  Digital-to-analog converter
-        pub const DAC = @intToPtr(*volatile types.DAC, 0x40007400);
-        ///  HDMI-CEC controller
-        pub const CEC = @intToPtr(*volatile types.CEC, 0x40007800);
-        ///  System configuration controller
-        pub const SYSCFG = @intToPtr(*volatile types.SYSCFG, 0x40010000);
-        ///  Comparator
-        pub const COMP = @intToPtr(*volatile types.COMP, 0x4001001c);
-        ///  External interrupt/event controller
-        pub const EXTI = @intToPtr(*volatile types.EXTI, 0x40010400);
-        ///  Analog-to-digital converter
-        pub const ADC = @intToPtr(*volatile types.ADC, 0x40012400);
-        ///  Advanced-timers
-        pub const TIM1 = @intToPtr(*volatile types.TIM1, 0x40012c00);
-        ///  Serial peripheral interface
-        pub const SPI1 = @intToPtr(*volatile types.SPI1, 0x40013000);
-        ///  Universal synchronous asynchronous receiver transmitter
-        pub const USART1 = @intToPtr(*volatile types.USART1, 0x40013800);
-        ///  General-purpose-timers
-        pub const TIM15 = @intToPtr(*volatile types.TIM15, 0x40014000);
-        ///  General-purpose-timers
-        pub const TIM16 = @intToPtr(*volatile types.TIM16, 0x40014400);
-        ///  General-purpose-timers
-        pub const TIM17 = @intToPtr(*volatile types.TIM16, 0x40014800);
-        ///  Debug support
-        pub const DBGMCU = @intToPtr(*volatile types.DBGMCU, 0x40015800);
-        ///  DMA controller
-        pub const DMA = @intToPtr(*volatile types.DMA, 0x40020000);
-        ///  Reset and clock control
-        pub const RCC = @intToPtr(*volatile types.RCC, 0x40021000);
-        ///  Flash
-        pub const Flash = @intToPtr(*volatile types.Flash, 0x40022000);
-        ///  cyclic redundancy check calculation unit
-        pub const CRC = @intToPtr(*volatile types.CRC, 0x40023000);
-        ///  Touch sensing controller
-        pub const TSC = @intToPtr(*volatile types.TSC, 0x40024000);
-        ///  General-purpose I/Os
-        pub const GPIOA = @intToPtr(*volatile types.GPIOA, 0x48000000);
-        ///  General-purpose I/Os
-        pub const GPIOB = @intToPtr(*volatile types.GPIOF, 0x48000400);
-        ///  General-purpose I/Os
-        pub const GPIOC = @intToPtr(*volatile types.GPIOF, 0x48000800);
-        ///  General-purpose I/Os
-        pub const GPIOD = @intToPtr(*volatile types.GPIOF, 0x48000c00);
-        ///  General-purpose I/Os
-        pub const GPIOE = @intToPtr(*volatile types.GPIOF, 0x48001000);
-        ///  General-purpose I/Os
-        pub const GPIOF = @intToPtr(*volatile types.GPIOF, 0x48001400);
-        ///  Nested Vectored Interrupt Controller
-        pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e100);
+        pub const peripherals = struct {
+            ///  General-purpose-timers
+            pub const TIM2 = @intToPtr(*volatile types.TIM2, 0x40000000);
+            ///  General-purpose-timers
+            pub const TIM3 = @intToPtr(*volatile types.TIM2, 0x40000400);
+            ///  Basic-timers
+            pub const TIM6 = @intToPtr(*volatile types.TIM6, 0x40001000);
+            ///  General-purpose-timers
+            pub const TIM14 = @intToPtr(*volatile types.TIM14, 0x40002000);
+            ///  Real-time clock
+            pub const RTC = @intToPtr(*volatile types.RTC, 0x40002800);
+            ///  Window watchdog
+            pub const WWDG = @intToPtr(*volatile types.WWDG, 0x40002c00);
+            ///  Independent watchdog
+            pub const IWDG = @intToPtr(*volatile types.IWDG, 0x40003000);
+            ///  Serial peripheral interface
+            pub const SPI2 = @intToPtr(*volatile types.SPI1, 0x40003800);
+            ///  Universal synchronous asynchronous receiver transmitter
+            pub const USART2 = @intToPtr(*volatile types.USART1, 0x40004400);
+            ///  Inter-integrated circuit
+            pub const I2C1 = @intToPtr(*volatile types.I2C1, 0x40005400);
+            ///  Inter-integrated circuit
+            pub const I2C2 = @intToPtr(*volatile types.I2C1, 0x40005800);
+            ///  Power control
+            pub const PWR = @intToPtr(*volatile types.PWR, 0x40007000);
+            ///  Digital-to-analog converter
+            pub const DAC = @intToPtr(*volatile types.DAC, 0x40007400);
+            ///  HDMI-CEC controller
+            pub const CEC = @intToPtr(*volatile types.CEC, 0x40007800);
+            ///  System configuration controller
+            pub const SYSCFG = @intToPtr(*volatile types.SYSCFG, 0x40010000);
+            ///  Comparator
+            pub const COMP = @intToPtr(*volatile types.COMP, 0x4001001c);
+            ///  External interrupt/event controller
+            pub const EXTI = @intToPtr(*volatile types.EXTI, 0x40010400);
+            ///  Analog-to-digital converter
+            pub const ADC = @intToPtr(*volatile types.ADC, 0x40012400);
+            ///  Advanced-timers
+            pub const TIM1 = @intToPtr(*volatile types.TIM1, 0x40012c00);
+            ///  Serial peripheral interface
+            pub const SPI1 = @intToPtr(*volatile types.SPI1, 0x40013000);
+            ///  Universal synchronous asynchronous receiver transmitter
+            pub const USART1 = @intToPtr(*volatile types.USART1, 0x40013800);
+            ///  General-purpose-timers
+            pub const TIM15 = @intToPtr(*volatile types.TIM15, 0x40014000);
+            ///  General-purpose-timers
+            pub const TIM16 = @intToPtr(*volatile types.TIM16, 0x40014400);
+            ///  General-purpose-timers
+            pub const TIM17 = @intToPtr(*volatile types.TIM16, 0x40014800);
+            ///  Debug support
+            pub const DBGMCU = @intToPtr(*volatile types.DBGMCU, 0x40015800);
+            ///  DMA controller
+            pub const DMA = @intToPtr(*volatile types.DMA, 0x40020000);
+            ///  Reset and clock control
+            pub const RCC = @intToPtr(*volatile types.RCC, 0x40021000);
+            ///  Flash
+            pub const Flash = @intToPtr(*volatile types.Flash, 0x40022000);
+            ///  cyclic redundancy check calculation unit
+            pub const CRC = @intToPtr(*volatile types.CRC, 0x40023000);
+            ///  Touch sensing controller
+            pub const TSC = @intToPtr(*volatile types.TSC, 0x40024000);
+            ///  General-purpose I/Os
+            pub const GPIOA = @intToPtr(*volatile types.GPIOA, 0x48000000);
+            ///  General-purpose I/Os
+            pub const GPIOB = @intToPtr(*volatile types.GPIOF, 0x48000400);
+            ///  General-purpose I/Os
+            pub const GPIOC = @intToPtr(*volatile types.GPIOF, 0x48000800);
+            ///  General-purpose I/Os
+            pub const GPIOD = @intToPtr(*volatile types.GPIOF, 0x48000c00);
+            ///  General-purpose I/Os
+            pub const GPIOE = @intToPtr(*volatile types.GPIOF, 0x48001000);
+            ///  General-purpose I/Os
+            pub const GPIOF = @intToPtr(*volatile types.GPIOF, 0x48001400);
+            ///  Nested Vectored Interrupt Controller
+            pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e100);
+        };
     };
 };
 
