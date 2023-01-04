@@ -10,15 +10,13 @@ pub fn build(b: *std.build.Builder) anyerror!void {
             b,
             "blink-msp430.elf",
             "main.zig",
-            b.pathJoin(&.{ board_path, "board.zig" }),
-            &board_settings,
+            board_path,
         ),
         .stm32 => try ezdl.stm32.addExecutable(
             b,
             "blink-stm32.elf",
             "main.zig",
-            b.pathJoin(&.{ board_path, "board.zig" }),
-            &board_settings,
+            board_path,
         ),
         else => return error.NotSupported,
     };

@@ -39,7 +39,6 @@ pub const Board = struct {
     cpu_arch: std.Target.Cpu.Arch,
     cpu_model: []const u8 = "",
     device: []const u8 = "",
-    path: []const u8 = "",
     port: []const u8 = "",
 };
 
@@ -62,6 +61,25 @@ pub fn generateLinkerScript(
     try writer.print("}}\nINCLUDE sections.ld\n", .{});
 }
 
+const Model = struct { name: []const u8, cpu: *const std.Target.Cpu.Model };
+
+const model_table: []const Model = &.{
+    .{ .name = "cortex_m0", .cpu = &std.Target.arm.cpu.cortex_m0 },
+    .{ .name = "cortex_m0plus", .cpu = &std.Target.arm.cpu.cortex_m0plus },
+    .{ .name = "cortex_m1", .cpu = &std.Target.arm.cpu.cortex_m1 },
+    .{ .name = "cortex_m3", .cpu = &std.Target.arm.cpu.cortex_m3 },
+    .{ .name = "cortex_m4", .cpu = &std.Target.arm.cpu.cortex_m4 },
+    .{ .name = "cortex_m7", .cpu = &std.Target.arm.cpu.cortex_m4 },
+    .{ .name = "msp430", .cpu = &std.Target.msp430.cpu.msp430 },
+};
+
+pub fn toCpuModel(model: []const u8) !*const std.Target.Cpu.Model {
+    for (model_table) |known_model| {
+        if (std.mem.eql(u8, known_model.name, model)) return known_model.cpu;
+    }
+    return error.UnkownCpuModel;
+}
+
 pub fn readBoardSettings(b: *std.build.Builder, path: []const u8) !Board {
     const file = try std.fs.cwd().createFile(path, .{ .read = true, .truncate = false });
     defer file.close();
@@ -77,6 +95,7 @@ pub fn addExecutable(
     elf_name: []const u8,
     main: []const u8,
     board: *const Board,
+    board_file: []const u8,
 ) anyerror!*std.build.LibExeObjStep {
     const linker_script_path = "zig-cache/memory.ld";
     const exe = b.addExecutable(elf_name, main);
@@ -86,5 +105,40 @@ pub fn addExecutable(
     exe.setLinkerScriptPath(.{ .path = linker_script_path });
     exe.setBuildMode(b.standardReleaseOptions());
     exe.step.dependOn(&build_info.step);
+
+    const target = .{
+        .cpu_arch = board.cpu_arch,
+        .cpu_model = .{ .explicit = try toCpuModel(board.cpu_model) },
+        .os_tag = .freestanding,
+    };
+    exe.setTarget(target);
+
+    const info_pkg = std.build.Pkg{
+        .name = "build_info",
+        .source = .{ .path = "zig-cache/build_info.zig" },
+    };
+    const mmio_pkg = std.build.Pkg{
+        .name = "mmio",
+        .source = .{ .path = mkPath(@src(), "mmio.zig") },
+    };
+    const ezdl_pkg = std.build.Pkg{
+        .name = "ezdl",
+        .source = .{ .path = mkPath(@src(), "ezdl.zig") },
+        .dependencies = &.{mmio_pkg},
+    };
+    const board_pkg = std.build.Pkg{
+        .name = "board",
+        .source = .{ .path = board_file },
+        .dependencies = &.{ ezdl_pkg, mmio_pkg },
+    };
+
+    exe.addPackage(ezdl_pkg);
+    exe.addPackage(board_pkg);
+    exe.addPackage(info_pkg);
+
+    const size_cmd = b.addSystemCommand(&[_][]const u8{"size"});
+    size_cmd.addArtifactArg(exe);
+    b.getInstallStep().dependOn(&size_cmd.step);
+
     return exe;
 }

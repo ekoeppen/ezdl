@@ -1,4 +1,4 @@
-const board = @import("blue_pill.zig");
+const board = @import("board");
 const ezdl = @import("ezdl");
 
 pub export fn main() void {

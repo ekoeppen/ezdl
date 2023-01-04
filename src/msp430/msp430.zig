@@ -5,61 +5,23 @@ const build_tools = @import("../build_tools.zig");
 pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
 
-pub fn toCpuModel(model: []const u8) *const std.Target.Cpu.Model {
-    std.debug.print("***** TODO convert from {s}\n", .{model});
-    return &std.Target.msp430.cpu.msp430;
-}
-
 pub fn addExecutable(
     b: *std.build.Builder,
     elf_name: []const u8,
     main_file: []const u8,
-    board_file: []const u8,
-    board_settings: *const ezdl.Board,
+    board_path: []const u8,
 ) anyerror!*std.build.LibExeObjStep {
-    const target = .{
-        .cpu_arch = board_settings.cpu_arch,
-        .cpu_model = .{ .explicit = toCpuModel(board_settings.cpu_model) },
-        .os_tag = .freestanding,
-    };
+    const board = try ezdl.readBoardSettings(b, b.pathJoin(&.{ board_path, "board.json" }));
+    const board_file = b.pathJoin(&.{ board_path, "board.zig" });
+    const exe = try ezdl.addExecutable(b, elf_name, main_file, &board, board_file);
 
-    const exe = try ezdl.addExecutable(b, elf_name, main_file, board_settings);
-    exe.addLibraryPath(ezdl.mkPath(@src(), ""));
-    exe.setTarget(target);
-
-    const info_pkg = std.build.Pkg{
-        .name = "build_info",
-        .source = .{ .path = "zig-cache/build_info.zig" },
-    };
-    const mmio_pkg = std.build.Pkg{
-        .name = "mmio",
-        .source = .{ .path = ezdl.mkPath(@src(), "../mmio.zig") },
-    };
-    const ezdl_pkg = std.build.Pkg{
-        .name = "ezdl",
-        .source = .{ .path = ezdl.mkPath(@src(), "../ezdl.zig") },
-        .dependencies = &.{mmio_pkg},
-    };
-    const board_pkg = std.build.Pkg{
-        .name = "board",
-        .source = .{ .path = board_file },
-        .dependencies = &.{ ezdl_pkg, mmio_pkg },
-    };
-
-    exe.addPackage(ezdl_pkg);
-    exe.addPackage(board_pkg);
-    exe.addPackage(info_pkg);
-
-    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.S"));
-    startup.setTarget(target);
+    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
+    startup.setTarget(exe.target);
     startup.setBuildMode(b.standardReleaseOptions());
     exe.addObject(startup);
-
-    const size_cmd = b.addSystemCommand(&[_][]const u8{"msp430-elf-size"});
-    size_cmd.addArtifactArg(exe);
-    b.getInstallStep().dependOn(&size_cmd.step);
+    exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 
     const hex_cmd = try build_tools.addObjCopyStep(b, exe, .hex);
-    _ = build_tools.addFlashStep(b, hex_cmd, .mspdebug, board_settings);
+    _ = build_tools.addFlashStep(b, hex_cmd, .mspdebug, &board);
     return exe;
 }
