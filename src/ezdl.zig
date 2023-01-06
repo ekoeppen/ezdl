@@ -3,12 +3,14 @@ const std = @import("std");
 pub const DeviceFamily = enum {
     stm32,
     msp430,
+    avr,
     unknown,
 };
 
 pub const lib = @import("lib/lib.zig");
 pub const stm32 = @import("stm32/stm32.zig");
 pub const msp430 = @import("msp430/msp430.zig");
+pub const avr = @import("avr/avr.zig");
 pub const drivers = @import("drivers/drivers.zig");
 pub const build_tools = @import("build_tools.zig");
 
@@ -25,6 +27,7 @@ pub fn mkPath(
 pub fn deviceFamily(device: []const u8) DeviceFamily {
     if (device.len >= 5 and std.mem.eql(u8, device[0..5], "stm32")) return .stm32;
     if (device.len >= 6 and std.mem.eql(u8, device[0..6], "msp430")) return .msp430;
+    if (device.len >= 6 and std.mem.eql(u8, device[0..6], "atmega")) return .avr;
     return .unknown;
 }
 
@@ -72,6 +75,8 @@ const model_table: []const Model = &.{
     .{ .name = "cortex_m4", .cpu = &std.Target.arm.cpu.cortex_m4 },
     .{ .name = "cortex_m7", .cpu = &std.Target.arm.cpu.cortex_m4 },
     .{ .name = "msp430", .cpu = &std.Target.msp430.cpu.msp430 },
+    .{ .name = "atmega328", .cpu = &std.Target.avr.cpu.atmega328 },
+    .{ .name = "atmega328p", .cpu = &std.Target.avr.cpu.atmega328p },
 };
 
 pub fn toCpuModel(model: []const u8) !*const std.Target.Cpu.Model {
@@ -144,6 +149,7 @@ pub fn addExecutable(
     switch (deviceFamily(board.device)) {
         .stm32 => try stm32.addFamilySteps(b, exe, &board),
         .msp430 => try msp430.addFamilySteps(b, exe, &board),
+        .avr => try avr.addFamilySteps(b, exe, &board),
         else => {},
     }
 

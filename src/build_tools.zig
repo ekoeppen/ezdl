@@ -56,7 +56,7 @@ pub fn addObjCopyStep(
     return objcopy_cmd;
 }
 
-const FlashTool = enum { jlink, stlink, stm32flash, mspdebug };
+const FlashTool = enum { jlink, stlink, stm32flash, mspdebug, avrdude };
 
 const FlashStep = struct {
     builder: *std.build.Builder,
@@ -79,6 +79,7 @@ const FlashStep = struct {
         const port = switch (tool) {
             .stm32flash => builder.option([]const u8, "port", "Serial port for flashing via stm32flash") orelse board.port,
             .mspdebug => builder.option([]const u8, "port", "Driver for flashing via mspdebug") orelse board.port,
+            .avrdude => builder.option([]const u8, "port", "Serial port for flashing via avrdude") orelse board.port,
             else => null,
         };
         self.* = FlashStep{
@@ -93,12 +94,14 @@ const FlashStep = struct {
                 .stlink => "flash-stlink",
                 .stm32flash => "stm32flash",
                 .mspdebug => "flash-mspdebug",
+                .avrdude => "flash-avrdude",
             },
             .description = switch (tool) {
                 .jlink => "Flash using JLink",
                 .stlink => "Flash using stlink",
                 .stm32flash => "Flash using stm32flash",
                 .mspdebug => "Flash using mspdebug",
+                .avrdude => "Flash using avrdude",
             },
         };
         return self;
@@ -110,6 +113,7 @@ const FlashStep = struct {
             .jlink => try self.makeJLink(),
             .stm32flash => try self.makeStm32Flash(),
             .mspdebug => try self.makeMspDebugFlash(),
+            .avrdude => try self.makeAvrdudeFlash(),
             else => {},
         }
     }
@@ -155,6 +159,7 @@ const FlashStep = struct {
             false,
         );
     }
+
     fn makeMspDebugFlash(self: *FlashStep) !void {
         const command = try std.mem.join(self.builder.allocator, " ", &.{
             "prog",
@@ -162,6 +167,37 @@ const FlashStep = struct {
         });
         try std.build.RunStep.runCommand(
             &[_][]const u8{ "mspdebug", self.port.?, command },
+            self.builder,
+            null,
+            .ignore,
+            .ignore,
+            .Close,
+            null,
+            null,
+            false,
+        );
+    }
+
+    fn makeAvrdudeFlash(self: *FlashStep) !void {
+        const operation = try std.fmt.allocPrint(
+            self.builder.allocator,
+            "-Uflash:w:{s}",
+            .{self.hex.out_path},
+        );
+        try std.build.RunStep.runCommand(
+            &[_][]const u8{
+                "avrdude",
+                "-v",
+                "-c",
+                "arduino",
+                "-C",
+                "avrdude.conf",
+                "-p",
+                self.device,
+                "-P",
+                self.port.?,
+                operation,
+            },
             self.builder,
             null,
             .ignore,

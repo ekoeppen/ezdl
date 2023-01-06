@@ -3,7 +3,7 @@ pub fn Spi(comptime Periph: anytype) type {
         const DR = @ptrCast(*volatile u8, Periph.DR.raw_ptr);
 
         pub fn init() void {
-            Periph.CR1.write(.{ .MSTR = 1, .SSI = 1, .SSM = 1, .BR = 0 });
+            Periph.CR1.modify(.{ .MSTR = 1, .SSI = 1, .SSM = 1, .BR = 0 });
             Periph.CR1.modify(.{ .SPE = 1 });
         }
 

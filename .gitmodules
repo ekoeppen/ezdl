@@ -1,3 +1,6 @@
 [submodule "src/3rdparty/regz"]
 	path = src/3rdparty/regz
 	url = https://github.com/ekoeppen/regz.git
+[submodule "examples/generic/accept/3rdparty/accept"]
+	path = examples/generic/accept/3rdparty/accept
+	url = https://gitlab.com/40hz/zig/accept.git

@@ -34,12 +34,12 @@ pub var rx_buffer: [64]u8 = undefined;
 pub var rx_index: usize = 0;
 
 pub fn init() void {
-    svd.RCC.IOPENR.write(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1 });
-    svd.RCC.APB2ENR.write(.{ .SPI1EN = 1, .SYSCFGEN = 1 });
-    svd.RCC.APB1ENR.write(.{ .I2C2EN = 1, .USART2EN = 1, .PWREN = 1 });
-    svd.RCC.AHBENR.write(.{ .DMAEN = 1 });
-    svd.PWR.CR.write(.{ .DBP = 1 });
-    svd.RCC.CSR.write(.{ .RTCSEL = 0b10, .RTCEN = 1 });
+    svd.RCC.IOPENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1 });
+    svd.RCC.APB2ENR.modify(.{ .SPI1EN = 1, .SYSCFGEN = 1 });
+    svd.RCC.APB1ENR.modify(.{ .I2C2EN = 1, .USART2EN = 1, .PWREN = 1 });
+    svd.RCC.AHBENR.modify(.{ .DMAEN = 1 });
+    svd.PWR.CR.modify(.{ .DBP = 1 });
+    svd.RCC.CSR.modify(.{ .RTCSEL = 0b10, .RTCEN = 1 });
 
     button.init();
 
@@ -56,10 +56,10 @@ pub fn init() void {
     spi.init();
 
     if (false) {
-        svd.DMA1.CPAR5.write(.{ .PA = @ptrToInt(svd.USART2.RDR.raw_ptr) });
-        svd.DMA1.CMAR5.write(.{ .MA = @ptrToInt(&rx_buffer) });
-        svd.DMA1.CCR5.write(.{ .CIRC = 1, .MINC = 1 });
-        svd.DMA1.CNDTR5.write(.{ .NDT = @as(u32, rx_buffer.len) });
+        svd.DMA1.CPAR5.modify(.{ .PA = @ptrToInt(svd.USART2.RDR.raw_ptr) });
+        svd.DMA1.CMAR5.modify(.{ .MA = @ptrToInt(&rx_buffer) });
+        svd.DMA1.CCR5.modify(.{ .CIRC = 1, .MINC = 1 });
+        svd.DMA1.CNDTR5.modify(.{ .NDT = @as(u32, rx_buffer.len) });
         svd.DMA1.CSELR.modify(.{ .C5S = 4 });
         svd.DMA1.CCR5.modify(.{ .EN = 1 });
     }
