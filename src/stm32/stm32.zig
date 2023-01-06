@@ -1,6 +1,5 @@
 const std = @import("std");
 const ezdl = @import("../ezdl.zig");
-const build_tools = @import("../build_tools.zig");
 
 pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
@@ -21,25 +20,18 @@ pub fn mkVectors(
     return v;
 }
 
-pub fn addExecutable(
+pub fn addFamilySteps(
     b: *std.build.Builder,
-    elf_name: []const u8,
-    main_file: []const u8,
-    board_path: []const u8,
-) anyerror!*std.build.LibExeObjStep {
-    const board = try ezdl.readBoardSettings(b, b.pathJoin(&.{ board_path, "board.json" }));
-    const board_file = b.pathJoin(&.{ board_path, "board.zig" });
-    const exe = try ezdl.addExecutable(
-        b,
-        elf_name,
-        main_file,
-        &board,
-        board_file,
-        ezdl.mkPath(@src(), "."),
-    );
+    exe: *std.build.LibExeObjStep,
+    board: *const ezdl.Board,
+) !void {
+    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
+    startup.setTarget(exe.target);
+    startup.setBuildMode(b.standardReleaseOptions());
+    exe.addObject(startup);
+    exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 
-    const hex_cmd = try build_tools.addObjCopyStep(b, exe, .hex);
-    _ = build_tools.addFlashStep(b, hex_cmd, .jlink, &board);
-    _ = build_tools.addFlashStep(b, hex_cmd, .stm32flash, &board);
-    return exe;
+    const hex_cmd = try ezdl.build_tools.addObjCopyStep(b, exe, .hex);
+    _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .jlink, board);
+    _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .stm32flash, board);
 }

@@ -10,6 +10,7 @@ pub const lib = @import("lib/lib.zig");
 pub const stm32 = @import("stm32/stm32.zig");
 pub const msp430 = @import("msp430/msp430.zig");
 pub const drivers = @import("drivers/drivers.zig");
+pub const build_tools = @import("build_tools.zig");
 
 pub fn mkPath(
     comptime src: std.builtin.SourceLocation,
@@ -94,10 +95,9 @@ pub fn addExecutable(
     b: *std.build.Builder,
     elf_name: []const u8,
     main: []const u8,
-    board: *const Board,
-    board_file: []const u8,
-    family_path: []const u8,
+    board_path: []const u8,
 ) anyerror!*std.build.LibExeObjStep {
+    const board = try readBoardSettings(b, b.pathJoin(&.{ board_path, "board.json" }));
     const linker_script_path = "zig-cache/memory.ld";
     const exe = b.addExecutable(elf_name, main);
     const info_tool = b.addExecutable("info_tool", mkPath(@src(), "lib/build_info.zig"));
@@ -129,7 +129,7 @@ pub fn addExecutable(
     };
     const board_pkg = std.build.Pkg{
         .name = "board",
-        .source = .{ .path = board_file },
+        .source = .{ .path = b.pathJoin(&.{ board_path, "board.zig" }) },
         .dependencies = &.{ ezdl_pkg, mmio_pkg },
     };
 
@@ -137,15 +137,15 @@ pub fn addExecutable(
     exe.addPackage(board_pkg);
     exe.addPackage(info_pkg);
 
-    const startup = b.addObject("startup", b.pathJoin(&.{ family_path, "startup.zig" }));
-    startup.setTarget(exe.target);
-    startup.setBuildMode(b.standardReleaseOptions());
-    exe.addObject(startup);
-    exe.addLibraryPath(family_path);
-
     const size_cmd = b.addSystemCommand(&[_][]const u8{"size"});
     size_cmd.addArtifactArg(exe);
     b.getInstallStep().dependOn(&size_cmd.step);
+
+    switch (deviceFamily(board.device)) {
+        .stm32 => try stm32.addFamilySteps(b, exe, &board),
+        .msp430 => try msp430.addFamilySteps(b, exe, &board),
+        else => {},
+    }
 
     return exe;
 }
