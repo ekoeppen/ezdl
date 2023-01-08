@@ -23,8 +23,9 @@ const types = struct {
 };
 
 pub const USART0 = @intToPtr(*volatile types.USART, 0xc0);
-pub const USART1 = @intToPtr(*volatile types.USART, 0xc8);
 
 pub const PORTB = @intToPtr(*volatile types.PORT, 0x23);
+pub const PORTC = @intToPtr(*volatile types.PORT, 0x26);
+pub const PORTD = @intToPtr(*volatile types.PORT, 0x29);
 
 pub const SPI = @intToPtr(*volatile types.SPI, 0x4c);

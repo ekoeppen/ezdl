@@ -23,6 +23,15 @@
     ]
   },
   {
+    "name": "Accept",
+    "path": "examples/generic/accept",
+    "boards": [
+      "3rdparty/ezdl/src/stm32/boards/nucleo_f072rb",
+      "3rdparty/ezdl/src/msp430/boards/exp_msp430g2",
+      "3rdparty/ezdl/src/avr/boards/arduino_uno"
+    ]
+  },
+  {
     "name": "STM32 Custom Board",
     "path": "examples/stm32/custom_board",
     "boards": [ ]

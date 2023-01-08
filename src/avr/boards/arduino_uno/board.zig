@@ -13,6 +13,8 @@ pub const sclk = mcu.Gpio(svd.PORTB, 5, .output);
 pub const mosi = mcu.Gpio(svd.PORTB, 3, .output);
 pub const miso = mcu.Gpio(svd.PORTB, 4, .input);
 pub const csn = mcu.Gpio(svd.PORTB, 2, .output);
+pub const rx = mcu.Gpio(svd.PORTD, 0, .input);
+pub const tx = mcu.Gpio(svd.PORTD, 1, .output);
 pub const usart = mcu.Usart(svd.USART0);
 pub const spi = mcu.Spi(svd.SPI, 0, 1);
 

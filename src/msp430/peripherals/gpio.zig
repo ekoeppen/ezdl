@@ -35,7 +35,7 @@ pub fn Gpio(
                 },
                 .secondary => {
                     periph.SEL.set_raw(pin, 1);
-                    periph.SEL.set_raw(pin, 1);
+                    periph.SEL2.set_raw(pin, 1);
                 },
             }
             switch (c.pull) {

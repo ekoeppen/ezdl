@@ -30,5 +30,9 @@ pub fn run() !void {
 
 pub export fn main() void {
     board.init();
+    board.tx.init();
+    board.rx.init();
+    board.usart.init();
+    board.led.init();
     if (run()) {} else |_| {}
 }
