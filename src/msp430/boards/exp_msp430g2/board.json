@@ -2,7 +2,7 @@
   "device": "msp430g2553",
   "cpu_arch": "msp430",
   "cpu_model": "msp430",
-  "port": "rf2500",
+  "programmer": "rf2500",
   "memory": [
     { "name": "rom", "attrs": "rx", "start": "0xc000", "size": "0x3f40" },
     { "name": "ram", "attrs": "rwx", "start": "0x0200", "size": 512 },

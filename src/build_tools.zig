@@ -65,8 +65,9 @@ const FlashStep = struct {
     tool: FlashTool,
     name: []const u8,
     description: []const u8,
-    device: []const u8,
     port: ?[]const u8,
+    programmer: ?[]const u8,
+    board: *const ezdl.Board,
 
     pub fn create(
         builder: *std.build.Builder,
@@ -78,17 +79,22 @@ const FlashStep = struct {
         const self = builder.allocator.create(FlashStep) catch unreachable;
         const port = switch (tool) {
             .stm32flash => builder.option([]const u8, "port", "Serial port for flashing via stm32flash") orelse board.port,
-            .mspdebug => builder.option([]const u8, "port", "Driver for flashing via mspdebug") orelse board.port,
             .avrdude => builder.option([]const u8, "port", "Serial port for flashing via avrdude") orelse board.port,
+            else => null,
+        };
+        const programmer = switch (tool) {
+            .mspdebug => builder.option([]const u8, "programmer", "Driver for flashing via mspdebug") orelse board.programmer,
+            .avrdude => builder.option([]const u8, "programmer", "Driver for flashing via avrdude") orelse board.programmer,
             else => null,
         };
         self.* = FlashStep{
             .builder = builder,
             .step = std.build.Step.init(.run, name, builder.allocator, make),
             .tool = tool,
-            .device = board.device,
+            .board = board,
             .hex = hex,
             .port = port,
+            .programmer = programmer,
             .name = switch (tool) {
                 .jlink => "flash-jlink",
                 .stlink => "flash-stlink",
@@ -141,7 +147,7 @@ const FlashStep = struct {
             \\quit
             \\
         , .{
-            self.device,
+            self.board.device,
             self.hex.out_path,
         });
     }
@@ -150,13 +156,13 @@ const FlashStep = struct {
         try std.build.RunStep.runCommand(
             &[_][]const u8{ "stm32flash", "-w", self.hex.out_path, self.port.? },
             self.builder,
-            null,
+            0,
             .ignore,
             .ignore,
             .Close,
             null,
             null,
-            false,
+            true,
         );
     }
 
@@ -166,15 +172,15 @@ const FlashStep = struct {
             self.hex.out_path,
         });
         try std.build.RunStep.runCommand(
-            &[_][]const u8{ "mspdebug", self.port.?, command },
+            &[_][]const u8{ "mspdebug", self.programmer orelse unreachable, command },
             self.builder,
-            null,
+            0,
             .ignore,
             .ignore,
             .Close,
             null,
             null,
-            false,
+            true,
         );
     }
 
@@ -189,23 +195,23 @@ const FlashStep = struct {
                 "avrdude",
                 "-v",
                 "-c",
-                "arduino",
+                self.programmer orelse unreachable,
                 "-C",
                 "avrdude.conf",
                 "-p",
-                self.device,
+                self.board.device,
                 "-P",
-                self.port.?,
+                self.port orelse unreachable,
                 operation,
             },
             self.builder,
-            null,
+            0,
             .ignore,
             .ignore,
             .Close,
             null,
             null,
-            false,
+            true,
         );
     }
 };

@@ -44,6 +44,7 @@ pub const Board = struct {
     cpu_model: []const u8 = "",
     device: []const u8 = "",
     port: []const u8 = "",
+    programmer: []const u8 = "",
 };
 
 pub fn generateLinkerScript(
