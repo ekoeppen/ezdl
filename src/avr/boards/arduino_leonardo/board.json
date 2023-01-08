@@ -1,0 +1,10 @@
+{
+  "device": "atmega32u4",
+  "cpu_arch": "avr",
+  "cpu_model": "atmega32u4",
+  "memory": [
+    { "name": "rom", "attrs": "rx", "start": "0x0000", "size": 32768 },
+    { "name": "ram", "attrs": "rw!x", "start": "0x800100", "size": 2560 }
+  ]
+}
+

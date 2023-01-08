@@ -77,6 +77,7 @@ const model_table: []const Model = &.{
     .{ .name = "msp430", .cpu = &std.Target.msp430.cpu.msp430 },
     .{ .name = "atmega328", .cpu = &std.Target.avr.cpu.atmega328 },
     .{ .name = "atmega328p", .cpu = &std.Target.avr.cpu.atmega328p },
+    .{ .name = "atmega32u4", .cpu = &std.Target.avr.cpu.atmega32u4 },
 };
 
 pub fn toCpuModel(model: []const u8) !*const std.Target.Cpu.Model {

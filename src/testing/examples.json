@@ -7,7 +7,8 @@
       "ezdl/src/stm32/boards/nucleo_f103rb",
       "ezdl/src/stm32/boards/nucleo_f072rb",
       "ezdl/src/msp430/boards/exp_msp430g2",
-      "ezdl/src/avr/boards/arduino_uno"
+      "ezdl/src/avr/boards/arduino_uno",
+      "ezdl/src/avr/boards/arduino_leonardo"
     ]
   },
   {
@@ -17,7 +18,8 @@
       "ezdl/src/stm32/boards/nucleo_f103rb",
       "ezdl/src/stm32/boards/nucleo_f072rb",
       "ezdl/src/msp430/boards/exp_msp430g2",
-      "ezdl/src/avr/boards/arduino_uno"
+      "ezdl/src/avr/boards/arduino_uno",
+      "ezdl/src/avr/boards/arduino_leonardo"
     ]
   },
   {
