@@ -56,7 +56,7 @@ pub fn addObjCopyStep(
     return objcopy_cmd;
 }
 
-const FlashTool = enum { jlink, stlink, stm32flash, mspdebug, avrdude };
+const FlashTool = enum { jlink, stlink, stm32flash, dfu_util, mspdebug, avrdude };
 
 const FlashStep = struct {
     builder: *std.build.Builder,
@@ -79,6 +79,7 @@ const FlashStep = struct {
         const self = builder.allocator.create(FlashStep) catch unreachable;
         const port = switch (tool) {
             .stm32flash => builder.option([]const u8, "port", "Serial port for flashing via stm32flash") orelse board.port,
+            .dfu_util => builder.option([]const u8, "dfu-id", "Device signature for flashing via dfu-util (vid:pid,alt-id)") orelse board.port,
             .avrdude => builder.option([]const u8, "port", "Serial port for flashing via avrdude") orelse board.port,
             else => null,
         };
@@ -99,6 +100,7 @@ const FlashStep = struct {
                 .jlink => "flash-jlink",
                 .stlink => "flash-stlink",
                 .stm32flash => "stm32flash",
+                .dfu_util => "dfu-util",
                 .mspdebug => "flash-mspdebug",
                 .avrdude => "flash-avrdude",
             },
@@ -106,6 +108,7 @@ const FlashStep = struct {
                 .jlink => "Flash using JLink",
                 .stlink => "Flash using stlink",
                 .stm32flash => "Flash using stm32flash",
+                .dfu_util => "Flash using dfu-util",
                 .mspdebug => "Flash using mspdebug",
                 .avrdude => "Flash using avrdude",
             },
@@ -118,6 +121,7 @@ const FlashStep = struct {
         switch (self.tool) {
             .jlink => try self.makeJLink(),
             .stm32flash => try self.makeStm32Flash(),
+            .dfu_util => try self.makeDfuUtilFlash(),
             .mspdebug => try self.makeMspDebugFlash(),
             .avrdude => try self.makeAvrdudeFlash(),
             else => {},
@@ -155,6 +159,23 @@ const FlashStep = struct {
     fn makeStm32Flash(self: *FlashStep) !void {
         try std.build.RunStep.runCommand(
             &[_][]const u8{ "stm32flash", "-w", self.hex.out_path, self.port.? },
+            self.builder,
+            0,
+            .ignore,
+            .ignore,
+            .Close,
+            null,
+            null,
+            true,
+        );
+    }
+
+    fn makeDfuUtilFlash(self: *FlashStep) !void {
+        const altSep = std.mem.indexOfScalar(u8, self.port.?, ',');
+        const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
+        const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
+        try std.build.RunStep.runCommand(
+            &[_][]const u8{ "dfu-util", "-D", self.hex.out_path, "-d", dev, "-a", altId },
             self.builder,
             0,
             .ignore,

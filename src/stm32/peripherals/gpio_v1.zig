@@ -28,7 +28,10 @@ const Config = union(PinMode) {
         mode: OutputMode = .push_pull,
         speed: OutputSpeed = .medium,
     },
-    alternate: u4,
+    alternate: struct {
+        mode: OutputMode = .push_pull,
+        speed: OutputSpeed = .medium,
+    },
     analog,
 };
 
@@ -43,11 +46,44 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
         }
 
         pub fn setConfig(c: Config) void {
+            const cr_field = @as(u16, pin);
             switch (c) {
-                .input => |_| {},
-                .output => |_| {},
-                .alternate => |_| {},
-                .analog => {},
+                .input => |input| {
+                    const cr: u4 = if (input.pull != .none) 0b1000 else 0b0000;
+                    if (pin < 8)
+                        periph.CRL.modify_raw(cr_field * 4, 4, cr)
+                    else
+                        periph.CRH.modify_raw(cr_field * 4, 4, cr);
+                },
+                .output => |output| {
+                    const cr: u4 = @as(u4, if (output.mode == .open_drain) 0b1000 else 0) | @as(u4, switch (output.speed) {
+                        .low => 0b10,
+                        .medium => 0b01,
+                        .high => 0b11,
+                    });
+                    if (pin < 8)
+                        periph.CRL.modify_raw(cr_field * 4, 4, cr)
+                    else
+                        periph.CRH.modify_raw(cr_field * 4, 4, cr);
+                },
+                .alternate => |alternate| {
+                    const cr: u4 = @as(u4, if (alternate.mode == .open_drain) 0b1100 else 0b1000) | @as(u4, switch (alternate.speed) {
+                        .low => 0b10,
+                        .medium => 0b01,
+                        .high => 0b11,
+                    });
+                    if (pin < 8) {
+                        periph.CRL.modify_raw(cr_field * 4, 4, cr);
+                    } else {
+                        periph.CRH.modify_raw(cr_field * 4, 4, cr);
+                    }
+                },
+                .analog => {
+                    if (pin < 8)
+                        periph.CRL.modify_raw(cr_field * 4, 4, 0)
+                    else
+                        periph.CRH.modify_raw(pin * 4, 4, 0);
+                },
             }
         }
 
