@@ -1,5 +1,6 @@
 pub const Gpio = @import("../peripherals/peripherals.zig").gpio_v1.Gpio;
 pub const Usart = @import("../peripherals/peripherals.zig").usci_uart.Usart;
+pub const Spi = @import("../peripherals/peripherals.zig").usci_spi.Spi;
 pub const Clock = @import("../peripherals/peripherals.zig").basic_clock.Clock;
 
 export fn __mspabi_mpyi(x: i16, y: i16) i16 {

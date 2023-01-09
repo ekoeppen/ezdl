@@ -16,6 +16,7 @@ pub const miso = mcu.Gpio(svd.PORT_1, 6, .{ .direction = .input, .function = .se
 pub const mosi = mcu.Gpio(svd.PORT_1, 7, .{ .direction = .output, .function = .secondary });
 pub const ssel = mcu.Gpio(svd.PORT_2, 1, .{ .direction = .output });
 pub const usart = mcu.Usart(svd.USCI_A0_UART_MODE, 9600, clock, .smclk);
+pub const spi = mcu.Spi(svd.USCI_B0_SPI_MODE, 8_000_000, 0, clock, .smclk);
 
 pub fn init() void {
     svd.WATCHDOG_TIMER.WDTCTL.modify(.{ .WDTPW = .{ .raw = 0x5a }, .WDTHOLD = 1 });

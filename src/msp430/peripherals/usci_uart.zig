@@ -9,10 +9,9 @@ pub fn Usart(
     const Context = struct {};
     const WriteError = error{};
     const ReadError = error{ OverrunError, ReceiveError, ParityError };
-    const IFG = @intToPtr(*volatile u8, if (@ptrToInt(usart) == 0x5c) 3 else 7);
 
     return struct {
-        const instance = @ptrToInt(usart);
+        const IFG = @intToPtr(*volatile u8, 3);
         const SFR = @intToPtr(*allowzero volatile [16]u8, 0x00);
 
         pub fn init() void {
@@ -22,7 +21,7 @@ pub fn Usart(
                 .smclk => clock.config.smclk.speed,
             };
             usart.CTL1.modify(.{ .UCSWRST = 1 });
-            usart.CTL1.modify(.{ .UCSSEL = .{ .value = .UCSSEL_2 } });
+            usart.CTL1.modify(.{ .UCSSEL = .{ .value = if (clock_source == .aclk) .UCSSEL_2 else .UCSSEL_1 } });
             usart.BR0.write(.{ .BR0 = @truncate(u8, clk / speed) });
             usart.BR1.write(.{ .BR1 = @truncate(u8, (clk / speed) >> 8) });
             usart.MCTL.modify(.{ .UCBRS = .{ .raw = (clk / (speed / 100) - (clk / speed) * 100) * 8 / 100 } });
