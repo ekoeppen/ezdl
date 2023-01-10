@@ -3,77 +3,37 @@ const ezdl = @import("ezdl.zig");
 
 pub const ObjCopyFormat = enum { bin, hex };
 
-const ObjCopyStep = struct {
-    builder: *std.build.Builder,
-    exe: *std.build.LibExeObjStep,
-    step: std.build.Step,
-    out_name: []const u8,
-    out_path: []const u8,
-    format: ObjCopyFormat,
-
-    pub fn create(
-        builder: *std.build.Builder,
-        step_name: []const u8,
-        exe: *std.build.LibExeObjStep,
-        format: ObjCopyFormat,
-    ) !*ObjCopyStep {
-        const base_name = std.fs.path.stem(exe.name);
-        const self = builder.allocator.create(ObjCopyStep) catch unreachable;
-        const name = builder.fmt("{s}.{s}", .{ base_name, if (format == .bin) "bin" else "hex" });
-        const path = builder.pathJoin(&.{ builder.cache_root, name });
-        self.* = ObjCopyStep{
-            .builder = builder,
-            .exe = exe,
-            .step = std.build.Step.init(.run, step_name, builder.allocator, make),
-            .format = format,
-            .out_name = name,
-            .out_path = path,
-        };
-        return self;
-    }
-
-    pub fn make(step: *std.build.Step) !void {
-        const self = @fieldParentPtr(ObjCopyStep, "step", step);
-        const in_path = self.exe.installed_path orelse //
-            self.exe.getOutputSource().getPath(self.builder);
-        try std.build.RunStep.runCommand(&[_][]const u8{
-            "objcopy",
-            "-O",
-            if (self.format == .bin) "binary" else "ihex",
-            in_path,
-            self.out_path,
-        }, self.builder, null, .ignore, .ignore, .Close, null, null, false);
-    }
-};
-
 pub fn addObjCopyStep(
     b: *std.build.Builder,
     exe: *std.build.LibExeObjStep,
     format: ObjCopyFormat,
-) !*ObjCopyStep {
-    const objcopy_cmd = try ObjCopyStep.create(b, "objcopy", exe, format);
-    objcopy_cmd.step.dependOn(b.getInstallStep());
-    return objcopy_cmd;
+) !*std.build.InstallRawStep {
+    const name = if (format == .bin) "bin" else "hex";
+    const file_name = b.fmt("{s}.{s}", .{ std.fs.path.stem(exe.name), name });
+    const cmd = b.addInstallRaw(exe, file_name, .{});
+    const objcopy_step = b.step(name, "Generate file to be flashed");
+    objcopy_step.dependOn(&cmd.step);
+    return cmd;
 }
 
 const FlashTool = enum { jlink, stlink, stm32flash, dfu_util, mspdebug, avrdude };
 
 const FlashStep = struct {
     builder: *std.build.Builder,
-    hex: *ObjCopyStep,
     step: std.build.Step,
     tool: FlashTool,
     name: []const u8,
     description: []const u8,
+    dest_path: []const u8,
     port: ?[]const u8,
     programmer: ?[]const u8,
-    board: *const ezdl.Board,
+    device: []const u8,
 
     pub fn create(
         builder: *std.build.Builder,
         name: []const u8,
         tool: FlashTool,
-        hex: *ObjCopyStep,
+        hex: *std.build.InstallRawStep,
         board: *const ezdl.Board,
     ) *FlashStep {
         const self = builder.allocator.create(FlashStep) catch unreachable;
@@ -92,8 +52,8 @@ const FlashStep = struct {
             .builder = builder,
             .step = std.build.Step.init(.run, name, builder.allocator, make),
             .tool = tool,
-            .board = board,
-            .hex = hex,
+            .device = board.device,
+            .dest_path = builder.pathJoin(&.{ builder.exe_dir, hex.dest_filename }),
             .port = port,
             .programmer = programmer,
             .name = switch (tool) {
@@ -151,14 +111,14 @@ const FlashStep = struct {
             \\quit
             \\
         , .{
-            self.board.device,
-            self.hex.out_path,
+            self.device,
+            self.dest_path,
         });
     }
 
     fn makeStm32Flash(self: *FlashStep) !void {
         try std.build.RunStep.runCommand(
-            &[_][]const u8{ "stm32flash", "-w", self.hex.out_path, self.port.? },
+            &[_][]const u8{ "stm32flash", "-w", self.dest_path, self.port.? },
             self.builder,
             0,
             .ignore,
@@ -175,7 +135,7 @@ const FlashStep = struct {
         const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
         const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
         try std.build.RunStep.runCommand(
-            &[_][]const u8{ "dfu-util", "-D", self.hex.out_path, "-d", dev, "-a", altId },
+            &[_][]const u8{ "dfu-util", "-D", self.dest_path, "-d", dev, "-a", altId },
             self.builder,
             0,
             .ignore,
@@ -188,10 +148,7 @@ const FlashStep = struct {
     }
 
     fn makeMspDebugFlash(self: *FlashStep) !void {
-        const command = try std.mem.join(self.builder.allocator, " ", &.{
-            "prog",
-            self.hex.out_path,
-        });
+        const command = try std.mem.join(self.builder.allocator, " ", &.{ "prog", self.dest_path });
         try std.build.RunStep.runCommand(
             &[_][]const u8{ "mspdebug", self.programmer orelse unreachable, command },
             self.builder,
@@ -209,7 +166,7 @@ const FlashStep = struct {
         const operation = try std.fmt.allocPrint(
             self.builder.allocator,
             "-Uflash:w:{s}",
-            .{self.hex.out_path},
+            .{self.dest_path},
         );
         try std.build.RunStep.runCommand(
             &[_][]const u8{
@@ -220,7 +177,7 @@ const FlashStep = struct {
                 "-C",
                 "avrdude.conf",
                 "-p",
-                self.board.device,
+                self.device,
                 "-P",
                 self.port orelse unreachable,
                 operation,
@@ -239,7 +196,7 @@ const FlashStep = struct {
 
 pub fn addFlashStep(
     b: *std.build.Builder,
-    hex: *ObjCopyStep,
+    hex: *std.build.InstallRawStep,
     tool: FlashTool,
     board: *const ezdl.Board,
 ) *FlashStep {
