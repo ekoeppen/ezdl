@@ -113,6 +113,7 @@ pub fn addExecutable(
     exe.setLinkerScriptPath(.{ .path = linker_script_path });
     exe.setBuildMode(b.standardReleaseOptions());
     exe.step.dependOn(&build_info.step);
+    exe.strip = false;
 
     const target = .{
         .cpu_arch = board.cpu_arch,
