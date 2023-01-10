@@ -13,7 +13,7 @@ pub const button = mcu.Gpio(svd.GPIOC, 9, .{ .input = .{
 
 pub const csn = mcu.Gpio(svd.GPIOB, 5, .{ .output = .{} });
 pub const sclk = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
-pub const miso = mcu.Gpio(svd.GPIOA, 6, .{ .alternate = .{} });
+pub const miso = mcu.Gpio(svd.GPIOA, 6, .{ .input = .{} });
 pub const mosi = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
 
 pub const tx = mcu.Gpio(svd.GPIOA, 9, .{ .alternate = .{ .pull = .up, .function = 1 } });
