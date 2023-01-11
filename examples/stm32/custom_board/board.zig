@@ -6,10 +6,10 @@ pub const led2 = mcu.Gpio(svd.GPIOC, 8, .{ .output = .{} });
 pub const led3 = mcu.Gpio(svd.GPIOC, 6, .{ .output = .{} });
 pub const button = mcu.Gpio(svd.GPIOC, 13, .{ .input = .{} });
 
-pub const csn = mcu.Gpio(svd.GPIOA, 4, .{ .output = .{} });
-pub const sclk = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
-pub const miso = mcu.Gpio(svd.GPIOA, 6, .{ .alternate = .{} });
-pub const mosi = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
+pub const cs = mcu.Gpio(svd.GPIOA, 4, .{ .output = .{} });
+pub const sck = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
+pub const sdi = mcu.Gpio(svd.GPIOA, 6, .{ .alternate = .{} });
+pub const sdo = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
 
 pub const tx = mcu.Gpio(svd.GPIOA, 2, .{ .alternate = .{ .pull_mode = .up } });
 pub const rx = mcu.Gpio(svd.GPIOA, 3, .{ .alternate = .{ .pull_mode = .up } });

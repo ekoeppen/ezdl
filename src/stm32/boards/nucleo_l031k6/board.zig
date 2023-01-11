@@ -9,10 +9,10 @@ pub const button = mcu.Gpio(svd.GPIOA, 0, .{ .input = .{
     .trigger = .falling,
 } });
 
-pub const csn = mcu.Gpio(svd.GPIOA, 4, .{ .output = .{} });
-pub const sclk = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
-pub const miso = mcu.Gpio(svd.GPIOA, 6, .{ .alternate = .{} });
-pub const mosi = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
+pub const cs = mcu.Gpio(svd.GPIOA, 4, .{ .output = .{} });
+pub const sck = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
+pub const sdi = mcu.Gpio(svd.GPIOA, 6, .{ .alternate = .{} });
+pub const sdo = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
 
 pub const tx = mcu.Gpio(svd.GPIOA, 2, .{ .alternate = .{ .pull = .up, .function = 4 } });
 pub const rx = mcu.Gpio(svd.GPIOA, 15, .{ .alternate = .{ .pull = .up, .function = 4 } });
@@ -43,11 +43,11 @@ pub fn init() void {
 
     button.init();
 
-    csn.init();
-    csn.set();
-    sclk.init();
-    miso.init();
-    mosi.init();
+    cs.init();
+    cs.set();
+    sck.init();
+    sdi.init();
+    sdo.init();
 
     tx.init();
     rx.init();

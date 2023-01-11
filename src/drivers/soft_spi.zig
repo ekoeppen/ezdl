@@ -1,7 +1,7 @@
 pub fn Spi(
-    comptime sclk: anytype,
-    comptime mosi: anytype,
-    comptime miso: anytype,
+    comptime sck: anytype,
+    comptime sdo: anytype,
+    comptime sdi: anytype,
     comptime mode: u2,
 ) type {
     return struct {
@@ -10,15 +10,15 @@ pub fn Spi(
 
         fn activeClock() void {
             switch (polarity) {
-                0 => sclk.set(),
-                1 => sclk.clear(),
+                0 => sck.set(),
+                1 => sck.clear(),
             }
         }
 
         fn idleClock() void {
             switch (polarity) {
-                0 => sclk.clear(),
-                1 => sclk.set(),
+                0 => sck.clear(),
+                1 => sck.set(),
             }
         }
         pub fn init() void {
@@ -33,15 +33,15 @@ pub fn Spi(
             while (out_bit != 0) {
                 switch (phase) {
                     0 => {
-                        if (out & out_bit != 0) mosi.set() else mosi.clear();
-                        if (miso.isSet()) in |= in_bit;
+                        if (out & out_bit != 0) sdo.set() else sdo.clear();
+                        if (sdi.isSet()) in |= in_bit;
                         activeClock();
                         idleClock();
                     },
                     1 => {
                         activeClock();
-                        if (out & out_bit != 0) mosi.set() else mosi.clear();
-                        if (miso.isSet()) in |= in_bit;
+                        if (out & out_bit != 0) sdo.set() else sdo.clear();
+                        if (sdi.isSet()) in |= in_bit;
                         idleClock();
                     },
                 }

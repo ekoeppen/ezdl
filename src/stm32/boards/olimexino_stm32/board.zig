@@ -11,10 +11,10 @@ pub const button = mcu.Gpio(svd.GPIOC, 9, .{ .input = .{
     .trigger = .falling,
 } });
 
-pub const csn = mcu.Gpio(svd.GPIOB, 5, .{ .output = .{} });
-pub const sclk = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
-pub const miso = mcu.Gpio(svd.GPIOA, 6, .{ .input = .{} });
-pub const mosi = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
+pub const cs = mcu.Gpio(svd.GPIOB, 5, .{ .output = .{} });
+pub const sck = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
+pub const sdi = mcu.Gpio(svd.GPIOA, 6, .{ .input = .{} });
+pub const sdo = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
 
 pub const tx = mcu.Gpio(svd.GPIOA, 9, .{ .alternate = .{ .pull = .up, .function = 1 } });
 pub const rx = mcu.Gpio(svd.GPIOA, 10, .{ .alternate = .{ .pull = .up, .function = 1 } });

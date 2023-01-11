@@ -5,7 +5,7 @@ const Nrf24 = ezdl.drivers.nrf24.Nrf24;
 
 const ce = board.mcu.Gpio(board.svd.GPIOB, 4, .{ .output = .{} });
 const irq = board.mcu.Gpio(board.svd.GPIOB, 5, .{ .input = .{} });
-const radio = Nrf24(board.spi, board.csn, ce, irq);
+const radio = Nrf24(board.spi, board.cs, ce, irq);
 const writer = board.usart.writer();
 
 fn run() anyerror!void {
@@ -24,13 +24,13 @@ fn run() anyerror!void {
 
 pub export fn main() void {
     board.init();
-    board.csn.init();
-    board.csn.set();
+    board.cs.init();
+    board.cs.set();
     board.spi.init();
     board.usart.init();
-    board.sclk.init();
-    board.miso.init();
-    board.mosi.init();
+    board.sck.init();
+    board.sdi.init();
+    board.sdo.init();
     board.tx.init();
     board.rx.init();
     ce.init();

@@ -6,7 +6,7 @@ const Rfm69 = ezdl.drivers.rfm69.Rfm69;
 
 const writer = board.usart.writer();
 const reader = board.usart.reader();
-const radio = Rfm69(board.spi, board.csn);
+const radio = Rfm69(board.spi, board.cs);
 
 fn txTest() anyerror!void {
     _ = try writer.print("---- TX test ------------------------------------\n", .{});
