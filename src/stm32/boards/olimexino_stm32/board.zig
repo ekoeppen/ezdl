@@ -16,11 +16,11 @@ pub const sck = mcu.Gpio(svd.GPIOA, 5, .{ .alternate = .{} });
 pub const sdi = mcu.Gpio(svd.GPIOA, 6, .{ .input = .{} });
 pub const sdo = mcu.Gpio(svd.GPIOA, 7, .{ .alternate = .{} });
 
-pub const tx = mcu.Gpio(svd.GPIOA, 9, .{ .alternate = .{ .pull = .up, .function = 1 } });
-pub const rx = mcu.Gpio(svd.GPIOA, 10, .{ .alternate = .{ .pull = .up, .function = 1 } });
+pub const tx = mcu.Gpio(svd.GPIOA, 9, .{ .alternate = .{} });
+pub const rx = mcu.Gpio(svd.GPIOA, 10, .{ .alternate = .{} });
 
-pub const scl = mcu.Gpio(svd.GPIOB, 10, .{ .alternate = .{ .pull = .up } });
-pub const sda = mcu.Gpio(svd.GPIOB, 11, .{ .alternate = .{ .pull = .up } });
+pub const scl = mcu.Gpio(svd.GPIOB, 10, .{ .alternate = .{} });
+pub const sda = mcu.Gpio(svd.GPIOB, 11, .{ .alternate = .{} });
 
 pub const spi = mcu.Spi(svd.SPI1);
 pub const usart = mcu.Usart(svd.USART1, .{ .speed = 115200 });

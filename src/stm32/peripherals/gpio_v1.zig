@@ -46,7 +46,7 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
         }
 
         pub fn setConfig(c: Config) void {
-            const cr_field = @as(u16, pin);
+            const cr_field = @as(u16, if (pin < 8) pin else pin - 8);
             switch (c) {
                 .input => |input| {
                     const cr: u4 = if (input.pull != .none) 0b1000 else 0b0000;
@@ -82,7 +82,7 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
                     if (pin < 8)
                         periph.CRL.modify_raw(cr_field * 4, 4, 0)
                     else
-                        periph.CRH.modify_raw(pin * 4, 4, 0);
+                        periph.CRH.modify_raw(cr_field * 4, 4, 0);
                 },
             }
         }
