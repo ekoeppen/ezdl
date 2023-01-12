@@ -8,5 +8,7 @@ export fn main() void {
     for ("Hello, World!\n") |c| {
         board.usart.send(c);
     }
-    while (true) {}
+    while (true) {
+        board.usart.send(board.usart.receive());
+    }
 }

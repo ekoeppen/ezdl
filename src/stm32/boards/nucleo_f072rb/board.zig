@@ -35,21 +35,4 @@ pub fn init() void {
     svd.RCC.APB1ENR.modify(.{ .I2C2EN = 1, .USART2EN = 1, .PWREN = 1 });
     svd.PWR.CR.modify(.{ .DBP = 1 });
     svd.RCC.BDCR.modify(.{ .BDRST = 0, .RTCSEL = 0b10, .RTCEN = 1 });
-
-    led.init();
-    led2.init();
-    led3.init();
-    button.init();
-
-    cs.init();
-    cs.set();
-    sck.init();
-    sdi.init();
-    sdo.init();
-
-    tx.init();
-    rx.init();
-
-    usart.init();
-    spi.init();
 }

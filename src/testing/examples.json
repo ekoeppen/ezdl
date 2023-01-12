@@ -36,6 +36,7 @@
     "name": "Hello, World",
     "path": "examples/generic/hello_world",
     "boards": [
+      "ezdl/src/stm32/boards/nucleo_f072rb",
       "ezdl/src/stm32/boards/nucleo_l031k6",
       "ezdl/src/avr/boards/arduino_uno"
     ]
