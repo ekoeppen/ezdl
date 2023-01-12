@@ -91,10 +91,7 @@ const FlashStep = struct {
     fn makeJLink(self: *FlashStep) !void {
         const path = self.builder.pathJoin(&.{ self.builder.cache_root, "flash.jlink" });
         try self.createCommandFile(path);
-        try std.build.RunStep.runCommand(&[_][]const u8{
-            "JLinkExe",
-            path,
-        }, self.builder, null, .ignore, .ignore, .Close, null, null, false);
+        _ = try self.builder.execFromStep(&.{ "JLinkExe", path }, &self.step);
     }
 
     fn createCommandFile(self: *FlashStep, path: []const u8) !void {
@@ -117,16 +114,9 @@ const FlashStep = struct {
     }
 
     fn makeStm32Flash(self: *FlashStep) !void {
-        try std.build.RunStep.runCommand(
-            &[_][]const u8{ "stm32flash", "-w", self.dest_path, self.port.? },
-            self.builder,
-            0,
-            .ignore,
-            .ignore,
-            .Close,
-            null,
-            null,
-            true,
+        _ = try self.builder.execFromStep(
+            &.{ "stm32flash", "-w", self.dest_path, self.port.? },
+            &self.step,
         );
     }
 
@@ -134,31 +124,17 @@ const FlashStep = struct {
         const altSep = std.mem.indexOfScalar(u8, self.port.?, ',');
         const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
         const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
-        try std.build.RunStep.runCommand(
-            &[_][]const u8{ "dfu-util", "-D", self.dest_path, "-d", dev, "-a", altId },
-            self.builder,
-            0,
-            .ignore,
-            .ignore,
-            .Close,
-            null,
-            null,
-            true,
+        _ = try self.builder.execFromStep(
+            &.{ "dfu-util", "-D", self.dest_path, "-d", dev, "-a", altId },
+            &self.step,
         );
     }
 
     fn makeMspDebugFlash(self: *FlashStep) !void {
         const command = try std.mem.join(self.builder.allocator, " ", &.{ "prog", self.dest_path });
-        try std.build.RunStep.runCommand(
-            &[_][]const u8{ "mspdebug", self.programmer orelse unreachable, command },
-            self.builder,
-            0,
-            .ignore,
-            .ignore,
-            .Close,
-            null,
-            null,
-            true,
+        _ = try self.builder.execFromStep(
+            &.{ "mspdebug", self.programmer orelse unreachable, command },
+            &self.step,
         );
     }
 
@@ -168,29 +144,19 @@ const FlashStep = struct {
             "-Uflash:w:{s}",
             .{self.dest_path},
         );
-        try std.build.RunStep.runCommand(
-            &[_][]const u8{
-                "avrdude",
-                "-v",
-                "-c",
-                self.programmer orelse unreachable,
-                "-C",
-                "avrdude.conf",
-                "-p",
-                self.device,
-                "-P",
-                self.port orelse unreachable,
-                operation,
-            },
-            self.builder,
-            0,
-            .ignore,
-            .ignore,
-            .Close,
-            null,
-            null,
-            true,
-        );
+        _ = try self.builder.execFromStep(&[_][]const u8{
+            "avrdude",
+            "-v",
+            "-c",
+            self.programmer orelse unreachable,
+            "-C",
+            "avrdude.conf",
+            "-p",
+            self.device,
+            "-P",
+            self.port orelse unreachable,
+            operation,
+        }, &self.step);
     }
 };
 
