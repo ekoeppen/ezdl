@@ -1,0 +1,10 @@
+{
+  "device": "stm32f103rb",
+  "cpu_arch": "thumb",
+  "cpu_model": "cortex_m3",
+  "port": "/dev/ttyUSB0",
+  "memory": [
+    { "name": "rom", "attrs": "rx", "start": "0x08000000", "size": 131072 },
+    { "name": "ram", "attrs": "rwx", "start": "0x20000000", "size": 20480 }
+  ]
+}

@@ -57,5 +57,10 @@
     "boards": [
       "ezdl/src/stm32/boards/nucleo_f072rb"
     ]
+  },
+  {
+    "name": "STM32F1 CP2102",
+    "path": "examples/stm32/cp2102",
+    "boards": []
   }
 ]

@@ -54,10 +54,10 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
         }
 
         pub fn setConfig(comptime c: Config) void {
-            periph.MODER.modify_raw(pin * 2, 2, @enumToInt(c));
+            periph.MODER.modifyRaw(pin * 2, 2, @enumToInt(c));
             switch (c) {
                 .input => |input| {
-                    periph.PUPDR.modify_raw(pin * 2, 2, @enumToInt(input.pull));
+                    periph.PUPDR.modifyRaw(pin * 2, 2, @enumToInt(input.pull));
                     if (input.trigger == .none) {
                         return;
                     }
@@ -73,16 +73,16 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
                     }
                 },
                 .output => |output| {
-                    periph.OTYPER.modify_raw(pin, 1, @enumToInt(output.mode));
-                    periph.PUPDR.modify_raw(pin * 2, 2, @enumToInt(output.pull));
+                    periph.OTYPER.modifyRaw(pin, 1, @enumToInt(output.mode));
+                    periph.PUPDR.modifyRaw(pin * 2, 2, @enumToInt(output.pull));
                 },
                 .alternate => |alternate| {
-                    periph.OTYPER.modify_raw(pin, 1, @enumToInt(alternate.mode));
-                    periph.PUPDR.modify_raw(pin * 2, 2, @enumToInt(alternate.pull));
+                    periph.OTYPER.modifyRaw(pin, 1, @enumToInt(alternate.mode));
+                    periph.PUPDR.modifyRaw(pin * 2, 2, @enumToInt(alternate.pull));
                     if (pin < 8) {
-                        periph.AFRL.modify_raw(pin * 4, 4, alternate.function);
+                        periph.AFRL.modifyRaw(pin * 4, 4, alternate.function);
                     } else {
-                        periph.AFRH.modify_raw((pin - 8) * 4, 4, alternate.function);
+                        periph.AFRH.modifyRaw((pin - 8) * 4, 4, alternate.function);
                     }
                 },
                 .analog => {},
@@ -90,23 +90,23 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
         }
 
         pub fn isSet() bool {
-            return periph.IDR.read_raw() & pin_bit == pin_bit;
+            return periph.IDR.readRaw() & pin_bit == pin_bit;
         }
 
         pub fn set() void {
-            periph.BSRR.write_raw(pin_bit);
+            periph.BSRR.writeRaw(pin_bit);
         }
 
         pub fn get() u1 {
-            return @truncate(u1, (periph.IDR.read_raw() & pin_bit) >> pin);
+            return @truncate(u1, (periph.IDR.readRaw() & pin_bit) >> pin);
         }
 
         pub fn clear() void {
-            periph.BRR.write_raw(pin_bit);
+            periph.BRR.writeRaw(pin_bit);
         }
 
         pub fn toggle() void {
-            periph.ODR.write_raw(periph.ODR.read_raw() ^ pin_bit);
+            periph.ODR.writeRaw(periph.ODR.readRaw() ^ pin_bit);
         }
 
         pub fn awaitValue(value: u1) void {

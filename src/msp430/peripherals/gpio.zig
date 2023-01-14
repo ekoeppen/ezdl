@@ -21,50 +21,50 @@ pub fn Gpio(
 
         pub fn setConfig(c: Config) void {
             switch (c.direction) {
-                .input => periph.DIR.clear_raw(pin, 1),
-                .output => periph.DIR.set_raw(pin, 1),
+                .input => periph.DIR.clearRaw(pin, 1),
+                .output => periph.DIR.setRaw(pin, 1),
             }
             switch (c.function) {
                 .none => {
-                    periph.SEL.clear_raw(pin, 1);
-                    periph.SEL2.clear_raw(pin, 1);
+                    periph.SEL.clearRaw(pin, 1);
+                    periph.SEL2.clearRaw(pin, 1);
                 },
                 .primary => {
-                    periph.SEL.set_raw(pin, 1);
-                    periph.SEL2.clear_raw(pin, 1);
+                    periph.SEL.setRaw(pin, 1);
+                    periph.SEL2.clearRaw(pin, 1);
                 },
                 .secondary => {
-                    periph.SEL.set_raw(pin, 1);
-                    periph.SEL2.set_raw(pin, 1);
+                    periph.SEL.setRaw(pin, 1);
+                    periph.SEL2.setRaw(pin, 1);
                 },
             }
             switch (c.pull) {
-                .none => periph.REN.clear_raw(pin, 1),
+                .none => periph.REN.clearRaw(pin, 1),
                 .up => {
-                    periph.REN.set_raw(pin, 1);
-                    periph.OUT.set_raw(pin, 1);
+                    periph.REN.setRaw(pin, 1);
+                    periph.OUT.setRaw(pin, 1);
                 },
                 .down => {
-                    periph.REN.set_raw(pin, 1);
-                    periph.OUT.clear_raw(pin, 1);
+                    periph.REN.setRaw(pin, 1);
+                    periph.OUT.clearRaw(pin, 1);
                 },
             }
         }
 
         pub fn isSet() bool {
-            return periph.IN.read_raw() & pin_bit == 1;
+            return periph.IN.readRaw() & pin_bit == 1;
         }
 
         pub fn set() void {
-            periph.OUT.set_raw(pin, 1);
+            periph.OUT.setRaw(pin, 1);
         }
 
         pub fn clear() void {
-            periph.OUT.clear_raw(pin, 1);
+            periph.OUT.clearRaw(pin, 1);
         }
 
         pub fn toggle() void {
-            periph.OUT.toggle_raw(pin, 1);
+            periph.OUT.toggleRaw(pin, 1);
         }
     };
 }

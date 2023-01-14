@@ -34,30 +34,30 @@ pub fn Exti(comptime exti: anytype, comptime syscfg: anytype) type {
 
         pub fn enable(line: u5, eventType: Type, edge: Edge) void {
             switch (eventType) {
-                .interrupt => exti.IMR.write_raw(exti.IMR.read_raw() | (@as(u32, 1) << line)),
-                .event => exti.EMR.write_raw(exti.EMR.read_raw() | (@as(u32, 1) << line)),
+                .interrupt => exti.IMR.writeRaw(exti.IMR.readRaw() | (@as(u32, 1) << line)),
+                .event => exti.EMR.writeRaw(exti.EMR.readRaw() | (@as(u32, 1) << line)),
             }
             if (edge == .rising or edge == .rising_falling) {
-                exti.RTSR.write_raw(exti.RTSR.read_raw() | (@as(u32, 1) << line));
+                exti.RTSR.writeRaw(exti.RTSR.readRaw() | (@as(u32, 1) << line));
             }
             if (edge == .falling or edge == .rising_falling) {
-                exti.FTSR.write_raw(exti.FTSR.read_raw() | (@as(u32, 1) << line));
+                exti.FTSR.writeRaw(exti.FTSR.readRaw() | (@as(u32, 1) << line));
             }
         }
 
         pub fn disable(line: u5) void {
-            exti.IMR.write_raw(exti.IMR.read_raw() & ~(@as(u32, 1) << line));
-            exti.EMR.write_raw(exti.EMR.read_raw() & ~(@as(u32, 1) << line));
-            exti.RTSR.write_raw(exti.RTSR.read_raw() & ~(@as(u32, 1) << line));
-            exti.FTSR.write_raw(exti.FTSR.read_raw() & ~(@as(u32, 1) << line));
+            exti.IMR.writeRaw(exti.IMR.readRaw() & ~(@as(u32, 1) << line));
+            exti.EMR.writeRaw(exti.EMR.readRaw() & ~(@as(u32, 1) << line));
+            exti.RTSR.writeRaw(exti.RTSR.readRaw() & ~(@as(u32, 1) << line));
+            exti.FTSR.writeRaw(exti.FTSR.readRaw() & ~(@as(u32, 1) << line));
         }
 
         pub fn clearInterrupt(line: u5) void {
-            exti.PR.write_raw(exti.PR.read_raw() | (@as(u32, 1) << line));
+            exti.PR.writeRaw(exti.PR.readRaw() | (@as(u32, 1) << line));
         }
 
         pub fn interruptPending(line: u5) bool {
-            return exti.PR.read_raw() & (@as(u32, 1) << line) != 0;
+            return exti.PR.readRaw() & (@as(u32, 1) << line) != 0;
         }
     };
 }

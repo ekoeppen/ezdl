@@ -51,9 +51,9 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
                 .input => |input| {
                     const cr: u4 = if (input.pull != .none) 0b1000 else 0b0000;
                     if (pin < 8)
-                        periph.CRL.modify_raw(cr_field * 4, 4, cr)
+                        periph.CRL.modifyRaw(cr_field * 4, 4, cr)
                     else
-                        periph.CRH.modify_raw(cr_field * 4, 4, cr);
+                        periph.CRH.modifyRaw(cr_field * 4, 4, cr);
                 },
                 .output => |output| {
                     const cr: u4 = @as(u4, if (output.mode == .open_drain) 0b0100 else 0) | @as(u4, switch (output.speed) {
@@ -62,9 +62,9 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
                         .high => 0b11,
                     });
                     if (pin < 8)
-                        periph.CRL.modify_raw(cr_field * 4, 4, cr)
+                        periph.CRL.modifyRaw(cr_field * 4, 4, cr)
                     else
-                        periph.CRH.modify_raw(cr_field * 4, 4, cr);
+                        periph.CRH.modifyRaw(cr_field * 4, 4, cr);
                 },
                 .alternate => |alternate| {
                     const cr: u4 = @as(u4, if (alternate.mode == .open_drain) 0b1100 else 0b1000) | @as(u4, switch (alternate.speed) {
@@ -73,34 +73,34 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
                         .high => 0b11,
                     });
                     if (pin < 8) {
-                        periph.CRL.modify_raw(cr_field * 4, 4, cr);
+                        periph.CRL.modifyRaw(cr_field * 4, 4, cr);
                     } else {
-                        periph.CRH.modify_raw(cr_field * 4, 4, cr);
+                        periph.CRH.modifyRaw(cr_field * 4, 4, cr);
                     }
                 },
                 .analog => {
                     if (pin < 8)
-                        periph.CRL.modify_raw(cr_field * 4, 4, 0)
+                        periph.CRL.modifyRaw(cr_field * 4, 4, 0)
                     else
-                        periph.CRH.modify_raw(cr_field * 4, 4, 0);
+                        periph.CRH.modifyRaw(cr_field * 4, 4, 0);
                 },
             }
         }
 
         pub fn isSet() bool {
-            return periph.IDR.read_raw() & pin_bit == pin_bit;
+            return periph.IDR.readRaw() & pin_bit == pin_bit;
         }
 
         pub fn set() void {
-            periph.BSRR.write_raw(pin_bit);
+            periph.BSRR.writeRaw(pin_bit);
         }
 
         pub fn clear() void {
-            periph.BRR.write_raw(pin_bit);
+            periph.BRR.writeRaw(pin_bit);
         }
 
         pub fn toggle() void {
-            periph.ODR.write_raw(periph.ODR.read_raw() ^ pin_bit);
+            periph.ODR.writeRaw(periph.ODR.readRaw() ^ pin_bit);
         }
     };
 }

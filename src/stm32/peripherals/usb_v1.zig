@@ -255,7 +255,7 @@ pub fn Endpoint(
         pub const BTABLE = @intToPtr(*[8]BtableEntry, 0x40006000);
         pub const BTABLE_DATA = @intToPtr(*[512]u16, 0x40006000);
 
-        fn encodeRxSize(size: u10) u16 {
+        fn encodeOutSize(size: u10) u16 {
             return if (size > 62) 0x8000 | @as(u16, (size / 32)) << 10 //
             else @as(u16, (size / 2)) << 10;
         }
@@ -270,77 +270,77 @@ pub fn Endpoint(
             BTABLE[number].USB_ADDR_TX = btable_offset;
             BTABLE[number].USB_COUNT_TX = 0;
             BTABLE[number].USB_ADDR_RX = btable_offset + max_tx;
-            BTABLE[number].USB_COUNT_RX = encodeRxSize(max_rx);
+            BTABLE[number].USB_COUNT_RX = encodeOutSize(max_rx);
             return max_rx + max_tx;
         }
 
-        pub fn setTxState(state: EndpointState) void {
+        pub fn setInState(state: EndpointState) void {
             var epr_val = epr.readRaw();
             epr.writeRaw(((epr_val & 0x0fbf) | 0x8080) ^ @as(u16, @enumToInt(state)) << 4);
         }
 
-        pub fn setRxState(state: EndpointState) void {
+        pub fn setOutState(state: EndpointState) void {
             var epr_val = epr.readRaw();
             epr.writeRaw(((epr_val & 0xbf0f) | 0x8080) ^ @as(u16, @enumToInt(state)) << 12);
         }
 
-        pub fn setTxRxState(txState: EndpointState, rxState: EndpointState) void {
+        pub fn setInOutState(txState: EndpointState, rxState: EndpointState) void {
             var epr_val = epr.readRaw();
             epr.writeRaw(((epr_val & 0xbfbf) | 0x8080) ^ //
                 (@as(u16, @enumToInt(txState)) << 4 | @as(u16, @enumToInt(rxState)) << 12));
         }
 
-        pub fn getTxState() EndpointState {
+        pub fn getInState() EndpointState {
             return @intToEnum(EndpointState, epr.read().STAT_TX);
         }
 
-        pub fn getRxState() EndpointState {
+        pub fn getOutState() EndpointState {
             return @intToEnum(EndpointState, epr.read().STAT_RX);
         }
 
-        pub fn setTxCount(txCount: u10) void {
+        pub fn setInCount(txCount: u10) void {
             BTABLE[number].USB_COUNT_TX = txCount;
         }
 
-        pub fn resetRxCount() void {
-            BTABLE[number].USB_COUNT_RX = encodeRxSize(max_rx);
+        pub fn resetOutCount() void {
+            BTABLE[number].USB_COUNT_RX = encodeOutSize(max_rx);
         }
 
-        pub fn ctrTx() bool {
+        pub fn inTransferComplete() bool {
             return epr.read().CTR_TX == 1;
         }
 
-        pub fn ctrRx() bool {
+        pub fn outTransferComplete() bool {
             return epr.read().CTR_RX == 1;
         }
 
-        pub fn clearCtrTx() void {
+        pub fn clearInTransferComplete() void {
             var epr_val = epr.readRaw();
             epr.writeRaw(epr_val & 0x8f0f);
         }
 
-        pub fn clearCtrRx() void {
+        pub fn clearOutTransferComplete() void {
             var epr_val = epr.readRaw();
             epr.writeRaw(epr_val & 0x0f8f);
         }
 
-        pub fn ctrSetup() bool {
+        pub fn setupTransfer() bool {
             return epr.read().SETUP == 1;
         }
 
-        pub fn getRxCount() u10 {
+        pub fn getOutCount() u10 {
             return @truncate(u10, BTABLE[number].USB_COUNT_RX);
         }
 
-        pub fn getTxCount() u10 {
+        pub fn getInCount() u10 {
             return @truncate(u10, BTABLE[number].USB_COUNT_TX);
         }
 
-        pub fn getRxData(buf: []u8) []u8 {
+        pub fn getOutData(buf: []u8) []u8 {
             var i: usize = 0;
             var j: usize = 0;
             const start: usize = BTABLE[number].USB_ADDR_RX;
-            const len = getRxCount();
+            const len = getOutCount();
             while (i < len) {
                 if (j == buf.len) break;
                 const rx_word = BTABLE_DATA[start + i];
@@ -355,7 +355,7 @@ pub fn Endpoint(
         }
 
         pub fn read(buffer: anytype) bool {
-            const len = getRxCount();
+            const len = getOutCount();
             if (len > buffer.free()) return false;
             var i: usize = 0;
             const start: usize = BTABLE[number].USB_ADDR_RX;
@@ -370,12 +370,12 @@ pub fn Endpoint(
             return true;
         }
 
-        pub fn putTxData(buf: []const u8) []const u8 {
+        pub fn putInData(buf: []const u8) []const u8 {
             const len = std.math.min(buf.len, max_tx);
             var i: usize = 0;
             var j: usize = 0;
             const start: usize = BTABLE[number].USB_ADDR_TX;
-            setTxCount(@truncate(u10, len));
+            setInCount(@truncate(u10, len));
             while (j < buf.len and i < len) {
                 var w = @as(u16, buf[j]);
                 if (j + 1 < buf.len) {
@@ -393,7 +393,7 @@ pub fn Endpoint(
             const len = std.math.min(buffer.used(), max_tx);
             var i: usize = 0;
             const start: usize = BTABLE[number].USB_ADDR_TX;
-            setTxCount(@truncate(u10, len));
+            setInCount(@truncate(u10, len));
             while (i < len) {
                 if (buffer.get()) |lo| {
                     var w = @as(u16, lo);
@@ -410,8 +410,8 @@ pub fn Endpoint(
         }
 
         pub fn send(data: []const u8) void {
-            defer setTxState(.valid);
-            _ = putTxData(data);
+            defer setInState(.valid);
+            _ = putInData(data);
         }
     };
 }
@@ -448,39 +448,38 @@ pub fn ControlEndpoint(
         }
 
         pub fn send(self: *Self, data: []const u8) void {
-            self.pending_data = data;
             const length = std.math.min(data.len, ep.max_tx);
-            self.pending_data = ep.putTxData(self.pending_data[0..length]);
-            ep.setTxState(.valid);
+            self.pending_data = ep.putInData(data[0..length]);
+            ep.setInState(.valid);
         }
 
         fn sendDescriptor(self: *Self, d_type: u8, index: u8, max_length: u16) void {
-            switch (@intToEnum(DescriptorType, d_type)) {
-                .device => self.pending_data = descriptors.device,
-                .config => self.pending_data = getValid(descriptors.config, index),
-                .string => self.pending_data = getValid(descriptors.string, index),
-                .endpoint => self.pending_data = getValid(descriptors.endpoint, index),
-                .interface => self.pending_data = getValid(descriptors.interface, index),
-            }
+            self.pending_data = switch (@intToEnum(DescriptorType, d_type)) {
+                .device => descriptors.device,
+                .config => getValid(descriptors.config, index),
+                .string => getValid(descriptors.string, index),
+                .endpoint => getValid(descriptors.endpoint, index),
+                .interface => getValid(descriptors.interface, index),
+            };
             const length = std.math.min(self.pending_data.len, max_length);
-            self.pending_data = ep.putTxData(self.pending_data[0..length]);
-            ep.resetRxCount();
-            ep.setTxRxState(.valid, .valid);
+            self.pending_data = ep.putInData(self.pending_data[0..length]);
+            ep.resetOutCount();
+            ep.setInOutState(.valid, .valid);
         }
 
         fn handleIn(self: *Self) void {
-            ep.clearCtrTx();
+            ep.clearInTransferComplete();
             if (self.setup_address != 0) {
                 usb.DADDR.write(.{ .ADD = self.setup_address, .EF = 1 });
                 self.setup_address = 0;
             }
             if (self.pending_data.len > 0) {
-                self.pending_data = ep.putTxData(self.pending_data);
+                self.pending_data = ep.putInData(self.pending_data);
             } else {
-                ep.resetRxCount();
-                ep.setTxCount(0);
+                ep.resetOutCount();
+                ep.setInCount(0);
             }
-            ep.setTxRxState(.valid, .valid);
+            ep.setInOutState(.valid, .valid);
         }
 
         fn handleOut(self: *Self) void {
@@ -489,9 +488,9 @@ pub fn ControlEndpoint(
 
         fn handleSetup(self: *Self) void {
             var bytes = std.mem.asBytes(&self.setup_packet);
-            _ = ep.getRxData(bytes);
+            _ = ep.getOutData(bytes);
             if (self.setup_packet.request_type == .standard) {
-                ep.clearCtrRx();
+                ep.clearOutTransferComplete();
                 const request = self.setup_packet.request;
                 switch (@intToEnum(StandardRequests, self.setup_packet.request_number)) {
                     .set_address => {
@@ -512,9 +511,9 @@ pub fn ControlEndpoint(
             }
         }
 
-        pub fn ctr(self: *Self) void {
-            if (ep.ctrRx()) {
-                if (ep.ctrSetup()) {
+        pub fn handleTransferComplete(self: *Self) void {
+            if (ep.outTransferComplete()) {
+                if (ep.setupTransfer()) {
                     self.handleSetup();
                 } else {
                     self.handleOut();
@@ -539,25 +538,25 @@ pub fn BulkEndpoint(
         tx_buffer: Buffer = .{},
 
         fn handleIn(self: *Self) void {
-            ep.clearCtrTx();
+            ep.clearInTransferComplete();
             if (!self.tx_buffer.empty()) {
                 ep.write(&self.tx_buffer);
-                ep.setTxState(.valid);
+                ep.setInState(.valid);
             }
         }
 
         fn handleOut(self: *Self) void {
-            ep.clearCtrRx();
+            ep.clearOutTransferComplete();
             if (ep.read(&self.rx_buffer)) {
-                ep.resetRxCount();
-                ep.setRxState(.valid);
+                ep.resetOutCount();
+                ep.setOutState(.valid);
             } else {
-                ep.setRxState(.stall);
+                ep.setOutState(.stall);
             }
         }
 
-        pub fn ctr(self: *Self) void {
-            if (ep.ctrRx()) {
+        pub fn handleTransferComplete(self: *Self) void {
+            if (ep.outTransferComplete()) {
                 self.handleOut();
             } else {
                 self.handleIn();
@@ -565,14 +564,14 @@ pub fn BulkEndpoint(
         }
 
         pub fn write(self: *Self, bytes: []const u8) WriteError!usize {
-            if (ep.getTxState() == .valid) return 0;
+            if (ep.getInState() == .valid) return 0;
             var written: usize = 0;
             for (bytes) |b| {
                 if (!self.tx_buffer.put(b)) break;
                 written += 1;
             }
             ep.write(&self.tx_buffer);
-            ep.setTxState(.valid);
+            ep.setInState(.valid);
             return written;
         }
 

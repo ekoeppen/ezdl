@@ -27,16 +27,16 @@ pub fn Mmio(comptime size: u8, comptime PackedT: type) type {
             return @bitCast(PackedT, addr.raw);
         }
 
-        pub inline fn read_raw(addr: *volatile Self) IntT {
+        pub inline fn readRaw(addr: *volatile Self) IntT {
             return @bitCast(IntT, addr.raw);
         }
 
-        pub inline fn write_raw(addr: *volatile Self, val: IntT) void {
+        pub inline fn writeRaw(addr: *volatile Self, val: IntT) void {
             var tmp = @bitCast(IntT, val);
             addr.raw = tmp;
         }
 
-        pub fn modify_raw(
+        pub fn modifyRaw(
             comptime addr: *volatile Self,
             comptime offset: std.meta.Int(.unsigned, size),
             comptime width: std.meta.Int(.unsigned, size),
@@ -44,10 +44,10 @@ pub fn Mmio(comptime size: u8, comptime PackedT: type) type {
         ) void {
             const mask: IntT = ~((@as(IntT, (1 << width) - 1)) << offset);
             const bits: IntT = value << offset;
-            addr.write_raw(addr.read_raw() & mask | bits);
+            addr.writeRaw(addr.readRaw() & mask | bits);
         }
 
-        pub fn set_raw(
+        pub fn setRaw(
             comptime addr: *volatile Self,
             comptime offset: std.meta.Int(.unsigned, size),
             comptime width: std.meta.Int(.unsigned, size),
@@ -56,7 +56,7 @@ pub fn Mmio(comptime size: u8, comptime PackedT: type) type {
             addr.raw |= bits;
         }
 
-        pub fn clear_raw(
+        pub fn clearRaw(
             comptime addr: *volatile Self,
             comptime offset: std.meta.Int(.unsigned, size),
             comptime width: std.meta.Int(.unsigned, size),
@@ -65,7 +65,7 @@ pub fn Mmio(comptime size: u8, comptime PackedT: type) type {
             addr.raw &= mask;
         }
 
-        pub fn toggle_raw(
+        pub fn toggleRaw(
             comptime addr: *volatile Self,
             comptime offset: std.meta.Int(.unsigned, size),
             comptime width: std.meta.Int(.unsigned, size),

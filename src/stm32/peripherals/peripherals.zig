@@ -9,3 +9,4 @@ pub const exti_v3 = @import("exti_v3.zig");
 pub const rtc_v2 = @import("rtc_v2.zig");
 pub const nvic_v1 = @import("nvic_v1.zig");
 pub const nvic_v2 = @import("nvic_v2.zig");
+pub const usb_v1 = @import("usb_v1.zig");
