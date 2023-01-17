@@ -56,7 +56,7 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u4, comptime config: Config)
                         periph.CRH.modify_raw(cr_field * 4, 4, cr);
                 },
                 .output => |output| {
-                    const cr: u4 = @as(u4, if (output.mode == .open_drain) 0b1000 else 0) | @as(u4, switch (output.speed) {
+                    const cr: u4 = @as(u4, if (output.mode == .open_drain) 0b0100 else 0) | @as(u4, switch (output.speed) {
                         .low => 0b10,
                         .medium => 0b01,
                         .high => 0b11,
