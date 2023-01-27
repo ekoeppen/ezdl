@@ -33,7 +33,7 @@ pub export fn main() void {
     board.tx.init();
     board.rx.init();
     board.usart.init();
-    board.nvic.enableIrqs(handlers);
+    board.nvic.enableInterrupts(handlers);
     button.init();
 
     if (run()) {} else |_| {

@@ -1,6 +1,6 @@
 pub fn Nvic(comptime nvic: anytype) type {
     return struct {
-        pub fn enableIrqs(comptime handlers: anytype) void {
+        pub fn enableInterrupts(comptime handlers: anytype) void {
             inline for (handlers) |handler| {
                 const irq = handler.number;
                 if (irq < 31) {

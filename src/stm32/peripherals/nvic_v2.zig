@@ -1,6 +1,6 @@
 pub fn Nvic(comptime nvic: anytype) type {
     return struct {
-        pub fn enableIrqs(comptime handlers: anytype) void {
+        pub fn enableInterrupts(comptime handlers: anytype) void {
             inline for (handlers) |handler| {
                 nvic.ISER.modify(.{ .SETENA = 1 << handler.number });
             }
