@@ -50,5 +50,12 @@
     "name": "STM32 No Board",
     "path": "examples/stm32/no_board",
     "boards": [ ]
+  },
+  {
+    "name": "STM32 EXTI IRQ",
+    "path": "examples/stm32/exti_irq",
+    "boards": [
+      "ezdl/src/stm32/boards/nucleo_f072rb"
+    ]
   }
 ]

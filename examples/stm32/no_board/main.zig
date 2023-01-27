@@ -1,5 +1,5 @@
 const mcu = @import("ezdl").stm32.mcus.stm32f072x;
-const svd = @import("ezdl").stm32.svd.stm32f072x;
+const periph = @import("ezdl").stm32.svd.stm32f072x.peripherals;
 
 extern const _data_loadaddr: u32;
 extern var _data: u32;
@@ -24,8 +24,8 @@ export fn resetHandler() void {
 }
 
 fn main() void {
-    const led = mcu.Gpio(svd.GPIOA, 5, .{ .output = .{} });
-    svd.RCC.AHBENR.modify(.{ .IOPAEN = 1 });
+    const led = mcu.Gpio(periph.GPIOA, 5, .{ .output = .{} });
+    periph.RCC.AHBENR.modify(.{ .IOPAEN = 1 });
     led.init();
     led.set();
 }

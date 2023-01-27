@@ -91,6 +91,16 @@ pub const devices = struct {
             ///  Nested Vectored Interrupt Controller
             pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e100);
         };
+        pub const interrupts = struct {
+            pub const WWDG = 0;
+            pub const PVD_VDDIO2 = 1;
+            pub const RTC = 2;
+            pub const FLASH = 3;
+            pub const RCC_CCS = 4;
+            pub const EXTI0_1 = 5;
+            pub const EXTI2_3 = 6;
+            pub const EXTI4_15 = 7;
+        };
     };
 };
 

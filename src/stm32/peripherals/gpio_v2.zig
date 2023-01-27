@@ -26,6 +26,8 @@ const Config = union(PinMode) {
     input: struct {
         pull: PullMode = .none,
         trigger: TriggerMode = .none,
+        event: bool = false,
+        interrupt: bool = false,
         exti: ?type = null,
     },
     output: struct {
@@ -61,10 +63,11 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
                     }
                     if (input.exti) |exti| {
                         exti.connect(.{ .pin_number = pin_number, .port_number = port_number });
+                        const exti_type = if (input.event) .event else .interrupt;
                         switch (input.trigger) {
-                            .rising => exti.enable(pin_number, .event, .rising),
-                            .falling => exti.enable(pin_number, .event, .falling),
-                            .rising_falling => exti.enable(pin_number, .event, .rising_falling),
+                            .rising => exti.enable(pin_number, exti_type, .rising),
+                            .falling => exti.enable(pin_number, exti_type, .falling),
+                            .rising_falling => exti.enable(pin_number, exti_type, .rising_falling),
                             .none => {},
                         }
                     }
