@@ -1,8 +1,148 @@
 const mmio = @import("mmio");
 
 pub const devices = struct {
-    ///  STM32F103xx
-    pub const STM32F103xx = struct {
+    ///  STM32F103
+    pub const STM32F103 = struct {
+        pub const properties = struct {
+            pub const @"cpu.nvic_prio_bits" = "4";
+            pub const @"cpu.mpu" = "false";
+            pub const @"cpu.fpu" = "false";
+            pub const @"cpu.revision" = "r1p1";
+            pub const @"cpu.vendor_systick_config" = "false";
+            pub const @"cpu.endian" = "little";
+            pub const @"cpu.name" = "CM3";
+        };
+
+        pub const interrupts = extern struct {
+            pub const NMI = -14;
+            pub const HardFault = -13;
+            pub const MemManageFault = -12;
+            pub const BusFault = -11;
+            pub const UsageFault = -10;
+            pub const SVCall = -5;
+            pub const DebugMonitor = -4;
+            pub const PendSV = -2;
+            pub const SysTick = -1;
+            ///  Window Watchdog interrupt
+            pub const WWDG = 0;
+            ///  PVD through EXTI line detection interrupt
+            pub const PVD = 1;
+            ///  Tamper interrupt
+            pub const TAMPER = 2;
+            ///  RTC global interrupt
+            pub const RTC = 3;
+            ///  Flash global interrupt
+            pub const FLASH = 4;
+            ///  RCC global interrupt
+            pub const RCC = 5;
+            ///  EXTI Line0 interrupt
+            pub const EXTI0 = 6;
+            ///  EXTI Line1 interrupt
+            pub const EXTI1 = 7;
+            ///  EXTI Line2 interrupt
+            pub const EXTI2 = 8;
+            ///  EXTI Line3 interrupt
+            pub const EXTI3 = 9;
+            ///  EXTI Line4 interrupt
+            pub const EXTI4 = 10;
+            ///  DMA1 Channel1 global interrupt
+            pub const DMA1_Channel1 = 11;
+            ///  DMA1 Channel2 global interrupt
+            pub const DMA1_Channel2 = 12;
+            ///  DMA1 Channel3 global interrupt
+            pub const DMA1_Channel3 = 13;
+            ///  DMA1 Channel4 global interrupt
+            pub const DMA1_Channel4 = 14;
+            ///  DMA1 Channel5 global interrupt
+            pub const DMA1_Channel5 = 15;
+            ///  DMA1 Channel6 global interrupt
+            pub const DMA1_Channel6 = 16;
+            ///  DMA1 Channel7 global interrupt
+            pub const DMA1_Channel7 = 17;
+            ///  ADC1 and ADC2 global interrupt
+            pub const ADC1_2 = 18;
+            ///  USB High Priority or CAN TX interrupts
+            pub const USB_HP_CAN_TX = 19;
+            ///  USB Low Priority or CAN RX0 interrupts
+            pub const USB_LP_CAN_RX0 = 20;
+            ///  CAN RX1 interrupt
+            pub const CAN_RX1 = 21;
+            ///  CAN SCE interrupt
+            pub const CAN_SCE = 22;
+            ///  EXTI Line[9:5] interrupts
+            pub const EXTI9_5 = 23;
+            ///  TIM1 Break interrupt
+            pub const TIM1_BRK = 24;
+            ///  TIM1 Update interrupt
+            pub const TIM1_UP = 25;
+            ///  TIM1 Trigger and Commutation interrupts
+            pub const TIM1_TRG_COM = 26;
+            ///  TIM1 Capture Compare interrupt
+            pub const TIM1_CC = 27;
+            ///  TIM2 global interrupt
+            pub const TIM2 = 28;
+            ///  TIM3 global interrupt
+            pub const TIM3 = 29;
+            ///  TIM4 global interrupt
+            pub const TIM4 = 30;
+            ///  I2C1 event interrupt
+            pub const I2C1_EV = 31;
+            ///  I2C1 error interrupt
+            pub const I2C1_ER = 32;
+            ///  I2C2 event interrupt
+            pub const I2C2_EV = 33;
+            ///  I2C2 error interrupt
+            pub const I2C2_ER = 34;
+            ///  SPI1 global interrupt
+            pub const SPI1 = 35;
+            ///  SPI2 global interrupt
+            pub const SPI2 = 36;
+            ///  USART1 global interrupt
+            pub const USART1 = 37;
+            ///  USART2 global interrupt
+            pub const USART2 = 38;
+            ///  USART3 global interrupt
+            pub const USART3 = 39;
+            ///  EXTI Line[15:10] interrupts
+            pub const EXTI15_10 = 40;
+            ///  RTC Alarms through EXTI line interrupt
+            pub const RTCAlarm = 41;
+            ///  TIM8 Break interrupt
+            pub const TIM8_BRK = 43;
+            ///  TIM8 Update interrupt
+            pub const TIM8_UP = 44;
+            ///  TIM8 Trigger and Commutation interrupts
+            pub const TIM8_TRG_COM = 45;
+            ///  TIM8 Capture Compare interrupt
+            pub const TIM8_CC = 46;
+            ///  ADC3 global interrupt
+            pub const ADC3 = 47;
+            ///  FSMC global interrupt
+            pub const FSMC = 48;
+            ///  SDIO global interrupt
+            pub const SDIO = 49;
+            ///  TIM5 global interrupt
+            pub const TIM5 = 50;
+            ///  SPI3 global interrupt
+            pub const SPI3 = 51;
+            ///  UART4 global interrupt
+            pub const UART4 = 52;
+            ///  UART5 global interrupt
+            pub const UART5 = 53;
+            ///  TIM6 global interrupt
+            pub const TIM6 = 54;
+            ///  TIM7 global interrupt
+            pub const TIM7 = 55;
+            ///  DMA2 Channel1 global interrupt
+            pub const DMA2_Channel1 = 56;
+            ///  DMA2 Channel2 global interrupt
+            pub const DMA2_Channel2 = 57;
+            ///  DMA2 Channel3 global interrupt
+            pub const DMA2_Channel3 = 58;
+            ///  DMA2 Channel4 and DMA2 Channel5 global interrupt
+            pub const DMA2_Channel4_5 = 59;
+        };
+
         pub const peripherals = struct {
             ///  General purpose timer
             pub const TIM2 = @intToPtr(*volatile types.TIM2, 0x40000000);
@@ -47,9 +187,11 @@ pub const devices = struct {
             ///  Universal serial bus full-speed device interface
             pub const USB = @intToPtr(*volatile types.USB, 0x40005c00);
             ///  Controller area network
-            pub const CAN = @intToPtr(*volatile types.CAN, 0x40006400);
+            pub const CAN1 = @intToPtr(*volatile types.CAN1, 0x40006400);
+            ///  Controller area network
+            pub const CAN2 = @intToPtr(*volatile types.CAN1, 0x40006800);
             ///  Backup registers
-            pub const BKP = @intToPtr(*volatile types.BKP, 0x40006c04);
+            pub const BKP = @intToPtr(*volatile types.BKP, 0x40006c00);
             ///  Power control
             pub const PWR = @intToPtr(*volatile types.PWR, 0x40007000);
             ///  Digital to analog converter
@@ -104,10 +246,36 @@ pub const devices = struct {
             pub const FLASH = @intToPtr(*volatile types.FLASH, 0x40022000);
             ///  CRC calculation unit
             pub const CRC = @intToPtr(*volatile types.CRC, 0x40023000);
+            ///  Ethernet: media access control
+            pub const ETHERNET_MAC = @intToPtr(*volatile types.ETHERNET_MAC, 0x40028000);
+            ///  Ethernet: MAC management counters
+            pub const ETHERNET_MMC = @intToPtr(*volatile types.ETHERNET_MMC, 0x40028100);
+            ///  Ethernet: Precision time protocol
+            pub const ETHERNET_PTP = @intToPtr(*volatile types.ETHERNET_PTP, 0x40028700);
+            ///  Ethernet: DMA controller operation
+            pub const ETHERNET_DMA = @intToPtr(*volatile types.ETHERNET_DMA, 0x40029000);
+            ///  USB on the go full speed
+            pub const OTG_FS_GLOBAL = @intToPtr(*volatile types.OTG_FS_GLOBAL, 0x50000000);
+            ///  USB on the go full speed
+            pub const OTG_FS_HOST = @intToPtr(*volatile types.OTG_FS_HOST, 0x50000400);
+            ///  USB on the go full speed
+            pub const OTG_FS_DEVICE = @intToPtr(*volatile types.OTG_FS_DEVICE, 0x50000800);
+            ///  USB on the go full speed
+            pub const OTG_FS_PWRCLK = @intToPtr(*volatile types.OTG_FS_PWRCLK, 0x50000e00);
             ///  Flexible static memory controller
             pub const FSMC = @intToPtr(*volatile types.FSMC, 0xa0000000);
+            ///  System control block ACTLR
+            pub const SCB_ACTRL = @intToPtr(*volatile types.SCB_ACTRL, 0xe000e008);
+            ///  SysTick timer
+            pub const STK = @intToPtr(*volatile types.STK, 0xe000e010);
             ///  Nested Vectored Interrupt Controller
-            pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e000);
+            pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e100);
+            ///  System control block
+            pub const SCB = @intToPtr(*volatile types.SCB, 0xe000ed00);
+            ///  Memory protection unit
+            pub const MPU = @intToPtr(*volatile types.MPU, 0xe000ed90);
+            ///  Nested vectored interrupt controller
+            pub const NVIC_STIR = @intToPtr(*volatile types.NVIC_STIR, 0xe000ef00);
             ///  Debug support
             pub const DBG = @intToPtr(*volatile types.DBG, 0xe0042000);
         };
@@ -4613,7 +4781,7 @@ pub const types = struct {
     };
 
     ///  Controller area network
-    pub const CAN = extern struct {
+    pub const CAN1 = extern struct {
         ///  CAN_MCR
         CAN_MCR: mmio.Mmio(32, packed struct {
             ///  INRQ
@@ -7553,245 +7721,6 @@ pub const types = struct {
         }),
     };
 
-    ///  Nested Vectored Interrupt Controller
-    pub const NVIC = extern struct {
-        reserved4: [4]u8,
-        ///  Interrupt Controller Type Register
-        ICTR: mmio.Mmio(32, packed struct {
-            ///  Total number of interrupt lines in groups
-            INTLINESNUM: u4,
-            padding: u28 = 0,
-        }),
-        reserved256: [248]u8,
-        ///  Interrupt Set-Enable Register
-        ISER0: mmio.Mmio(32, packed struct {
-            ///  SETENA
-            SETENA: u32,
-        }),
-        ///  Interrupt Set-Enable Register
-        ISER1: mmio.Mmio(32, packed struct {
-            ///  SETENA
-            SETENA: u32,
-        }),
-        reserved384: [120]u8,
-        ///  Interrupt Clear-Enable Register
-        ICER0: mmio.Mmio(32, packed struct {
-            ///  CLRENA
-            CLRENA: u32,
-        }),
-        ///  Interrupt Clear-Enable Register
-        ICER1: mmio.Mmio(32, packed struct {
-            ///  CLRENA
-            CLRENA: u32,
-        }),
-        reserved512: [120]u8,
-        ///  Interrupt Set-Pending Register
-        ISPR0: mmio.Mmio(32, packed struct {
-            ///  SETPEND
-            SETPEND: u32,
-        }),
-        ///  Interrupt Set-Pending Register
-        ISPR1: mmio.Mmio(32, packed struct {
-            ///  SETPEND
-            SETPEND: u32,
-        }),
-        reserved640: [120]u8,
-        ///  Interrupt Clear-Pending Register
-        ICPR0: mmio.Mmio(32, packed struct {
-            ///  CLRPEND
-            CLRPEND: u32,
-        }),
-        ///  Interrupt Clear-Pending Register
-        ICPR1: mmio.Mmio(32, packed struct {
-            ///  CLRPEND
-            CLRPEND: u32,
-        }),
-        reserved768: [120]u8,
-        ///  Interrupt Active Bit Register
-        IABR0: mmio.Mmio(32, packed struct {
-            ///  ACTIVE
-            ACTIVE: u32,
-        }),
-        ///  Interrupt Active Bit Register
-        IABR1: mmio.Mmio(32, packed struct {
-            ///  ACTIVE
-            ACTIVE: u32,
-        }),
-        reserved1024: [248]u8,
-        ///  Interrupt Priority Register
-        IPR0: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR1: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR2: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR3: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR4: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR5: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR6: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR7: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR8: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR9: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR10: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR11: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR12: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR13: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        ///  Interrupt Priority Register
-        IPR14: mmio.Mmio(32, packed struct {
-            ///  IPR_N0
-            IPR_N0: u8,
-            ///  IPR_N1
-            IPR_N1: u8,
-            ///  IPR_N2
-            IPR_N2: u8,
-            ///  IPR_N3
-            IPR_N3: u8,
-        }),
-        reserved3840: [2756]u8,
-        ///  Software Triggered Interrupt Register
-        STIR: mmio.Mmio(32, packed struct {
-            ///  interrupt to be triggered
-            INTID: u9,
-            padding: u23 = 0,
-        }),
-    };
-
     ///  Universal serial bus full-speed device interface
     pub const USB = extern struct {
         ///  endpoint 0 register
@@ -8071,6 +8000,2888 @@ pub const types = struct {
             ///  Buffer table
             BTABLE: u13,
             padding: u16 = 0,
+        }),
+    };
+
+    ///  USB on the go full speed
+    pub const OTG_FS_DEVICE = extern struct {
+        ///  OTG_FS device configuration register (OTG_FS_DCFG)
+        FS_DCFG: mmio.Mmio(32, packed struct {
+            ///  Device speed
+            DSPD: u2,
+            ///  Non-zero-length status OUT handshake
+            NZLSOHSK: u1,
+            reserved4: u1 = 0,
+            ///  Device address
+            DAD: u7,
+            ///  Periodic frame interval
+            PFIVL: u2,
+            padding: u19 = 0,
+        }),
+        ///  OTG_FS device control register (OTG_FS_DCTL)
+        FS_DCTL: mmio.Mmio(32, packed struct {
+            ///  Remote wakeup signaling
+            RWUSIG: u1,
+            ///  Soft disconnect
+            SDIS: u1,
+            ///  Global IN NAK status
+            GINSTS: u1,
+            ///  Global OUT NAK status
+            GONSTS: u1,
+            ///  Test control
+            TCTL: u3,
+            ///  Set global IN NAK
+            SGINAK: u1,
+            ///  Clear global IN NAK
+            CGINAK: u1,
+            ///  Set global OUT NAK
+            SGONAK: u1,
+            ///  Clear global OUT NAK
+            CGONAK: u1,
+            ///  Power-on programming done
+            POPRGDNE: u1,
+            padding: u20 = 0,
+        }),
+        ///  OTG_FS device status register (OTG_FS_DSTS)
+        FS_DSTS: mmio.Mmio(32, packed struct {
+            ///  Suspend status
+            SUSPSTS: u1,
+            ///  Enumerated speed
+            ENUMSPD: u2,
+            ///  Erratic error
+            EERR: u1,
+            reserved8: u4 = 0,
+            ///  Frame number of the received SOF
+            FNSOF: u14,
+            padding: u10 = 0,
+        }),
+        reserved16: [4]u8,
+        ///  OTG_FS device IN endpoint common interrupt mask register (OTG_FS_DIEPMSK)
+        FS_DIEPMSK: mmio.Mmio(32, packed struct {
+            ///  Transfer completed interrupt mask
+            XFRCM: u1,
+            ///  Endpoint disabled interrupt mask
+            EPDM: u1,
+            reserved3: u1 = 0,
+            ///  Timeout condition mask (Non-isochronous endpoints)
+            TOM: u1,
+            ///  IN token received when TxFIFO empty mask
+            ITTXFEMSK: u1,
+            ///  IN token received with EP mismatch mask
+            INEPNMM: u1,
+            ///  IN endpoint NAK effective mask
+            INEPNEM: u1,
+            padding: u25 = 0,
+        }),
+        ///  OTG_FS device OUT endpoint common interrupt mask register (OTG_FS_DOEPMSK)
+        FS_DOEPMSK: mmio.Mmio(32, packed struct {
+            ///  Transfer completed interrupt mask
+            XFRCM: u1,
+            ///  Endpoint disabled interrupt mask
+            EPDM: u1,
+            reserved3: u1 = 0,
+            ///  SETUP phase done mask
+            STUPM: u1,
+            ///  OUT token received when endpoint disabled mask
+            OTEPDM: u1,
+            padding: u27 = 0,
+        }),
+        ///  OTG_FS device all endpoints interrupt register (OTG_FS_DAINT)
+        FS_DAINT: mmio.Mmio(32, packed struct {
+            ///  IN endpoint interrupt bits
+            IEPINT: u16,
+            ///  OUT endpoint interrupt bits
+            OEPINT: u16,
+        }),
+        ///  OTG_FS all endpoints interrupt mask register (OTG_FS_DAINTMSK)
+        FS_DAINTMSK: mmio.Mmio(32, packed struct {
+            ///  IN EP interrupt mask bits
+            IEPM: u16,
+            ///  OUT endpoint interrupt bits
+            OEPINT: u16,
+        }),
+        reserved40: [8]u8,
+        ///  OTG_FS device VBUS discharge time register
+        DVBUSDIS: mmio.Mmio(32, packed struct {
+            ///  Device VBUS discharge time
+            VBUSDT: u16,
+            padding: u16 = 0,
+        }),
+        ///  OTG_FS device VBUS pulsing time register
+        DVBUSPULSE: mmio.Mmio(32, packed struct {
+            ///  Device VBUS pulsing time
+            DVBUSP: u12,
+            padding: u20 = 0,
+        }),
+        reserved52: [4]u8,
+        ///  OTG_FS device IN endpoint FIFO empty interrupt mask register
+        DIEPEMPMSK: mmio.Mmio(32, packed struct {
+            ///  IN EP Tx FIFO empty interrupt mask bits
+            INEPTXFEM: u16,
+            padding: u16 = 0,
+        }),
+        reserved256: [200]u8,
+        ///  OTG_FS device control IN endpoint 0 control register (OTG_FS_DIEPCTL0)
+        FS_DIEPCTL0: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u2,
+            reserved15: u13 = 0,
+            ///  USB active endpoint
+            USBAEP: u1,
+            reserved17: u1 = 0,
+            ///  NAK status
+            NAKSTS: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            reserved21: u1 = 0,
+            ///  STALL handshake
+            STALL: u1,
+            ///  TxFIFO number
+            TXFNUM: u4,
+            ///  Clear NAK
+            CNAK: u1,
+            ///  Set NAK
+            SNAK: u1,
+            reserved30: u2 = 0,
+            ///  Endpoint disable
+            EPDIS: u1,
+            ///  Endpoint enable
+            EPENA: u1,
+        }),
+        reserved264: [4]u8,
+        ///  device endpoint-x interrupt register
+        DIEPINT0: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  TOC
+            TOC: u1,
+            ///  ITTXFE
+            ITTXFE: u1,
+            reserved6: u1 = 0,
+            ///  INEPNE
+            INEPNE: u1,
+            ///  TXFE
+            TXFE: u1,
+            padding: u24 = 0,
+        }),
+        reserved272: [4]u8,
+        ///  device endpoint-0 transfer size register
+        DIEPTSIZ0: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u7,
+            reserved19: u12 = 0,
+            ///  Packet count
+            PKTCNT: u2,
+            padding: u11 = 0,
+        }),
+        reserved280: [4]u8,
+        ///  OTG_FS device IN endpoint transmit FIFO status register
+        DTXFSTS0: mmio.Mmio(32, packed struct {
+            ///  IN endpoint TxFIFO space available
+            INEPTFSAV: u16,
+            padding: u16 = 0,
+        }),
+        reserved288: [4]u8,
+        ///  OTG device endpoint-1 control register
+        DIEPCTL1: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u11,
+            reserved15: u4 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            ///  EONUM/DPID
+            EONUM_DPID: u1,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            reserved21: u1 = 0,
+            ///  Stall
+            Stall: u1,
+            ///  TXFNUM
+            TXFNUM: u4,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            ///  SD0PID/SEVNFRM
+            SD0PID_SEVNFRM: u1,
+            ///  SODDFRM/SD1PID
+            SODDFRM_SD1PID: u1,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved296: [4]u8,
+        ///  device endpoint-1 interrupt register
+        DIEPINT1: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  TOC
+            TOC: u1,
+            ///  ITTXFE
+            ITTXFE: u1,
+            reserved6: u1 = 0,
+            ///  INEPNE
+            INEPNE: u1,
+            ///  TXFE
+            TXFE: u1,
+            padding: u24 = 0,
+        }),
+        reserved304: [4]u8,
+        ///  device endpoint-1 transfer size register
+        DIEPTSIZ1: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Multi count
+            MCNT: u2,
+            padding: u1 = 0,
+        }),
+        reserved312: [4]u8,
+        ///  OTG_FS device IN endpoint transmit FIFO status register
+        DTXFSTS1: mmio.Mmio(32, packed struct {
+            ///  IN endpoint TxFIFO space available
+            INEPTFSAV: u16,
+            padding: u16 = 0,
+        }),
+        reserved320: [4]u8,
+        ///  OTG device endpoint-2 control register
+        DIEPCTL2: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u11,
+            reserved15: u4 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            ///  EONUM/DPID
+            EONUM_DPID: u1,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            reserved21: u1 = 0,
+            ///  Stall
+            Stall: u1,
+            ///  TXFNUM
+            TXFNUM: u4,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            ///  SD0PID/SEVNFRM
+            SD0PID_SEVNFRM: u1,
+            ///  SODDFRM
+            SODDFRM: u1,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved328: [4]u8,
+        ///  device endpoint-2 interrupt register
+        DIEPINT2: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  TOC
+            TOC: u1,
+            ///  ITTXFE
+            ITTXFE: u1,
+            reserved6: u1 = 0,
+            ///  INEPNE
+            INEPNE: u1,
+            ///  TXFE
+            TXFE: u1,
+            padding: u24 = 0,
+        }),
+        reserved336: [4]u8,
+        ///  device endpoint-2 transfer size register
+        DIEPTSIZ2: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Multi count
+            MCNT: u2,
+            padding: u1 = 0,
+        }),
+        reserved344: [4]u8,
+        ///  OTG_FS device IN endpoint transmit FIFO status register
+        DTXFSTS2: mmio.Mmio(32, packed struct {
+            ///  IN endpoint TxFIFO space available
+            INEPTFSAV: u16,
+            padding: u16 = 0,
+        }),
+        reserved352: [4]u8,
+        ///  OTG device endpoint-3 control register
+        DIEPCTL3: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u11,
+            reserved15: u4 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            ///  EONUM/DPID
+            EONUM_DPID: u1,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            reserved21: u1 = 0,
+            ///  Stall
+            Stall: u1,
+            ///  TXFNUM
+            TXFNUM: u4,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            ///  SD0PID/SEVNFRM
+            SD0PID_SEVNFRM: u1,
+            ///  SODDFRM
+            SODDFRM: u1,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved360: [4]u8,
+        ///  device endpoint-3 interrupt register
+        DIEPINT3: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  TOC
+            TOC: u1,
+            ///  ITTXFE
+            ITTXFE: u1,
+            reserved6: u1 = 0,
+            ///  INEPNE
+            INEPNE: u1,
+            ///  TXFE
+            TXFE: u1,
+            padding: u24 = 0,
+        }),
+        reserved368: [4]u8,
+        ///  device endpoint-3 transfer size register
+        DIEPTSIZ3: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Multi count
+            MCNT: u2,
+            padding: u1 = 0,
+        }),
+        reserved376: [4]u8,
+        ///  OTG_FS device IN endpoint transmit FIFO status register
+        DTXFSTS3: mmio.Mmio(32, packed struct {
+            ///  IN endpoint TxFIFO space available
+            INEPTFSAV: u16,
+            padding: u16 = 0,
+        }),
+        reserved768: [388]u8,
+        ///  device endpoint-0 control register
+        DOEPCTL0: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u2,
+            reserved15: u13 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            reserved17: u1 = 0,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            ///  SNPM
+            SNPM: u1,
+            ///  Stall
+            Stall: u1,
+            reserved26: u4 = 0,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            reserved30: u2 = 0,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved776: [4]u8,
+        ///  device endpoint-0 interrupt register
+        DOEPINT0: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  STUP
+            STUP: u1,
+            ///  OTEPDIS
+            OTEPDIS: u1,
+            reserved6: u1 = 0,
+            ///  B2BSTUP
+            B2BSTUP: u1,
+            padding: u25 = 0,
+        }),
+        reserved784: [4]u8,
+        ///  device OUT endpoint-0 transfer size register
+        DOEPTSIZ0: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u7,
+            reserved19: u12 = 0,
+            ///  Packet count
+            PKTCNT: u1,
+            reserved29: u9 = 0,
+            ///  SETUP packet count
+            STUPCNT: u2,
+            padding: u1 = 0,
+        }),
+        reserved800: [12]u8,
+        ///  device endpoint-1 control register
+        DOEPCTL1: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u11,
+            reserved15: u4 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            ///  EONUM/DPID
+            EONUM_DPID: u1,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            ///  SNPM
+            SNPM: u1,
+            ///  Stall
+            Stall: u1,
+            reserved26: u4 = 0,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            ///  SD0PID/SEVNFRM
+            SD0PID_SEVNFRM: u1,
+            ///  SODDFRM
+            SODDFRM: u1,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved808: [4]u8,
+        ///  device endpoint-1 interrupt register
+        DOEPINT1: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  STUP
+            STUP: u1,
+            ///  OTEPDIS
+            OTEPDIS: u1,
+            reserved6: u1 = 0,
+            ///  B2BSTUP
+            B2BSTUP: u1,
+            padding: u25 = 0,
+        }),
+        reserved816: [4]u8,
+        ///  device OUT endpoint-1 transfer size register
+        DOEPTSIZ1: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Received data PID/SETUP packet count
+            RXDPID_STUPCNT: u2,
+            padding: u1 = 0,
+        }),
+        reserved832: [12]u8,
+        ///  device endpoint-2 control register
+        DOEPCTL2: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u11,
+            reserved15: u4 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            ///  EONUM/DPID
+            EONUM_DPID: u1,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            ///  SNPM
+            SNPM: u1,
+            ///  Stall
+            Stall: u1,
+            reserved26: u4 = 0,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            ///  SD0PID/SEVNFRM
+            SD0PID_SEVNFRM: u1,
+            ///  SODDFRM
+            SODDFRM: u1,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved840: [4]u8,
+        ///  device endpoint-2 interrupt register
+        DOEPINT2: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  STUP
+            STUP: u1,
+            ///  OTEPDIS
+            OTEPDIS: u1,
+            reserved6: u1 = 0,
+            ///  B2BSTUP
+            B2BSTUP: u1,
+            padding: u25 = 0,
+        }),
+        reserved848: [4]u8,
+        ///  device OUT endpoint-2 transfer size register
+        DOEPTSIZ2: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Received data PID/SETUP packet count
+            RXDPID_STUPCNT: u2,
+            padding: u1 = 0,
+        }),
+        reserved864: [12]u8,
+        ///  device endpoint-3 control register
+        DOEPCTL3: mmio.Mmio(32, packed struct {
+            ///  MPSIZ
+            MPSIZ: u11,
+            reserved15: u4 = 0,
+            ///  USBAEP
+            USBAEP: u1,
+            ///  EONUM/DPID
+            EONUM_DPID: u1,
+            ///  NAKSTS
+            NAKSTS: u1,
+            ///  EPTYP
+            EPTYP: u2,
+            ///  SNPM
+            SNPM: u1,
+            ///  Stall
+            Stall: u1,
+            reserved26: u4 = 0,
+            ///  CNAK
+            CNAK: u1,
+            ///  SNAK
+            SNAK: u1,
+            ///  SD0PID/SEVNFRM
+            SD0PID_SEVNFRM: u1,
+            ///  SODDFRM
+            SODDFRM: u1,
+            ///  EPDIS
+            EPDIS: u1,
+            ///  EPENA
+            EPENA: u1,
+        }),
+        reserved872: [4]u8,
+        ///  device endpoint-3 interrupt register
+        DOEPINT3: mmio.Mmio(32, packed struct {
+            ///  XFRC
+            XFRC: u1,
+            ///  EPDISD
+            EPDISD: u1,
+            reserved3: u1 = 0,
+            ///  STUP
+            STUP: u1,
+            ///  OTEPDIS
+            OTEPDIS: u1,
+            reserved6: u1 = 0,
+            ///  B2BSTUP
+            B2BSTUP: u1,
+            padding: u25 = 0,
+        }),
+        reserved880: [4]u8,
+        ///  device OUT endpoint-3 transfer size register
+        DOEPTSIZ3: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Received data PID/SETUP packet count
+            RXDPID_STUPCNT: u2,
+            padding: u1 = 0,
+        }),
+    };
+
+    ///  USB on the go full speed
+    pub const OTG_FS_GLOBAL = extern struct {
+        ///  OTG_FS control and status register (OTG_FS_GOTGCTL)
+        FS_GOTGCTL: mmio.Mmio(32, packed struct {
+            ///  Session request success
+            SRQSCS: u1,
+            ///  Session request
+            SRQ: u1,
+            reserved8: u6 = 0,
+            ///  Host negotiation success
+            HNGSCS: u1,
+            ///  HNP request
+            HNPRQ: u1,
+            ///  Host set HNP enable
+            HSHNPEN: u1,
+            ///  Device HNP enabled
+            DHNPEN: u1,
+            reserved16: u4 = 0,
+            ///  Connector ID status
+            CIDSTS: u1,
+            ///  Long/short debounce time
+            DBCT: u1,
+            ///  A-session valid
+            ASVLD: u1,
+            ///  B-session valid
+            BSVLD: u1,
+            padding: u12 = 0,
+        }),
+        ///  OTG_FS interrupt register (OTG_FS_GOTGINT)
+        FS_GOTGINT: mmio.Mmio(32, packed struct {
+            reserved2: u2 = 0,
+            ///  Session end detected
+            SEDET: u1,
+            reserved8: u5 = 0,
+            ///  Session request success status change
+            SRSSCHG: u1,
+            ///  Host negotiation success status change
+            HNSSCHG: u1,
+            reserved17: u7 = 0,
+            ///  Host negotiation detected
+            HNGDET: u1,
+            ///  A-device timeout change
+            ADTOCHG: u1,
+            ///  Debounce done
+            DBCDNE: u1,
+            padding: u12 = 0,
+        }),
+        ///  OTG_FS AHB configuration register (OTG_FS_GAHBCFG)
+        FS_GAHBCFG: mmio.Mmio(32, packed struct {
+            ///  Global interrupt mask
+            GINT: u1,
+            reserved7: u6 = 0,
+            ///  TxFIFO empty level
+            TXFELVL: u1,
+            ///  Periodic TxFIFO empty level
+            PTXFELVL: u1,
+            padding: u23 = 0,
+        }),
+        ///  OTG_FS USB configuration register (OTG_FS_GUSBCFG)
+        FS_GUSBCFG: mmio.Mmio(32, packed struct {
+            ///  FS timeout calibration
+            TOCAL: u3,
+            reserved6: u3 = 0,
+            ///  Full Speed serial transceiver select
+            PHYSEL: u1,
+            reserved8: u1 = 0,
+            ///  SRP-capable
+            SRPCAP: u1,
+            ///  HNP-capable
+            HNPCAP: u1,
+            ///  USB turnaround time
+            TRDT: u4,
+            reserved29: u15 = 0,
+            ///  Force host mode
+            FHMOD: u1,
+            ///  Force device mode
+            FDMOD: u1,
+            ///  Corrupt Tx packet
+            CTXPKT: u1,
+        }),
+        ///  OTG_FS reset register (OTG_FS_GRSTCTL)
+        FS_GRSTCTL: mmio.Mmio(32, packed struct {
+            ///  Core soft reset
+            CSRST: u1,
+            ///  HCLK soft reset
+            HSRST: u1,
+            ///  Host frame counter reset
+            FCRST: u1,
+            reserved4: u1 = 0,
+            ///  RxFIFO flush
+            RXFFLSH: u1,
+            ///  TxFIFO flush
+            TXFFLSH: u1,
+            ///  TxFIFO number
+            TXFNUM: u5,
+            reserved31: u20 = 0,
+            ///  AHB master idle
+            AHBIDL: u1,
+        }),
+        ///  OTG_FS core interrupt register (OTG_FS_GINTSTS)
+        FS_GINTSTS: mmio.Mmio(32, packed struct {
+            ///  Current mode of operation
+            CMOD: u1,
+            ///  Mode mismatch interrupt
+            MMIS: u1,
+            ///  OTG interrupt
+            OTGINT: u1,
+            ///  Start of frame
+            SOF: u1,
+            ///  RxFIFO non-empty
+            RXFLVL: u1,
+            ///  Non-periodic TxFIFO empty
+            NPTXFE: u1,
+            ///  Global IN non-periodic NAK effective
+            GINAKEFF: u1,
+            ///  Global OUT NAK effective
+            GOUTNAKEFF: u1,
+            reserved10: u2 = 0,
+            ///  Early suspend
+            ESUSP: u1,
+            ///  USB suspend
+            USBSUSP: u1,
+            ///  USB reset
+            USBRST: u1,
+            ///  Enumeration done
+            ENUMDNE: u1,
+            ///  Isochronous OUT packet dropped interrupt
+            ISOODRP: u1,
+            ///  End of periodic frame interrupt
+            EOPF: u1,
+            reserved18: u2 = 0,
+            ///  IN endpoint interrupt
+            IEPINT: u1,
+            ///  OUT endpoint interrupt
+            OEPINT: u1,
+            ///  Incomplete isochronous IN transfer
+            IISOIXFR: u1,
+            ///  Incomplete periodic transfer(Host mode)/Incomplete isochronous OUT transfer(Device mode)
+            IPXFR_INCOMPISOOUT: u1,
+            reserved24: u2 = 0,
+            ///  Host port interrupt
+            HPRTINT: u1,
+            ///  Host channels interrupt
+            HCINT: u1,
+            ///  Periodic TxFIFO empty
+            PTXFE: u1,
+            reserved28: u1 = 0,
+            ///  Connector ID status change
+            CIDSCHG: u1,
+            ///  Disconnect detected interrupt
+            DISCINT: u1,
+            ///  Session request/new session detected interrupt
+            SRQINT: u1,
+            ///  Resume/remote wakeup detected interrupt
+            WKUPINT: u1,
+        }),
+        ///  OTG_FS interrupt mask register (OTG_FS_GINTMSK)
+        FS_GINTMSK: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  Mode mismatch interrupt mask
+            MMISM: u1,
+            ///  OTG interrupt mask
+            OTGINT: u1,
+            ///  Start of frame mask
+            SOFM: u1,
+            ///  Receive FIFO non-empty mask
+            RXFLVLM: u1,
+            ///  Non-periodic TxFIFO empty mask
+            NPTXFEM: u1,
+            ///  Global non-periodic IN NAK effective mask
+            GINAKEFFM: u1,
+            ///  Global OUT NAK effective mask
+            GONAKEFFM: u1,
+            reserved10: u2 = 0,
+            ///  Early suspend mask
+            ESUSPM: u1,
+            ///  USB suspend mask
+            USBSUSPM: u1,
+            ///  USB reset mask
+            USBRST: u1,
+            ///  Enumeration done mask
+            ENUMDNEM: u1,
+            ///  Isochronous OUT packet dropped interrupt mask
+            ISOODRPM: u1,
+            ///  End of periodic frame interrupt mask
+            EOPFM: u1,
+            reserved17: u1 = 0,
+            ///  Endpoint mismatch interrupt mask
+            EPMISM: u1,
+            ///  IN endpoints interrupt mask
+            IEPINT: u1,
+            ///  OUT endpoints interrupt mask
+            OEPINT: u1,
+            ///  Incomplete isochronous IN transfer mask
+            IISOIXFRM: u1,
+            ///  Incomplete periodic transfer mask(Host mode)/Incomplete isochronous OUT transfer mask(Device mode)
+            IPXFRM_IISOOXFRM: u1,
+            reserved24: u2 = 0,
+            ///  Host port interrupt mask
+            PRTIM: u1,
+            ///  Host channels interrupt mask
+            HCIM: u1,
+            ///  Periodic TxFIFO empty mask
+            PTXFEM: u1,
+            reserved28: u1 = 0,
+            ///  Connector ID status change mask
+            CIDSCHGM: u1,
+            ///  Disconnect detected interrupt mask
+            DISCINT: u1,
+            ///  Session request/new session detected interrupt mask
+            SRQIM: u1,
+            ///  Resume/remote wakeup detected interrupt mask
+            WUIM: u1,
+        }),
+        ///  OTG_FS Receive status debug read(Device mode)
+        FS_GRXSTSR_Device: mmio.Mmio(32, packed struct {
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Byte count
+            BCNT: u11,
+            ///  Data PID
+            DPID: u2,
+            ///  Packet status
+            PKTSTS: u4,
+            ///  Frame number
+            FRMNUM: u4,
+            padding: u7 = 0,
+        }),
+        reserved36: [4]u8,
+        ///  OTG_FS Receive FIFO size register (OTG_FS_GRXFSIZ)
+        FS_GRXFSIZ: mmio.Mmio(32, packed struct {
+            ///  RxFIFO depth
+            RXFD: u16,
+            padding: u16 = 0,
+        }),
+        ///  OTG_FS non-periodic transmit FIFO size register (Device mode)
+        FS_GNPTXFSIZ_Device: mmio.Mmio(32, packed struct {
+            ///  Endpoint 0 transmit RAM start address
+            TX0FSA: u16,
+            ///  Endpoint 0 TxFIFO depth
+            TX0FD: u16,
+        }),
+        ///  OTG_FS non-periodic transmit FIFO/queue status register (OTG_FS_GNPTXSTS)
+        FS_GNPTXSTS: mmio.Mmio(32, packed struct {
+            ///  Non-periodic TxFIFO space available
+            NPTXFSAV: u16,
+            ///  Non-periodic transmit request queue space available
+            NPTQXSAV: u8,
+            ///  Top of the non-periodic transmit request queue
+            NPTXQTOP: u7,
+            padding: u1 = 0,
+        }),
+        reserved56: [8]u8,
+        ///  OTG_FS general core configuration register (OTG_FS_GCCFG)
+        FS_GCCFG: mmio.Mmio(32, packed struct {
+            reserved16: u16 = 0,
+            ///  Power down
+            PWRDWN: u1,
+            reserved18: u1 = 0,
+            ///  Enable the VBUS sensing device
+            VBUSASEN: u1,
+            ///  Enable the VBUS sensing device
+            VBUSBSEN: u1,
+            ///  SOF output enable
+            SOFOUTEN: u1,
+            padding: u11 = 0,
+        }),
+        ///  core ID register
+        FS_CID: mmio.Mmio(32, packed struct {
+            ///  Product ID field
+            PRODUCT_ID: u32,
+        }),
+        reserved256: [192]u8,
+        ///  OTG_FS Host periodic transmit FIFO size register (OTG_FS_HPTXFSIZ)
+        FS_HPTXFSIZ: mmio.Mmio(32, packed struct {
+            ///  Host periodic TxFIFO start address
+            PTXSA: u16,
+            ///  Host periodic TxFIFO depth
+            PTXFSIZ: u16,
+        }),
+        ///  OTG_FS device IN endpoint transmit FIFO size register (OTG_FS_DIEPTXF2)
+        FS_DIEPTXF1: mmio.Mmio(32, packed struct {
+            ///  IN endpoint FIFO2 transmit RAM start address
+            INEPTXSA: u16,
+            ///  IN endpoint TxFIFO depth
+            INEPTXFD: u16,
+        }),
+        ///  OTG_FS device IN endpoint transmit FIFO size register (OTG_FS_DIEPTXF3)
+        FS_DIEPTXF2: mmio.Mmio(32, packed struct {
+            ///  IN endpoint FIFO3 transmit RAM start address
+            INEPTXSA: u16,
+            ///  IN endpoint TxFIFO depth
+            INEPTXFD: u16,
+        }),
+        ///  OTG_FS device IN endpoint transmit FIFO size register (OTG_FS_DIEPTXF4)
+        FS_DIEPTXF3: mmio.Mmio(32, packed struct {
+            ///  IN endpoint FIFO4 transmit RAM start address
+            INEPTXSA: u16,
+            ///  IN endpoint TxFIFO depth
+            INEPTXFD: u16,
+        }),
+    };
+
+    ///  USB on the go full speed
+    pub const OTG_FS_HOST = extern struct {
+        ///  OTG_FS host configuration register (OTG_FS_HCFG)
+        FS_HCFG: mmio.Mmio(32, packed struct {
+            ///  FS/LS PHY clock select
+            FSLSPCS: u2,
+            ///  FS- and LS-only support
+            FSLSS: u1,
+            padding: u29 = 0,
+        }),
+        ///  OTG_FS Host frame interval register
+        HFIR: mmio.Mmio(32, packed struct {
+            ///  Frame interval
+            FRIVL: u16,
+            padding: u16 = 0,
+        }),
+        ///  OTG_FS host frame number/frame time remaining register (OTG_FS_HFNUM)
+        FS_HFNUM: mmio.Mmio(32, packed struct {
+            ///  Frame number
+            FRNUM: u16,
+            ///  Frame time remaining
+            FTREM: u16,
+        }),
+        reserved16: [4]u8,
+        ///  OTG_FS_Host periodic transmit FIFO/queue status register (OTG_FS_HPTXSTS)
+        FS_HPTXSTS: mmio.Mmio(32, packed struct {
+            ///  Periodic transmit data FIFO space available
+            PTXFSAVL: u16,
+            ///  Periodic transmit request queue space available
+            PTXQSAV: u8,
+            ///  Top of the periodic transmit request queue
+            PTXQTOP: u8,
+        }),
+        ///  OTG_FS Host all channels interrupt register
+        HAINT: mmio.Mmio(32, packed struct {
+            ///  Channel interrupts
+            HAINT: u16,
+            padding: u16 = 0,
+        }),
+        ///  OTG_FS host all channels interrupt mask register
+        HAINTMSK: mmio.Mmio(32, packed struct {
+            ///  Channel interrupt mask
+            HAINTM: u16,
+            padding: u16 = 0,
+        }),
+        reserved64: [36]u8,
+        ///  OTG_FS host port control and status register (OTG_FS_HPRT)
+        FS_HPRT: mmio.Mmio(32, packed struct {
+            ///  Port connect status
+            PCSTS: u1,
+            ///  Port connect detected
+            PCDET: u1,
+            ///  Port enable
+            PENA: u1,
+            ///  Port enable/disable change
+            PENCHNG: u1,
+            ///  Port overcurrent active
+            POCA: u1,
+            ///  Port overcurrent change
+            POCCHNG: u1,
+            ///  Port resume
+            PRES: u1,
+            ///  Port suspend
+            PSUSP: u1,
+            ///  Port reset
+            PRST: u1,
+            reserved10: u1 = 0,
+            ///  Port line status
+            PLSTS: u2,
+            ///  Port power
+            PPWR: u1,
+            ///  Port test control
+            PTCTL: u4,
+            ///  Port speed
+            PSPD: u2,
+            padding: u13 = 0,
+        }),
+        reserved256: [188]u8,
+        ///  OTG_FS host channel-0 characteristics register (OTG_FS_HCCHAR0)
+        FS_HCCHAR0: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved264: [4]u8,
+        ///  OTG_FS host channel-0 interrupt register (OTG_FS_HCINT0)
+        FS_HCINT0: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-0 mask register (OTG_FS_HCINTMSK0)
+        FS_HCINTMSK0: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-0 transfer size register
+        FS_HCTSIZ0: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved288: [12]u8,
+        ///  OTG_FS host channel-1 characteristics register (OTG_FS_HCCHAR1)
+        FS_HCCHAR1: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved296: [4]u8,
+        ///  OTG_FS host channel-1 interrupt register (OTG_FS_HCINT1)
+        FS_HCINT1: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-1 mask register (OTG_FS_HCINTMSK1)
+        FS_HCINTMSK1: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-1 transfer size register
+        FS_HCTSIZ1: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved320: [12]u8,
+        ///  OTG_FS host channel-2 characteristics register (OTG_FS_HCCHAR2)
+        FS_HCCHAR2: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved328: [4]u8,
+        ///  OTG_FS host channel-2 interrupt register (OTG_FS_HCINT2)
+        FS_HCINT2: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-2 mask register (OTG_FS_HCINTMSK2)
+        FS_HCINTMSK2: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-2 transfer size register
+        FS_HCTSIZ2: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved352: [12]u8,
+        ///  OTG_FS host channel-3 characteristics register (OTG_FS_HCCHAR3)
+        FS_HCCHAR3: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved360: [4]u8,
+        ///  OTG_FS host channel-3 interrupt register (OTG_FS_HCINT3)
+        FS_HCINT3: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-3 mask register (OTG_FS_HCINTMSK3)
+        FS_HCINTMSK3: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-3 transfer size register
+        FS_HCTSIZ3: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved384: [12]u8,
+        ///  OTG_FS host channel-4 characteristics register (OTG_FS_HCCHAR4)
+        FS_HCCHAR4: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved392: [4]u8,
+        ///  OTG_FS host channel-4 interrupt register (OTG_FS_HCINT4)
+        FS_HCINT4: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-4 mask register (OTG_FS_HCINTMSK4)
+        FS_HCINTMSK4: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-x transfer size register
+        FS_HCTSIZ4: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved416: [12]u8,
+        ///  OTG_FS host channel-5 characteristics register (OTG_FS_HCCHAR5)
+        FS_HCCHAR5: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved424: [4]u8,
+        ///  OTG_FS host channel-5 interrupt register (OTG_FS_HCINT5)
+        FS_HCINT5: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-5 mask register (OTG_FS_HCINTMSK5)
+        FS_HCINTMSK5: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-5 transfer size register
+        FS_HCTSIZ5: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved448: [12]u8,
+        ///  OTG_FS host channel-6 characteristics register (OTG_FS_HCCHAR6)
+        FS_HCCHAR6: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved456: [4]u8,
+        ///  OTG_FS host channel-6 interrupt register (OTG_FS_HCINT6)
+        FS_HCINT6: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-6 mask register (OTG_FS_HCINTMSK6)
+        FS_HCINTMSK6: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-6 transfer size register
+        FS_HCTSIZ6: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+        reserved480: [12]u8,
+        ///  OTG_FS host channel-7 characteristics register (OTG_FS_HCCHAR7)
+        FS_HCCHAR7: mmio.Mmio(32, packed struct {
+            ///  Maximum packet size
+            MPSIZ: u11,
+            ///  Endpoint number
+            EPNUM: u4,
+            ///  Endpoint direction
+            EPDIR: u1,
+            reserved17: u1 = 0,
+            ///  Low-speed device
+            LSDEV: u1,
+            ///  Endpoint type
+            EPTYP: u2,
+            ///  Multicount
+            MCNT: u2,
+            ///  Device address
+            DAD: u7,
+            ///  Odd frame
+            ODDFRM: u1,
+            ///  Channel disable
+            CHDIS: u1,
+            ///  Channel enable
+            CHENA: u1,
+        }),
+        reserved488: [4]u8,
+        ///  OTG_FS host channel-7 interrupt register (OTG_FS_HCINT7)
+        FS_HCINT7: mmio.Mmio(32, packed struct {
+            ///  Transfer completed
+            XFRC: u1,
+            ///  Channel halted
+            CHH: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt
+            STALL: u1,
+            ///  NAK response received interrupt
+            NAK: u1,
+            ///  ACK response received/transmitted interrupt
+            ACK: u1,
+            reserved7: u1 = 0,
+            ///  Transaction error
+            TXERR: u1,
+            ///  Babble error
+            BBERR: u1,
+            ///  Frame overrun
+            FRMOR: u1,
+            ///  Data toggle error
+            DTERR: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-7 mask register (OTG_FS_HCINTMSK7)
+        FS_HCINTMSK7: mmio.Mmio(32, packed struct {
+            ///  Transfer completed mask
+            XFRCM: u1,
+            ///  Channel halted mask
+            CHHM: u1,
+            reserved3: u1 = 0,
+            ///  STALL response received interrupt mask
+            STALLM: u1,
+            ///  NAK response received interrupt mask
+            NAKM: u1,
+            ///  ACK response received/transmitted interrupt mask
+            ACKM: u1,
+            ///  response received interrupt mask
+            NYET: u1,
+            ///  Transaction error mask
+            TXERRM: u1,
+            ///  Babble error mask
+            BBERRM: u1,
+            ///  Frame overrun mask
+            FRMORM: u1,
+            ///  Data toggle error mask
+            DTERRM: u1,
+            padding: u21 = 0,
+        }),
+        ///  OTG_FS host channel-7 transfer size register
+        FS_HCTSIZ7: mmio.Mmio(32, packed struct {
+            ///  Transfer size
+            XFRSIZ: u19,
+            ///  Packet count
+            PKTCNT: u10,
+            ///  Data PID
+            DPID: u2,
+            padding: u1 = 0,
+        }),
+    };
+
+    ///  USB on the go full speed
+    pub const OTG_FS_PWRCLK = extern struct {
+        ///  OTG_FS power and clock gating control register
+        FS_PCGCCTL: mmio.Mmio(32, packed struct {
+            ///  Stop PHY clock
+            STPPCLK: u1,
+            ///  Gate HCLK
+            GATEHCLK: u1,
+            reserved4: u2 = 0,
+            ///  PHY Suspended
+            PHYSUSP: u1,
+            padding: u27 = 0,
+        }),
+    };
+
+    ///  Ethernet: MAC management counters
+    pub const ETHERNET_MMC = extern struct {
+        ///  Ethernet MMC control register (ETH_MMCCR)
+        MMCCR: mmio.Mmio(32, packed struct {
+            ///  Counter reset
+            CR: u1,
+            ///  Counter stop rollover
+            CSR: u1,
+            ///  Reset on read
+            ROR: u1,
+            reserved31: u28 = 0,
+            ///  MMC counter freeze
+            MCF: u1,
+        }),
+        ///  Ethernet MMC receive interrupt register (ETH_MMCRIR)
+        MMCRIR: mmio.Mmio(32, packed struct {
+            reserved5: u5 = 0,
+            ///  Received frames CRC error status
+            RFCES: u1,
+            ///  Received frames alignment error status
+            RFAES: u1,
+            reserved17: u10 = 0,
+            ///  Received Good Unicast Frames Status
+            RGUFS: u1,
+            padding: u14 = 0,
+        }),
+        ///  Ethernet MMC transmit interrupt register (ETH_MMCTIR)
+        MMCTIR: mmio.Mmio(32, packed struct {
+            reserved14: u14 = 0,
+            ///  Transmitted good frames single collision status
+            TGFSCS: u1,
+            ///  Transmitted good frames more single collision status
+            TGFMSCS: u1,
+            reserved21: u5 = 0,
+            ///  Transmitted good frames status
+            TGFS: u1,
+            padding: u10 = 0,
+        }),
+        ///  Ethernet MMC receive interrupt mask register (ETH_MMCRIMR)
+        MMCRIMR: mmio.Mmio(32, packed struct {
+            reserved5: u5 = 0,
+            ///  Received frame CRC error mask
+            RFCEM: u1,
+            ///  Received frames alignment error mask
+            RFAEM: u1,
+            reserved17: u10 = 0,
+            ///  Received good unicast frames mask
+            RGUFM: u1,
+            padding: u14 = 0,
+        }),
+        ///  Ethernet MMC transmit interrupt mask register (ETH_MMCTIMR)
+        MMCTIMR: mmio.Mmio(32, packed struct {
+            reserved14: u14 = 0,
+            ///  Transmitted good frames single collision mask
+            TGFSCM: u1,
+            ///  Transmitted good frames more single collision mask
+            TGFMSCM: u1,
+            reserved21: u5 = 0,
+            ///  Transmitted good frames mask
+            TGFM: u1,
+            padding: u10 = 0,
+        }),
+        reserved76: [56]u8,
+        ///  Ethernet MMC transmitted good frames after a single collision counter
+        MMCTGFSCCR: mmio.Mmio(32, packed struct {
+            ///  Transmitted good frames after a single collision counter
+            TGFSCC: u32,
+        }),
+        ///  Ethernet MMC transmitted good frames after more than a single collision
+        MMCTGFMSCCR: mmio.Mmio(32, packed struct {
+            ///  Transmitted good frames after more than a single collision counter
+            TGFMSCC: u32,
+        }),
+        reserved104: [20]u8,
+        ///  Ethernet MMC transmitted good frames counter register
+        MMCTGFCR: mmio.Mmio(32, packed struct {
+            ///  Transmitted good frames counter
+            TGFC: u32,
+        }),
+        reserved148: [40]u8,
+        ///  Ethernet MMC received frames with CRC error counter register
+        MMCRFCECR: mmio.Mmio(32, packed struct {
+            ///  Received frames with CRC error counter
+            RFCFC: u32,
+        }),
+        ///  Ethernet MMC received frames with alignment error counter register
+        MMCRFAECR: mmio.Mmio(32, packed struct {
+            ///  Received frames with alignment error counter
+            RFAEC: u32,
+        }),
+        reserved196: [40]u8,
+        ///  MMC received good unicast frames counter register
+        MMCRGUFCR: mmio.Mmio(32, packed struct {
+            ///  Received good unicast frames counter
+            RGUFC: u32,
+        }),
+    };
+
+    ///  Ethernet: media access control
+    pub const ETHERNET_MAC = extern struct {
+        ///  Ethernet MAC configuration register (ETH_MACCR)
+        MACCR: mmio.Mmio(32, packed struct {
+            reserved2: u2 = 0,
+            ///  Receiver enable
+            RE: u1,
+            ///  Transmitter enable
+            TE: u1,
+            ///  Deferral check
+            DC: u1,
+            ///  Back-off limit
+            BL: u2,
+            ///  Automatic pad/CRC stripping
+            APCS: u1,
+            reserved9: u1 = 0,
+            ///  Retry disable
+            RD: u1,
+            ///  IPv4 checksum offload
+            IPCO: u1,
+            ///  Duplex mode
+            DM: u1,
+            ///  Loopback mode
+            LM: u1,
+            ///  Receive own disable
+            ROD: u1,
+            ///  Fast Ethernet speed
+            FES: u1,
+            reserved16: u1 = 0,
+            ///  Carrier sense disable
+            CSD: u1,
+            ///  Interframe gap
+            IFG: u3,
+            reserved22: u2 = 0,
+            ///  Jabber disable
+            JD: u1,
+            ///  Watchdog disable
+            WD: u1,
+            padding: u8 = 0,
+        }),
+        ///  Ethernet MAC frame filter register (ETH_MACCFFR)
+        MACFFR: mmio.Mmio(32, packed struct {
+            ///  Promiscuous mode
+            PM: u1,
+            ///  Hash unicast
+            HU: u1,
+            ///  Hash multicast
+            HM: u1,
+            ///  Destination address inverse filtering
+            DAIF: u1,
+            ///  Pass all multicast
+            PAM: u1,
+            ///  Broadcast frames disable
+            BFD: u1,
+            ///  Pass control frames
+            PCF: u2,
+            ///  Source address inverse filtering
+            SAIF: u1,
+            ///  Source address filter
+            SAF: u1,
+            ///  Hash or perfect filter
+            HPF: u1,
+            reserved31: u20 = 0,
+            ///  Receive all
+            RA: u1,
+        }),
+        ///  Ethernet MAC hash table high register
+        MACHTHR: mmio.Mmio(32, packed struct {
+            ///  Hash table high
+            HTH: u32,
+        }),
+        ///  Ethernet MAC hash table low register
+        MACHTLR: mmio.Mmio(32, packed struct {
+            ///  Hash table low
+            HTL: u32,
+        }),
+        ///  Ethernet MAC MII address register (ETH_MACMIIAR)
+        MACMIIAR: mmio.Mmio(32, packed struct {
+            ///  MII busy
+            MB: u1,
+            ///  MII write
+            MW: u1,
+            ///  Clock range
+            CR: u3,
+            reserved6: u1 = 0,
+            ///  MII register
+            MR: u5,
+            ///  PHY address
+            PA: u5,
+            padding: u16 = 0,
+        }),
+        ///  Ethernet MAC MII data register (ETH_MACMIIDR)
+        MACMIIDR: mmio.Mmio(32, packed struct {
+            ///  MII data
+            MD: u16,
+            padding: u16 = 0,
+        }),
+        ///  Ethernet MAC flow control register (ETH_MACFCR)
+        MACFCR: mmio.Mmio(32, packed struct {
+            ///  Flow control busy/back pressure activate
+            FCB_BPA: u1,
+            ///  Transmit flow control enable
+            TFCE: u1,
+            ///  Receive flow control enable
+            RFCE: u1,
+            ///  Unicast pause frame detect
+            UPFD: u1,
+            ///  Pause low threshold
+            PLT: u2,
+            reserved7: u1 = 0,
+            ///  Zero-quanta pause disable
+            ZQPD: u1,
+            reserved16: u8 = 0,
+            ///  Pass control frames
+            PT: u16,
+        }),
+        ///  Ethernet MAC VLAN tag register (ETH_MACVLANTR)
+        MACVLANTR: mmio.Mmio(32, packed struct {
+            ///  VLAN tag identifier (for receive frames)
+            VLANTI: u16,
+            ///  12-bit VLAN tag comparison
+            VLANTC: u1,
+            padding: u15 = 0,
+        }),
+        reserved40: [8]u8,
+        ///  Ethernet MAC remote wakeup frame filter register (ETH_MACRWUFFR)
+        MACRWUFFR: u32,
+        ///  Ethernet MAC PMT control and status register (ETH_MACPMTCSR)
+        MACPMTCSR: mmio.Mmio(32, packed struct {
+            ///  Power down
+            PD: u1,
+            ///  Magic Packet enable
+            MPE: u1,
+            ///  Wakeup frame enable
+            WFE: u1,
+            reserved5: u2 = 0,
+            ///  Magic packet received
+            MPR: u1,
+            ///  Wakeup frame received
+            WFR: u1,
+            reserved9: u2 = 0,
+            ///  Global unicast
+            GU: u1,
+            reserved31: u21 = 0,
+            ///  Wakeup frame filter register pointer reset
+            WFFRPR: u1,
+        }),
+        reserved56: [8]u8,
+        ///  Ethernet MAC interrupt status register (ETH_MACSR)
+        MACSR: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  PMT status
+            PMTS: u1,
+            ///  MMC status
+            MMCS: u1,
+            ///  MMC receive status
+            MMCRS: u1,
+            ///  MMC transmit status
+            MMCTS: u1,
+            reserved9: u2 = 0,
+            ///  Time stamp trigger status
+            TSTS: u1,
+            padding: u22 = 0,
+        }),
+        ///  Ethernet MAC interrupt mask register (ETH_MACIMR)
+        MACIMR: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  PMT interrupt mask
+            PMTIM: u1,
+            reserved9: u5 = 0,
+            ///  Time stamp trigger interrupt mask
+            TSTIM: u1,
+            padding: u22 = 0,
+        }),
+        ///  Ethernet MAC address 0 high register (ETH_MACA0HR)
+        MACA0HR: mmio.Mmio(32, packed struct {
+            ///  MAC address0 high
+            MACA0H: u16,
+            reserved31: u15 = 0,
+            ///  Always 1
+            MO: u1,
+        }),
+        ///  Ethernet MAC address 0 low register
+        MACA0LR: mmio.Mmio(32, packed struct {
+            ///  MAC address0 low
+            MACA0L: u32,
+        }),
+        ///  Ethernet MAC address 1 high register (ETH_MACA1HR)
+        MACA1HR: mmio.Mmio(32, packed struct {
+            ///  MAC address1 high
+            MACA1H: u16,
+            reserved24: u8 = 0,
+            ///  Mask byte control
+            MBC: u6,
+            ///  Source address
+            SA: u1,
+            ///  Address enable
+            AE: u1,
+        }),
+        ///  Ethernet MAC address1 low register
+        MACA1LR: mmio.Mmio(32, packed struct {
+            ///  MAC address1 low
+            MACA1L: u32,
+        }),
+        ///  Ethernet MAC address 2 high register (ETH_MACA2HR)
+        MACA2HR: mmio.Mmio(32, packed struct {
+            ///  Ethernet MAC address 2 high register
+            ETH_MACA2HR: u16,
+            reserved24: u8 = 0,
+            ///  Mask byte control
+            MBC: u6,
+            ///  Source address
+            SA: u1,
+            ///  Address enable
+            AE: u1,
+        }),
+        ///  Ethernet MAC address 2 low register
+        MACA2LR: mmio.Mmio(32, packed struct {
+            ///  MAC address2 low
+            MACA2L: u31,
+            padding: u1 = 0,
+        }),
+        ///  Ethernet MAC address 3 high register (ETH_MACA3HR)
+        MACA3HR: mmio.Mmio(32, packed struct {
+            ///  MAC address3 high
+            MACA3H: u16,
+            reserved24: u8 = 0,
+            ///  Mask byte control
+            MBC: u6,
+            ///  Source address
+            SA: u1,
+            ///  Address enable
+            AE: u1,
+        }),
+        ///  Ethernet MAC address 3 low register
+        MACA3LR: mmio.Mmio(32, packed struct {
+            ///  MAC address3 low
+            MBCA3L: u32,
+        }),
+    };
+
+    ///  Ethernet: Precision time protocol
+    pub const ETHERNET_PTP = extern struct {
+        ///  Ethernet PTP time stamp control register (ETH_PTPTSCR)
+        PTPTSCR: mmio.Mmio(32, packed struct {
+            ///  Time stamp enable
+            TSE: u1,
+            ///  Time stamp fine or coarse update
+            TSFCU: u1,
+            ///  Time stamp system time initialize
+            TSSTI: u1,
+            ///  Time stamp system time update
+            TSSTU: u1,
+            ///  Time stamp interrupt trigger enable
+            TSITE: u1,
+            ///  Time stamp addend register update
+            TSARU: u1,
+            padding: u26 = 0,
+        }),
+        ///  Ethernet PTP subsecond increment register
+        PTPSSIR: mmio.Mmio(32, packed struct {
+            ///  System time subsecond increment
+            STSSI: u8,
+            padding: u24 = 0,
+        }),
+        ///  Ethernet PTP time stamp high register
+        PTPTSHR: mmio.Mmio(32, packed struct {
+            ///  System time second
+            STS: u32,
+        }),
+        ///  Ethernet PTP time stamp low register (ETH_PTPTSLR)
+        PTPTSLR: mmio.Mmio(32, packed struct {
+            ///  System time subseconds
+            STSS: u31,
+            ///  System time positive or negative sign
+            STPNS: u1,
+        }),
+        ///  Ethernet PTP time stamp high update register
+        PTPTSHUR: mmio.Mmio(32, packed struct {
+            ///  Time stamp update second
+            TSUS: u32,
+        }),
+        ///  Ethernet PTP time stamp low update register (ETH_PTPTSLUR)
+        PTPTSLUR: mmio.Mmio(32, packed struct {
+            ///  Time stamp update subseconds
+            TSUSS: u31,
+            ///  Time stamp update positive or negative sign
+            TSUPNS: u1,
+        }),
+        ///  Ethernet PTP time stamp addend register
+        PTPTSAR: mmio.Mmio(32, packed struct {
+            ///  Time stamp addend
+            TSA: u32,
+        }),
+        ///  Ethernet PTP target time high register
+        PTPTTHR: mmio.Mmio(32, packed struct {
+            ///  Target time stamp high
+            TTSH: u32,
+        }),
+        ///  Ethernet PTP target time low register
+        PTPTTLR: mmio.Mmio(32, packed struct {
+            ///  Target time stamp low
+            TTSL: u32,
+        }),
+    };
+
+    ///  Ethernet: DMA controller operation
+    pub const ETHERNET_DMA = extern struct {
+        ///  Ethernet DMA bus mode register
+        DMABMR: mmio.Mmio(32, packed struct {
+            ///  Software reset
+            SR: u1,
+            ///  DMA Arbitration
+            DA: u1,
+            ///  Descriptor skip length
+            DSL: u5,
+            reserved8: u1 = 0,
+            ///  Programmable burst length
+            PBL: u6,
+            ///  Rx Tx priority ratio
+            RTPR: u2,
+            ///  Fixed burst
+            FB: u1,
+            ///  Rx DMA PBL
+            RDP: u6,
+            ///  Use separate PBL
+            USP: u1,
+            ///  4xPBL mode
+            FPM: u1,
+            ///  Address-aligned beats
+            AAB: u1,
+            padding: u6 = 0,
+        }),
+        ///  Ethernet DMA transmit poll demand register
+        DMATPDR: mmio.Mmio(32, packed struct {
+            ///  Transmit poll demand
+            TPD: u32,
+        }),
+        ///  EHERNET DMA receive poll demand register
+        DMARPDR: mmio.Mmio(32, packed struct {
+            ///  Receive poll demand
+            RPD: u32,
+        }),
+        ///  Ethernet DMA receive descriptor list address register
+        DMARDLAR: mmio.Mmio(32, packed struct {
+            ///  Start of receive list
+            SRL: u32,
+        }),
+        ///  Ethernet DMA transmit descriptor list address register
+        DMATDLAR: mmio.Mmio(32, packed struct {
+            ///  Start of transmit list
+            STL: u32,
+        }),
+        ///  Ethernet DMA status register
+        DMASR: mmio.Mmio(32, packed struct {
+            ///  Transmit status
+            TS: u1,
+            ///  Transmit process stopped status
+            TPSS: u1,
+            ///  Transmit buffer unavailable status
+            TBUS: u1,
+            ///  Transmit jabber timeout status
+            TJTS: u1,
+            ///  Receive overflow status
+            ROS: u1,
+            ///  Transmit underflow status
+            TUS: u1,
+            ///  Receive status
+            RS: u1,
+            ///  Receive buffer unavailable status
+            RBUS: u1,
+            ///  Receive process stopped status
+            RPSS: u1,
+            ///  Receive watchdog timeout status
+            PWTS: u1,
+            ///  Early transmit status
+            ETS: u1,
+            reserved13: u2 = 0,
+            ///  Fatal bus error status
+            FBES: u1,
+            ///  Early receive status
+            ERS: u1,
+            ///  Abnormal interrupt summary
+            AIS: u1,
+            ///  Normal interrupt summary
+            NIS: u1,
+            ///  Receive process state
+            RPS: u3,
+            ///  Transmit process state
+            TPS: u3,
+            ///  Error bits status
+            EBS: u3,
+            reserved27: u1 = 0,
+            ///  MMC status
+            MMCS: u1,
+            ///  PMT status
+            PMTS: u1,
+            ///  Time stamp trigger status
+            TSTS: u1,
+            padding: u2 = 0,
+        }),
+        ///  Ethernet DMA operation mode register
+        DMAOMR: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  SR
+            SR: u1,
+            ///  OSF
+            OSF: u1,
+            ///  RTC
+            RTC: u2,
+            reserved6: u1 = 0,
+            ///  FUGF
+            FUGF: u1,
+            ///  FEF
+            FEF: u1,
+            reserved13: u5 = 0,
+            ///  ST
+            ST: u1,
+            ///  TTC
+            TTC: u3,
+            reserved20: u3 = 0,
+            ///  FTF
+            FTF: u1,
+            ///  TSF
+            TSF: u1,
+            reserved24: u2 = 0,
+            ///  DFRF
+            DFRF: u1,
+            ///  RSF
+            RSF: u1,
+            ///  DTCEFD
+            DTCEFD: u1,
+            padding: u5 = 0,
+        }),
+        ///  Ethernet DMA interrupt enable register
+        DMAIER: mmio.Mmio(32, packed struct {
+            ///  Transmit interrupt enable
+            TIE: u1,
+            ///  Transmit process stopped interrupt enable
+            TPSIE: u1,
+            ///  Transmit buffer unavailable interrupt enable
+            TBUIE: u1,
+            ///  Transmit jabber timeout interrupt enable
+            TJTIE: u1,
+            ///  Overflow interrupt enable
+            ROIE: u1,
+            ///  Underflow interrupt enable
+            TUIE: u1,
+            ///  Receive interrupt enable
+            RIE: u1,
+            ///  Receive buffer unavailable interrupt enable
+            RBUIE: u1,
+            ///  Receive process stopped interrupt enable
+            RPSIE: u1,
+            ///  receive watchdog timeout interrupt enable
+            RWTIE: u1,
+            ///  Early transmit interrupt enable
+            ETIE: u1,
+            reserved13: u2 = 0,
+            ///  Fatal bus error interrupt enable
+            FBEIE: u1,
+            ///  Early receive interrupt enable
+            ERIE: u1,
+            ///  Abnormal interrupt summary enable
+            AISE: u1,
+            ///  Normal interrupt summary enable
+            NISE: u1,
+            padding: u15 = 0,
+        }),
+        ///  Ethernet DMA missed frame and buffer overflow counter register
+        DMAMFBOCR: mmio.Mmio(32, packed struct {
+            ///  Missed frames by the controller
+            MFC: u16,
+            ///  Overflow bit for missed frame counter
+            OMFC: u1,
+            ///  Missed frames by the application
+            MFA: u11,
+            ///  Overflow bit for FIFO overflow counter
+            OFOC: u1,
+            padding: u3 = 0,
+        }),
+        reserved72: [36]u8,
+        ///  Ethernet DMA current host transmit descriptor register
+        DMACHTDR: mmio.Mmio(32, packed struct {
+            ///  Host transmit descriptor address pointer
+            HTDAP: u32,
+        }),
+        ///  Ethernet DMA current host receive descriptor register
+        DMACHRDR: mmio.Mmio(32, packed struct {
+            ///  Host receive descriptor address pointer
+            HRDAP: u32,
+        }),
+        ///  Ethernet DMA current host transmit buffer address register
+        DMACHTBAR: mmio.Mmio(32, packed struct {
+            ///  Host transmit buffer address pointer
+            HTBAP: u32,
+        }),
+        ///  Ethernet DMA current host receive buffer address register
+        DMACHRBAR: mmio.Mmio(32, packed struct {
+            ///  Host receive buffer address pointer
+            HRBAP: u32,
+        }),
+    };
+
+    ///  Nested Vectored Interrupt Controller
+    pub const NVIC = extern struct {
+        ///  Interrupt Set-Enable Register
+        ISER0: mmio.Mmio(32, packed struct {
+            ///  SETENA
+            SETENA: u32,
+        }),
+        ///  Interrupt Set-Enable Register
+        ISER1: mmio.Mmio(32, packed struct {
+            ///  SETENA
+            SETENA: u32,
+        }),
+        reserved128: [120]u8,
+        ///  Interrupt Clear-Enable Register
+        ICER0: mmio.Mmio(32, packed struct {
+            ///  CLRENA
+            CLRENA: u32,
+        }),
+        ///  Interrupt Clear-Enable Register
+        ICER1: mmio.Mmio(32, packed struct {
+            ///  CLRENA
+            CLRENA: u32,
+        }),
+        reserved256: [120]u8,
+        ///  Interrupt Set-Pending Register
+        ISPR0: mmio.Mmio(32, packed struct {
+            ///  SETPEND
+            SETPEND: u32,
+        }),
+        ///  Interrupt Set-Pending Register
+        ISPR1: mmio.Mmio(32, packed struct {
+            ///  SETPEND
+            SETPEND: u32,
+        }),
+        reserved384: [120]u8,
+        ///  Interrupt Clear-Pending Register
+        ICPR0: mmio.Mmio(32, packed struct {
+            ///  CLRPEND
+            CLRPEND: u32,
+        }),
+        ///  Interrupt Clear-Pending Register
+        ICPR1: mmio.Mmio(32, packed struct {
+            ///  CLRPEND
+            CLRPEND: u32,
+        }),
+        reserved512: [120]u8,
+        ///  Interrupt Active Bit Register
+        IABR0: mmio.Mmio(32, packed struct {
+            ///  ACTIVE
+            ACTIVE: u32,
+        }),
+        ///  Interrupt Active Bit Register
+        IABR1: mmio.Mmio(32, packed struct {
+            ///  ACTIVE
+            ACTIVE: u32,
+        }),
+        reserved768: [248]u8,
+        ///  Interrupt Priority Register
+        IPR0: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR1: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR2: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR3: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR4: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR5: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR6: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR7: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR8: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR9: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR10: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR11: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR12: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR13: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+        ///  Interrupt Priority Register
+        IPR14: mmio.Mmio(32, packed struct {
+            ///  IPR_N0
+            IPR_N0: u8,
+            ///  IPR_N1
+            IPR_N1: u8,
+            ///  IPR_N2
+            IPR_N2: u8,
+            ///  IPR_N3
+            IPR_N3: u8,
+        }),
+    };
+
+    ///  Memory protection unit
+    pub const MPU = extern struct {
+        ///  MPU type register
+        MPU_TYPER: mmio.Mmio(32, packed struct {
+            ///  Separate flag
+            SEPARATE: u1,
+            reserved8: u7 = 0,
+            ///  Number of MPU data regions
+            DREGION: u8,
+            ///  Number of MPU instruction regions
+            IREGION: u8,
+            padding: u8 = 0,
+        }),
+        ///  MPU control register
+        MPU_CTRL: mmio.Mmio(32, packed struct {
+            ///  Enables the MPU
+            ENABLE: u1,
+            ///  Enables the operation of MPU during hard fault
+            HFNMIENA: u1,
+            ///  Enable priviliged software access to default memory map
+            PRIVDEFENA: u1,
+            padding: u29 = 0,
+        }),
+        ///  MPU region number register
+        MPU_RNR: mmio.Mmio(32, packed struct {
+            ///  MPU region
+            REGION: u8,
+            padding: u24 = 0,
+        }),
+        ///  MPU region base address register
+        MPU_RBAR: mmio.Mmio(32, packed struct {
+            ///  MPU region field
+            REGION: u4,
+            ///  MPU region number valid
+            VALID: u1,
+            ///  Region base address field
+            ADDR: u27,
+        }),
+        ///  MPU region attribute and size register
+        MPU_RASR: mmio.Mmio(32, packed struct {
+            ///  Region enable bit.
+            ENABLE: u1,
+            ///  Size of the MPU protection region
+            SIZE: u5,
+            reserved8: u2 = 0,
+            ///  Subregion disable bits
+            SRD: u8,
+            ///  memory attribute
+            B: u1,
+            ///  memory attribute
+            C: u1,
+            ///  Shareable memory attribute
+            S: u1,
+            ///  memory attribute
+            TEX: u3,
+            reserved24: u2 = 0,
+            ///  Access permission
+            AP: u3,
+            reserved28: u1 = 0,
+            ///  Instruction access disable bit
+            XN: u1,
+            padding: u3 = 0,
+        }),
+    };
+
+    ///  System control block ACTLR
+    pub const SCB_ACTRL = extern struct {
+        ///  Auxiliary control register
+        ACTRL: mmio.Mmio(32, packed struct {
+            reserved2: u2 = 0,
+            ///  DISFOLD
+            DISFOLD: u1,
+            reserved10: u7 = 0,
+            ///  FPEXCODIS
+            FPEXCODIS: u1,
+            ///  DISRAMODE
+            DISRAMODE: u1,
+            ///  DISITMATBFLUSH
+            DISITMATBFLUSH: u1,
+            padding: u19 = 0,
+        }),
+    };
+
+    ///  Nested vectored interrupt controller
+    pub const NVIC_STIR = extern struct {
+        ///  Software trigger interrupt register
+        STIR: mmio.Mmio(32, packed struct {
+            ///  Software generated interrupt ID
+            INTID: u9,
+            padding: u23 = 0,
+        }),
+    };
+
+    ///  System control block
+    pub const SCB = extern struct {
+        ///  CPUID base register
+        CPUID: mmio.Mmio(32, packed struct {
+            ///  Revision number
+            Revision: u4,
+            ///  Part number of the processor
+            PartNo: u12,
+            ///  Reads as 0xF
+            Constant: u4,
+            ///  Variant number
+            Variant: u4,
+            ///  Implementer code
+            Implementer: u8,
+        }),
+        ///  Interrupt control and state register
+        ICSR: mmio.Mmio(32, packed struct {
+            ///  Active vector
+            VECTACTIVE: u9,
+            reserved11: u2 = 0,
+            ///  Return to base level
+            RETTOBASE: u1,
+            ///  Pending vector
+            VECTPENDING: u7,
+            reserved22: u3 = 0,
+            ///  Interrupt pending flag
+            ISRPENDING: u1,
+            reserved25: u2 = 0,
+            ///  SysTick exception clear-pending bit
+            PENDSTCLR: u1,
+            ///  SysTick exception set-pending bit
+            PENDSTSET: u1,
+            ///  PendSV clear-pending bit
+            PENDSVCLR: u1,
+            ///  PendSV set-pending bit
+            PENDSVSET: u1,
+            reserved31: u2 = 0,
+            ///  NMI set-pending bit.
+            NMIPENDSET: u1,
+        }),
+        ///  Vector table offset register
+        VTOR: mmio.Mmio(32, packed struct {
+            reserved9: u9 = 0,
+            ///  Vector table base offset field
+            TBLOFF: u21,
+            padding: u2 = 0,
+        }),
+        ///  Application interrupt and reset control register
+        AIRCR: mmio.Mmio(32, packed struct {
+            ///  VECTRESET
+            VECTRESET: u1,
+            ///  VECTCLRACTIVE
+            VECTCLRACTIVE: u1,
+            ///  SYSRESETREQ
+            SYSRESETREQ: u1,
+            reserved8: u5 = 0,
+            ///  PRIGROUP
+            PRIGROUP: u3,
+            reserved15: u4 = 0,
+            ///  ENDIANESS
+            ENDIANESS: u1,
+            ///  Register key
+            VECTKEYSTAT: u16,
+        }),
+        ///  System control register
+        SCR: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  SLEEPONEXIT
+            SLEEPONEXIT: u1,
+            ///  SLEEPDEEP
+            SLEEPDEEP: u1,
+            reserved4: u1 = 0,
+            ///  Send Event on Pending bit
+            SEVEONPEND: u1,
+            padding: u27 = 0,
+        }),
+        ///  Configuration and control register
+        CCR: mmio.Mmio(32, packed struct {
+            ///  Configures how the processor enters Thread mode
+            NONBASETHRDENA: u1,
+            ///  USERSETMPEND
+            USERSETMPEND: u1,
+            reserved3: u1 = 0,
+            ///  UNALIGN_ TRP
+            UNALIGN__TRP: u1,
+            ///  DIV_0_TRP
+            DIV_0_TRP: u1,
+            reserved8: u3 = 0,
+            ///  BFHFNMIGN
+            BFHFNMIGN: u1,
+            ///  STKALIGN
+            STKALIGN: u1,
+            padding: u22 = 0,
+        }),
+        ///  System handler priority registers
+        SHPR1: mmio.Mmio(32, packed struct {
+            ///  Priority of system handler 4
+            PRI_4: u8,
+            ///  Priority of system handler 5
+            PRI_5: u8,
+            ///  Priority of system handler 6
+            PRI_6: u8,
+            padding: u8 = 0,
+        }),
+        ///  System handler priority registers
+        SHPR2: mmio.Mmio(32, packed struct {
+            reserved24: u24 = 0,
+            ///  Priority of system handler 11
+            PRI_11: u8,
+        }),
+        ///  System handler priority registers
+        SHPR3: mmio.Mmio(32, packed struct {
+            reserved16: u16 = 0,
+            ///  Priority of system handler 14
+            PRI_14: u8,
+            ///  Priority of system handler 15
+            PRI_15: u8,
+        }),
+        ///  System handler control and state register
+        SHCRS: mmio.Mmio(32, packed struct {
+            ///  Memory management fault exception active bit
+            MEMFAULTACT: u1,
+            ///  Bus fault exception active bit
+            BUSFAULTACT: u1,
+            reserved3: u1 = 0,
+            ///  Usage fault exception active bit
+            USGFAULTACT: u1,
+            reserved7: u3 = 0,
+            ///  SVC call active bit
+            SVCALLACT: u1,
+            ///  Debug monitor active bit
+            MONITORACT: u1,
+            reserved10: u1 = 0,
+            ///  PendSV exception active bit
+            PENDSVACT: u1,
+            ///  SysTick exception active bit
+            SYSTICKACT: u1,
+            ///  Usage fault exception pending bit
+            USGFAULTPENDED: u1,
+            ///  Memory management fault exception pending bit
+            MEMFAULTPENDED: u1,
+            ///  Bus fault exception pending bit
+            BUSFAULTPENDED: u1,
+            ///  SVC call pending bit
+            SVCALLPENDED: u1,
+            ///  Memory management fault enable bit
+            MEMFAULTENA: u1,
+            ///  Bus fault enable bit
+            BUSFAULTENA: u1,
+            ///  Usage fault enable bit
+            USGFAULTENA: u1,
+            padding: u13 = 0,
+        }),
+        ///  Configurable fault status register
+        CFSR_UFSR_BFSR_MMFSR: mmio.Mmio(32, packed struct {
+            ///  IACCVIOL
+            IACCVIOL: u1,
+            ///  DACCVIOL
+            DACCVIOL: u1,
+            reserved3: u1 = 0,
+            ///  MUNSTKERR
+            MUNSTKERR: u1,
+            ///  MSTKERR
+            MSTKERR: u1,
+            ///  MLSPERR
+            MLSPERR: u1,
+            reserved7: u1 = 0,
+            ///  MMARVALID
+            MMARVALID: u1,
+            ///  Instruction bus error
+            IBUSERR: u1,
+            ///  Precise data bus error
+            PRECISERR: u1,
+            ///  Imprecise data bus error
+            IMPRECISERR: u1,
+            ///  Bus fault on unstacking for a return from exception
+            UNSTKERR: u1,
+            ///  Bus fault on stacking for exception entry
+            STKERR: u1,
+            ///  Bus fault on floating-point lazy state preservation
+            LSPERR: u1,
+            reserved15: u1 = 0,
+            ///  Bus Fault Address Register (BFAR) valid flag
+            BFARVALID: u1,
+            ///  Undefined instruction usage fault
+            UNDEFINSTR: u1,
+            ///  Invalid state usage fault
+            INVSTATE: u1,
+            ///  Invalid PC load usage fault
+            INVPC: u1,
+            ///  No coprocessor usage fault.
+            NOCP: u1,
+            reserved24: u4 = 0,
+            ///  Unaligned access usage fault
+            UNALIGNED: u1,
+            ///  Divide by zero usage fault
+            DIVBYZERO: u1,
+            padding: u6 = 0,
+        }),
+        ///  Hard fault status register
+        HFSR: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  Vector table hard fault
+            VECTTBL: u1,
+            reserved30: u28 = 0,
+            ///  Forced hard fault
+            FORCED: u1,
+            ///  Reserved for Debug use
+            DEBUG_VT: u1,
+        }),
+        reserved52: [4]u8,
+        ///  Memory management fault address register
+        MMFAR: mmio.Mmio(32, packed struct {
+            ///  Memory management fault address
+            MMFAR: u32,
+        }),
+        ///  Bus fault address register
+        BFAR: mmio.Mmio(32, packed struct {
+            ///  Bus fault address
+            BFAR: u32,
+        }),
+    };
+
+    ///  SysTick timer
+    pub const STK = extern struct {
+        ///  SysTick control and status register
+        CTRL: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            ENABLE: u1,
+            ///  SysTick exception request enable
+            TICKINT: u1,
+            ///  Clock source selection
+            CLKSOURCE: u1,
+            reserved16: u13 = 0,
+            ///  COUNTFLAG
+            COUNTFLAG: u1,
+            padding: u15 = 0,
+        }),
+        ///  SysTick reload value register
+        LOAD_: mmio.Mmio(32, packed struct {
+            ///  RELOAD value
+            RELOAD: u24,
+            padding: u8 = 0,
+        }),
+        ///  SysTick current value register
+        VAL: mmio.Mmio(32, packed struct {
+            ///  Current counter value
+            CURRENT: u24,
+            padding: u8 = 0,
+        }),
+        ///  SysTick calibration value register
+        CALIB: mmio.Mmio(32, packed struct {
+            ///  Calibration value
+            TENMS: u24,
+            padding: u8 = 0,
         }),
     };
 };

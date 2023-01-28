@@ -1,13 +1,89 @@
 const mmio = @import("mmio");
 
 pub const devices = struct {
-    ///  STM32F030
-    pub const STM32F030 = struct {
+    ///  STM32F0x0
+    pub const STM32F0x0 = struct {
+        pub const properties = struct {
+            pub const @"cpu.nvic_prio_bits" = "3";
+            pub const @"cpu.mpu" = "false";
+            pub const @"cpu.fpu" = "false";
+            pub const @"cpu.revision" = "r0p0";
+            pub const @"cpu.vendor_systick_config" = "false";
+            pub const @"cpu.endian" = "little";
+            pub const @"cpu.name" = "CM0";
+        };
+
+        pub const interrupts = extern struct {
+            pub const NMI = -14;
+            pub const HardFault = -13;
+            pub const SVCall = -5;
+            pub const PendSV = -2;
+            pub const SysTick = -1;
+            ///  Window Watchdog interrupt
+            pub const WWDG = 0;
+            ///  PVD and VDDIO2 supply comparator interrupt
+            pub const PVD = 1;
+            ///  RTC interrupts
+            pub const RTC = 2;
+            ///  Flash global interrupt
+            pub const FLASH = 3;
+            ///  RCC global interruptr
+            pub const RCC = 4;
+            ///  EXTI Line[1:0] interrupts
+            pub const EXTI0_1 = 5;
+            ///  EXTI Line[3:2] interrupts
+            pub const EXTI2_3 = 6;
+            ///  EXTI Line15 and EXTI4 interrupts
+            pub const EXTI4_15 = 7;
+            ///  DMA1 channel 1 interrupt
+            pub const DMA1_CH1 = 9;
+            ///  DMA1 channel 2 and 3 interrupt
+            pub const DMA1_CH2_3 = 10;
+            ///  DMA1 channel 4 and 5 interrupt
+            pub const DMA1_CH4_5 = 11;
+            ///  ADC interrupt
+            pub const ADC = 12;
+            ///  TIM1 break, update, trigger and commutation interrupt
+            pub const TIM1_BRK_UP_TRG_COM = 13;
+            ///  TIM1 Capture Compare interrupt
+            pub const TIM1_CC = 14;
+            ///  TIM3 global interrupt
+            pub const TIM3 = 16;
+            ///  TIM6 global interrupt
+            pub const TIM6 = 17;
+            ///  TIM14 global interrupt
+            pub const TIM14 = 19;
+            ///  TIM15 global interrupt
+            pub const TIM15 = 20;
+            ///  TIM16 global interrupt
+            pub const TIM16 = 21;
+            ///  TIM17 global interrupt
+            pub const TIM17 = 22;
+            ///  I2C1 global interrupt
+            pub const I2C1 = 23;
+            ///  I2C2 global interrupt
+            pub const I2C2 = 24;
+            ///  SPI1_global_interrupt
+            pub const SPI1 = 25;
+            ///  SPI2 global interrupt
+            pub const SPI2 = 26;
+            ///  USART1 global interrupt
+            pub const USART1 = 27;
+            ///  USART2 global interrupt
+            pub const USART2 = 28;
+            ///  USART3, USART4, USART5, USART6 global interrupt
+            pub const USART3_4_5_6 = 29;
+            ///  USB global interrupt
+            pub const USB = 31;
+        };
+
         pub const peripherals = struct {
             ///  General-purpose-timers
             pub const TIM3 = @intToPtr(*volatile types.TIM3, 0x40000400);
             ///  Basic-timers
             pub const TIM6 = @intToPtr(*volatile types.TIM6, 0x40001000);
+            ///  Basic-timers
+            pub const TIM7 = @intToPtr(*volatile types.TIM6, 0x40001400);
             ///  General-purpose-timers
             pub const TIM14 = @intToPtr(*volatile types.TIM14, 0x40002000);
             ///  Real-time clock
@@ -20,16 +96,26 @@ pub const devices = struct {
             pub const SPI2 = @intToPtr(*volatile types.SPI1, 0x40003800);
             ///  Universal synchronous asynchronous receiver transmitter
             pub const USART2 = @intToPtr(*volatile types.USART1, 0x40004400);
+            ///  Universal synchronous asynchronous receiver transmitter
+            pub const USART3 = @intToPtr(*volatile types.USART1, 0x40004800);
+            ///  Universal synchronous asynchronous receiver transmitter
+            pub const USART4 = @intToPtr(*volatile types.USART1, 0x40004c00);
+            ///  Universal synchronous asynchronous receiver transmitter
+            pub const USART5 = @intToPtr(*volatile types.USART1, 0x40005000);
             ///  Inter-integrated circuit
             pub const I2C1 = @intToPtr(*volatile types.I2C1, 0x40005400);
             ///  Inter-integrated circuit
             pub const I2C2 = @intToPtr(*volatile types.I2C1, 0x40005800);
+            ///  Universal serial bus full-speed device interface
+            pub const USB = @intToPtr(*volatile types.USB, 0x40005c00);
             ///  Power control
             pub const PWR = @intToPtr(*volatile types.PWR, 0x40007000);
             ///  System configuration controller
             pub const SYSCFG = @intToPtr(*volatile types.SYSCFG, 0x40010000);
             ///  External interrupt/event controller
             pub const EXTI = @intToPtr(*volatile types.EXTI, 0x40010400);
+            ///  Universal synchronous asynchronous receiver transmitter
+            pub const USART6 = @intToPtr(*volatile types.USART1, 0x40011400);
             ///  Analog-to-digital converter
             pub const ADC = @intToPtr(*volatile types.ADC, 0x40012400);
             ///  Advanced-timers
@@ -47,7 +133,7 @@ pub const devices = struct {
             ///  Debug support
             pub const DBGMCU = @intToPtr(*volatile types.DBGMCU, 0x40015800);
             ///  DMA controller
-            pub const DMA = @intToPtr(*volatile types.DMA, 0x40020000);
+            pub const DMA1 = @intToPtr(*volatile types.DMA1, 0x40020000);
             ///  Reset and clock control
             pub const RCC = @intToPtr(*volatile types.RCC, 0x40021000);
             ///  Flash
@@ -64,8 +150,12 @@ pub const devices = struct {
             pub const GPIOD = @intToPtr(*volatile types.GPIOF, 0x48000c00);
             ///  General-purpose I/Os
             pub const GPIOF = @intToPtr(*volatile types.GPIOF, 0x48001400);
+            ///  SysTick timer
+            pub const STK = @intToPtr(*volatile types.STK, 0xe000e010);
             ///  Nested Vectored Interrupt Controller
             pub const NVIC = @intToPtr(*volatile types.NVIC, 0xe000e100);
+            ///  System control block
+            pub const SCB = @intToPtr(*volatile types.SCB, 0xe000ed00);
         };
     };
 };
@@ -88,7 +178,9 @@ pub const types = struct {
         CR: mmio.Mmio(32, packed struct {
             ///  reset bit
             RESET: u1,
-            reserved5: u4 = 0,
+            reserved3: u2 = 0,
+            ///  Polynomial size
+            POLYSIZE: u2,
             ///  Reverse input data
             REV_IN: u2,
             ///  Reverse output data
@@ -1051,15 +1143,10 @@ pub const types = struct {
             CWUF: u1,
             ///  Clear standby flag
             CSBF: u1,
-            ///  Power voltage detector enable
-            PVDE: u1,
-            ///  PVD level selection
-            PLS: u3,
+            reserved8: u4 = 0,
             ///  Disable backup domain write protection
             DBP: u1,
-            ///  Flash power down in Stop mode
-            FPDS: u1,
-            padding: u22 = 0,
+            padding: u23 = 0,
         }),
         ///  power control/status register
         CSR: mmio.Mmio(32, packed struct {
@@ -1067,16 +1154,21 @@ pub const types = struct {
             WUF: u1,
             ///  Standby flag
             SBF: u1,
-            ///  PVD output
-            PVDO: u1,
-            ///  Backup regulator ready
-            BRR: u1,
-            reserved8: u4 = 0,
-            ///  Enable WKUP pin
-            EWUP: u1,
-            ///  Backup regulator enable
-            BRE: u1,
-            padding: u22 = 0,
+            reserved8: u6 = 0,
+            ///  Enable WKUP pin 1
+            EWUP1: u1,
+            ///  Enable WKUP pin 2
+            EWUP2: u1,
+            reserved11: u1 = 0,
+            ///  Enable WKUP pin 4
+            EWUP4: u1,
+            ///  Enable WKUP pin 5
+            EWUP5: u1,
+            ///  Enable WKUP pin 6
+            EWUP6: u1,
+            ///  Enable WKUP pin 7
+            EWUP7: u1,
+            padding: u17 = 0,
         }),
     };
 
@@ -1461,7 +1553,7 @@ pub const types = struct {
             CC3DE: u1,
             ///  Capture/Compare 4 DMA request enable
             CC4DE: u1,
-            ///  Reserved
+            ///  COM DMA request enable
             COMDE: u1,
             ///  Trigger DMA request enable
             TDE: u1,
@@ -1759,7 +1851,7 @@ pub const types = struct {
             CC3DE: u1,
             ///  Capture/Compare 4 DMA request enable
             CC4DE: u1,
-            ///  Reserved
+            ///  COM DMA request enable
             COMDE: u1,
             ///  Trigger DMA request enable
             TDE: u1,
@@ -2570,7 +2662,7 @@ pub const types = struct {
     };
 
     ///  DMA controller
-    pub const DMA = extern struct {
+    pub const DMA1 = extern struct {
         ///  DMA interrupt status register (DMA_ISR)
         ISR: mmio.Mmio(32, packed struct {
             ///  Channel 1 Global interrupt flag
@@ -3149,7 +3241,9 @@ pub const types = struct {
             reserved4: u2 = 0,
             ///  Timer 6 reset
             TIM6RST: u1,
-            reserved8: u3 = 0,
+            ///  TIM7 timer reset
+            TIM7RST: u1,
+            reserved8: u2 = 0,
             ///  Timer 14 reset
             TIM14RST: u1,
             reserved11: u2 = 0,
@@ -3161,12 +3255,19 @@ pub const types = struct {
             reserved17: u2 = 0,
             ///  USART 2 reset
             USART2RST: u1,
-            reserved21: u3 = 0,
+            ///  USART3 reset
+            USART3RST: u1,
+            ///  USART4 reset
+            USART4RST: u1,
+            ///  USART5 reset
+            USART5RST: u1,
             ///  I2C1 reset
             I2C1RST: u1,
             ///  I2C2 reset
             I2C2RST: u1,
-            reserved28: u5 = 0,
+            ///  USB interface reset
+            USBRST: u1,
+            reserved28: u4 = 0,
             ///  Power interface reset
             PWRRST: u1,
             padding: u3 = 0,
@@ -3174,7 +3275,7 @@ pub const types = struct {
         ///  AHB Peripheral Clock enable register (RCC_AHBENR)
         AHBENR: mmio.Mmio(32, packed struct {
             ///  DMA1 clock enable
-            DMAEN: u1,
+            DMA1EN: u1,
             reserved2: u1 = 0,
             ///  SRAM interface clock enable
             SRAMEN: u1,
@@ -3191,9 +3292,7 @@ pub const types = struct {
             IOPBEN: u1,
             ///  I/O port C clock enable
             IOPCEN: u1,
-            ///  I/O port D clock enable
-            IOPDEN: u1,
-            reserved22: u1 = 0,
+            reserved22: u2 = 0,
             ///  I/O port F clock enable
             IOPFEN: u1,
             padding: u9 = 0,
@@ -3233,7 +3332,9 @@ pub const types = struct {
             reserved4: u2 = 0,
             ///  Timer 6 clock enable
             TIM6EN: u1,
-            reserved8: u3 = 0,
+            ///  TIM7 timer clock enable
+            TIM7EN: u1,
+            reserved8: u2 = 0,
             ///  Timer 14 clock enable
             TIM14EN: u1,
             reserved11: u2 = 0,
@@ -3245,12 +3346,19 @@ pub const types = struct {
             reserved17: u2 = 0,
             ///  USART 2 clock enable
             USART2EN: u1,
-            reserved21: u3 = 0,
+            ///  USART3 clock enable
+            USART3EN: u1,
+            ///  USART4 clock enable
+            USART4EN: u1,
+            ///  USART5 clock enable
+            USART5EN: u1,
             ///  I2C 1 clock enable
             I2C1EN: u1,
             ///  I2C 2 clock enable
             I2C2EN: u1,
-            reserved28: u5 = 0,
+            ///  USB interface clock enable
+            USBRST: u1,
+            reserved28: u4 = 0,
             ///  Power interface clock enable
             PWREN: u1,
             padding: u3 = 0,
@@ -3328,7 +3436,11 @@ pub const types = struct {
             reserved4: u2 = 0,
             ///  I2C1 clock source selection
             I2C1SW: u1,
-            reserved8: u3 = 0,
+            reserved6: u1 = 0,
+            ///  HDMI CEC clock source selection
+            CECSW: u1,
+            ///  USB clock source selection
+            USBSW: u1,
             ///  ADC clock source selection
             ADCSW: u1,
             reserved16: u7 = 0,
@@ -4082,7 +4194,7 @@ pub const types = struct {
             ///  Subtract a fraction of a second
             SUBFS: u15,
             reserved31: u16 = 0,
-            ///  Reserved
+            ///  Add one second
             ADD1S: u1,
         }),
         ///  timestamp time register
@@ -4131,7 +4243,7 @@ pub const types = struct {
             ///  Calibration minus
             CALM: u9,
             reserved13: u4 = 0,
-            ///  Reserved
+            ///  Use a 16-second calibration cycle period
             CALW16: u1,
             ///  Use a 16-second calibration cycle period
             CALW8: u1,
@@ -4704,10 +4816,8 @@ pub const types = struct {
         OBR: mmio.Mmio(32, packed struct {
             ///  Option byte error
             OPTERR: u1,
-            ///  Level 1 protection status
-            LEVEL1_PROT: u1,
-            ///  Level 2 protection status
-            LEVEL2_PROT: u1,
+            ///  Read protection level status
+            RDPRT: u2,
             reserved8: u5 = 0,
             ///  WDG_SW
             WDG_SW: u1,
@@ -4717,10 +4827,12 @@ pub const types = struct {
             nRST_STDBY: u1,
             reserved12: u1 = 0,
             ///  BOOT1
-            BOOT1: u1,
+            nBOOT1: u1,
             ///  VDDA_MONITOR
             VDDA_MONITOR: u1,
-            reserved16: u2 = 0,
+            ///  RAM_PARITY_CHECK
+            RAM_PARITY_CHECK_: u1,
+            reserved16: u1 = 0,
             ///  Data0
             Data0: u8,
             ///  Data1
@@ -4753,43 +4865,496 @@ pub const types = struct {
             DBG_STANDBY: u1,
             padding: u29 = 0,
         }),
-        ///  APB Low Freeze Register
-        APBLFZ: mmio.Mmio(32, packed struct {
-            ///  Debug Timer 2 stopped when Core is halted
-            DBG_TIMER2_STOP: u1,
-            ///  Debug Timer 3 stopped when Core is halted
-            DBG_TIMER3_STOP: u1,
+        ///  Debug MCU APB1 freeze register
+        APB1_FZ: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  TIM3 counter stopped when core is halted
+            DBG_TIM3_STOP: u1,
             reserved4: u2 = 0,
-            ///  Debug Timer 6 stopped when Core is halted
-            DBG_TIMER6_STOP: u1,
-            reserved8: u3 = 0,
-            ///  Debug Timer 14 stopped when Core is halted
-            DBG_TIMER14_STOP: u1,
-            reserved10: u1 = 0,
-            ///  Debug RTC stopped when Core is halted
-            DBG_RTC_STOP: u1,
-            ///  Debug Window Wachdog stopped when Core is halted
+            ///  TIM6 counter stopped when core is halted
+            DBG_TIM6_STOP: u1,
+            ///  TIM7 counter stopped when core is halted
+            DBG_TIM7_STOP: u1,
+            reserved8: u2 = 0,
+            ///  TIM14 counter stopped when core is halted
+            DBG_TIM14_STOP: u1,
+            reserved11: u2 = 0,
+            ///  Debug window watchdog stopped when core is halted
             DBG_WWDG_STOP: u1,
-            ///  Debug Independent Wachdog stopped when Core is halted
+            ///  Debug independent watchdog stopped when core is halted
             DBG_IWDG_STOP: u1,
             reserved21: u8 = 0,
-            ///  SMBUS timeout mode stopped when Core is halted
-            I2C1_SMBUS_TIMEOUT: u1,
+            ///  SMBUS timeout mode stopped when core is halted
+            DBG_I2C1_SMBUS_TIMEOUT: u1,
             padding: u10 = 0,
         }),
-        ///  APB High Freeze Register
-        APBHFZ: mmio.Mmio(32, packed struct {
+        ///  Debug MCU APB2 freeze register
+        APB2_FZ: mmio.Mmio(32, packed struct {
             reserved11: u11 = 0,
-            ///  Debug Timer 1 stopped when Core is halted
-            DBG_TIMER1_STOP: u1,
+            ///  TIM1 counter stopped when core is halted
+            DBG_TIM1_STOP: u1,
             reserved16: u4 = 0,
-            ///  Debug Timer 15 stopped when Core is halted
-            DBG_TIMER15_STO: u1,
-            ///  Debug Timer 16 stopped when Core is halted
-            DBG_TIMER16_STO: u1,
-            ///  Debug Timer 17 stopped when Core is halted
-            DBG_TIMER17_STO: u1,
+            ///  TIM15 counter stopped when core is halted
+            DBG_TIM15_STOP: u1,
+            ///  TIM16 counter stopped when core is halted
+            DBG_TIM16_STOP: u1,
+            ///  TIM17 counter stopped when core is halted
+            DBG_TIM17_STOP: u1,
             padding: u13 = 0,
+        }),
+    };
+
+    ///  Universal serial bus full-speed device interface
+    pub const USB = extern struct {
+        ///  endpoint 0 register
+        EP0R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 1 register
+        EP1R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 2 register
+        EP2R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 3 register
+        EP3R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 4 register
+        EP4R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 5 register
+        EP5R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 6 register
+        EP6R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        ///  endpoint 7 register
+        EP7R: mmio.Mmio(32, packed struct {
+            ///  Endpoint address
+            EA: u4,
+            ///  Status bits, for transmission transfers
+            STAT_TX: u2,
+            ///  Data Toggle, for transmission transfers
+            DTOG_TX: u1,
+            ///  Correct Transfer for transmission
+            CTR_TX: u1,
+            ///  Endpoint kind
+            EP_KIND: u1,
+            ///  Endpoint type
+            EP_TYPE: u2,
+            ///  Setup transaction completed
+            SETUP: u1,
+            ///  Status bits, for reception transfers
+            STAT_RX: u2,
+            ///  Data Toggle, for reception transfers
+            DTOG_RX: u1,
+            ///  Correct transfer for reception
+            CTR_RX: u1,
+            padding: u16 = 0,
+        }),
+        reserved64: [32]u8,
+        ///  control register
+        CNTR: mmio.Mmio(32, packed struct {
+            ///  Force USB Reset
+            FRES: u1,
+            ///  Power down
+            PDWN: u1,
+            ///  Low-power mode
+            LPMODE: u1,
+            ///  Force suspend
+            FSUSP: u1,
+            ///  Resume request
+            RESUME: u1,
+            ///  LPM L1 Resume request
+            L1RESUME: u1,
+            reserved7: u1 = 0,
+            ///  LPM L1 state request interrupt mask
+            L1REQM: u1,
+            ///  Expected start of frame interrupt mask
+            ESOFM: u1,
+            ///  Start of frame interrupt mask
+            SOFM: u1,
+            ///  USB reset interrupt mask
+            RESETM: u1,
+            ///  Suspend mode interrupt mask
+            SUSPM: u1,
+            ///  Wakeup interrupt mask
+            WKUPM: u1,
+            ///  Error interrupt mask
+            ERRM: u1,
+            ///  Packet memory area over / underrun interrupt mask
+            PMAOVRM: u1,
+            ///  Correct transfer interrupt mask
+            CTRM: u1,
+            padding: u16 = 0,
+        }),
+        ///  interrupt status register
+        ISTR: mmio.Mmio(32, packed struct {
+            ///  Endpoint Identifier
+            EP_ID: u4,
+            ///  Direction of transaction
+            DIR: u1,
+            reserved7: u2 = 0,
+            ///  LPM L1 state request
+            L1REQ: u1,
+            ///  Expected start frame
+            ESOF: u1,
+            ///  start of frame
+            SOF: u1,
+            ///  reset request
+            RESET: u1,
+            ///  Suspend mode request
+            SUSP: u1,
+            ///  Wakeup
+            WKUP: u1,
+            ///  Error
+            ERR: u1,
+            ///  Packet memory area over / underrun
+            PMAOVR: u1,
+            ///  Correct transfer
+            CTR: u1,
+            padding: u16 = 0,
+        }),
+        ///  frame number register
+        FNR: mmio.Mmio(32, packed struct {
+            ///  Frame number
+            FN: u11,
+            ///  Lost SOF
+            LSOF: u2,
+            ///  Locked
+            LCK: u1,
+            ///  Receive data - line status
+            RXDM: u1,
+            ///  Receive data + line status
+            RXDP: u1,
+            padding: u16 = 0,
+        }),
+        ///  device address
+        DADDR: mmio.Mmio(32, packed struct {
+            ///  Device address
+            ADD: u7,
+            ///  Enable function
+            EF: u1,
+            padding: u24 = 0,
+        }),
+        ///  Buffer table address
+        BTABLE: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  Buffer table
+            BTABLE: u13,
+            padding: u16 = 0,
+        }),
+        ///  LPM control and status register
+        LPMCSR: mmio.Mmio(32, packed struct {
+            ///  LPM support enable
+            LPMEN: u1,
+            ///  LPM Token acknowledge enable
+            LPMACK: u1,
+            reserved3: u1 = 0,
+            ///  bRemoteWake value
+            REMWAKE: u1,
+            ///  BESL value
+            BESL: u4,
+            padding: u24 = 0,
+        }),
+        ///  Battery charging detector
+        BCDR: mmio.Mmio(32, packed struct {
+            ///  Battery charging detector (BCD) enable
+            BCDEN: u1,
+            ///  Data contact detection (DCD) mode enable
+            DCDEN: u1,
+            ///  Primary detection (PD) mode enable
+            PDEN: u1,
+            ///  Secondary detection (SD) mode enable
+            SDEN: u1,
+            ///  Data contact detection (DCD) status
+            DCDET: u1,
+            ///  Primary detection (PD) status
+            PDET: u1,
+            ///  Secondary detection (SD) status
+            SDET: u1,
+            ///  DM pull-up detection status
+            PS2DET: u1,
+            reserved15: u7 = 0,
+            ///  DP pull-up control
+            DPPU: u1,
+            padding: u16 = 0,
+        }),
+    };
+
+    ///  System control block
+    pub const SCB = extern struct {
+        ///  CPUID base register
+        CPUID: mmio.Mmio(32, packed struct {
+            ///  Revision number
+            Revision: u4,
+            ///  Part number of the processor
+            PartNo: u12,
+            ///  Reads as 0xF
+            Constant: u4,
+            ///  Variant number
+            Variant: u4,
+            ///  Implementer code
+            Implementer: u8,
+        }),
+        ///  Interrupt control and state register
+        ICSR: mmio.Mmio(32, packed struct {
+            ///  Active vector
+            VECTACTIVE: u6,
+            reserved12: u6 = 0,
+            ///  Pending vector
+            VECTPENDING: u6,
+            reserved22: u4 = 0,
+            ///  Interrupt pending flag
+            ISRPENDING: u1,
+            reserved25: u2 = 0,
+            ///  SysTick exception clear-pending bit
+            PENDSTCLR: u1,
+            ///  SysTick exception set-pending bit
+            PENDSTSET: u1,
+            ///  PendSV clear-pending bit
+            PENDSVCLR: u1,
+            ///  PendSV set-pending bit
+            PENDSVSET: u1,
+            reserved31: u2 = 0,
+            ///  NMI set-pending bit.
+            NMIPENDSET: u1,
+        }),
+        reserved12: [4]u8,
+        ///  Application interrupt and reset control register
+        AIRCR: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  VECTCLRACTIVE
+            VECTCLRACTIVE: u1,
+            ///  SYSRESETREQ
+            SYSRESETREQ: u1,
+            reserved15: u12 = 0,
+            ///  ENDIANESS
+            ENDIANESS: u1,
+            ///  Register key
+            VECTKEYSTAT: u16,
+        }),
+        ///  System control register
+        SCR: mmio.Mmio(32, packed struct {
+            reserved1: u1 = 0,
+            ///  SLEEPONEXIT
+            SLEEPONEXIT: u1,
+            ///  SLEEPDEEP
+            SLEEPDEEP: u1,
+            reserved4: u1 = 0,
+            ///  Send Event on Pending bit
+            SEVEONPEND: u1,
+            padding: u27 = 0,
+        }),
+        ///  Configuration and control register
+        CCR: mmio.Mmio(32, packed struct {
+            reserved3: u3 = 0,
+            ///  UNALIGN_ TRP
+            UNALIGN__TRP: u1,
+            reserved9: u5 = 0,
+            ///  STKALIGN
+            STKALIGN: u1,
+            padding: u22 = 0,
+        }),
+        reserved28: [4]u8,
+        ///  System handler priority registers
+        SHPR2: mmio.Mmio(32, packed struct {
+            reserved24: u24 = 0,
+            ///  Priority of system handler 11
+            PRI_11: u8,
+        }),
+        ///  System handler priority registers
+        SHPR3: mmio.Mmio(32, packed struct {
+            reserved16: u16 = 0,
+            ///  Priority of system handler 14
+            PRI_14: u8,
+            ///  Priority of system handler 15
+            PRI_15: u8,
+        }),
+    };
+
+    ///  SysTick timer
+    pub const STK = extern struct {
+        ///  SysTick control and status register
+        CSR: mmio.Mmio(32, packed struct {
+            ///  Counter enable
+            ENABLE: u1,
+            ///  SysTick exception request enable
+            TICKINT: u1,
+            ///  Clock source selection
+            CLKSOURCE: u1,
+            reserved16: u13 = 0,
+            ///  COUNTFLAG
+            COUNTFLAG: u1,
+            padding: u15 = 0,
+        }),
+        ///  SysTick reload value register
+        RVR: mmio.Mmio(32, packed struct {
+            ///  RELOAD value
+            RELOAD: u24,
+            padding: u8 = 0,
+        }),
+        ///  SysTick current value register
+        CVR: mmio.Mmio(32, packed struct {
+            ///  Current counter value
+            CURRENT: u24,
+            padding: u8 = 0,
+        }),
+        ///  SysTick calibration value register
+        CALIB: mmio.Mmio(32, packed struct {
+            ///  Calibration value
+            TENMS: u24,
+            reserved30: u6 = 0,
+            ///  SKEW flag: Indicates whether the TENMS value is exact
+            SKEW: u1,
+            ///  NOREF flag. Reads as zero
+            NOREF: u1,
         }),
     };
 };

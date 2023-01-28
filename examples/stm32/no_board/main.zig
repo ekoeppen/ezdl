@@ -1,5 +1,5 @@
-const mcu = @import("ezdl").stm32.mcus.stm32f072x;
-const periph = @import("ezdl").stm32.svd.stm32f072x.peripherals;
+const mcu = @import("ezdl").stm32.mcus.stm32f0x2;
+const periph = @import("ezdl").stm32.svd.stm32f0x2.peripherals;
 
 extern const _data_loadaddr: u32;
 extern var _data: u32;

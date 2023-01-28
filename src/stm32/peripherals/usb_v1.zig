@@ -1,0 +1,602 @@
+const std = @import("std");
+
+pub fn Usb(
+    comptime usb_periph: anytype,
+    comptime dp_pin: anytype,
+    comptime eps: anytype,
+) type {
+    return struct {
+        pub const usb = usb_periph;
+        pub const endpoints = eps;
+
+        pub fn init() void {
+            dp_pin.init();
+            dp_pin.clear();
+            var i: u32 = 1000;
+            while (i > 0) {
+                i -= 1;
+                asm volatile ("");
+            }
+            dp_pin.setConfig(.{ .output = .{ .mode = .open_drain } });
+
+            usb.CNTR.modify(.{ .FRES = 1 });
+            usb.CNTR.modify(.{ .PDWN = 0, .FRES = 0 });
+            usb.ISTR.modify(.{
+                .PMAOVR = 0,
+                .ERR = 0,
+                .WKUP = 0,
+                .SUSP = 0,
+                .RESET = 0,
+                .SOF = 0,
+                .ESOF = 0,
+            });
+
+            usb.CNTR.modify(.{ .CTRM = 1, .WKUPM = 1, .SUSPM = 1, .RESETM = 1 });
+        }
+
+        pub fn irqHandler() ?u8 {
+            const istr = usb.ISTR.read();
+            const ep_id: ?u8 = ep_id: {
+                if (istr.CTR == 1) {
+                    usb.ISTR.modify(.{ .CTR = 0 });
+                    break :ep_id istr.EP_ID;
+                } else break :ep_id null;
+            };
+            if (istr.RESET == 1) {
+                usb.ISTR.modify(.{ .RESET = 0 });
+                resetRequest();
+            }
+            if (istr.SUSP == 1) {
+                usb.ISTR.modify(.{ .SUSP = 0 });
+                //suspendRequest();
+            }
+            if (istr.WKUP == 1) {
+                usb.ISTR.modify(.{ .WKUP = 0 });
+                wakeupRequest();
+            }
+            return ep_id;
+        }
+
+        fn resetRequest() void {
+            usb.DADDR.write(.{ .ADD = 0, .EF = 1 });
+            var btable_offset: u16 = 16 * endpoints.len;
+            inline for (endpoints) |endpoint| btable_offset += endpoint.init(btable_offset);
+        }
+
+        fn suspendRequest() void {
+            usb.CNTR.modify(.{ .LPMODE = 1, .FSUSP = 1 });
+        }
+
+        fn wakeupRequest() void {
+            usb.CNTR.modify(.{ .LPMODE = 0, .FSUSP = 0 });
+            usb.CNTR.modify(.{ .CTRM = 1, .WKUPM = 1, .SUSPM = 1, .RESETM = 1 });
+        }
+    };
+}
+
+const StandardRequests = enum(u8) {
+    getStatus = 0,
+    clear_feature = 1,
+    set_feature = 3,
+    set_address = 5,
+    get_descriptor = 6,
+    set_descriptor = 7,
+    get_configuration = 8,
+    set_configuration = 9,
+    get_interface = 10,
+    set_interface = 11,
+    synch_frame = 12,
+    _,
+};
+
+const Recipient = enum(u5) {
+    device = 0,
+    interface = 1,
+    endpoint = 2,
+    other = 3,
+    reserved = 4,
+};
+
+const DescriptorType = enum(u8) {
+    device = 1,
+    config = 2,
+    string = 3,
+    interface = 4,
+    endpoint = 5,
+};
+
+const Direction = enum(u1) {
+    out = 0,
+    in = 1,
+};
+
+const RequestType = enum(u2) {
+    standard = 0,
+    class = 1,
+    vendor = 2,
+    reserved = 3,
+};
+
+pub const SetupPacket = packed struct {
+    recipient: Recipient,
+    request_type: RequestType,
+    direction: Direction,
+    request_number: u8,
+    request: packed union {
+        generic: GenericRequest,
+        clear_feature: ClearFeatureRequest,
+        get_configuration: GetConfigurationRequest,
+        get_descriptor: GetDescriptorRequest,
+        get_interface: GetInterfaceRequest,
+        getStatus: GetStatusRequest,
+        set_address: SetAddressRequest,
+        set_configuration: SetConfigurationRequest,
+        set_descriptor: SetDescriptorRequest,
+        set_feature: SetFeatureRequest,
+        set_interface: SetInterfaceRequest,
+        syncFrame: SyncFrame,
+    },
+};
+
+pub const GenericRequest = packed struct {
+    value: u16,
+    index: u16,
+    length: u16,
+};
+
+pub const ClearFeatureRequest = packed struct {
+    feature: u16,
+    index: u16,
+};
+
+pub const GetConfigurationRequest = packed struct {
+    _: u32,
+    length: u16,
+};
+
+pub const GetDescriptorRequest = packed struct {
+    descriptor_index: u8,
+    descriptor_type: u8,
+    language_id: u16,
+    length: u16,
+};
+
+pub const GetInterfaceRequest = packed struct {
+    _: u16,
+    interface: u16,
+    length: u16,
+};
+
+pub const GetStatusRequest = packed struct {
+    _: u16,
+    index: u16,
+    length: u16,
+};
+
+pub const SetAddressRequest = packed struct {
+    address: u16,
+};
+
+pub const SetConfigurationRequest = packed struct {
+    configuration: u16,
+};
+
+pub const SetDescriptorRequest = packed struct {
+    descriptor_index: u8,
+    descriptor_type: u8,
+    language_id: u16,
+    length: u16,
+};
+
+pub const SetFeatureRequest = packed struct {
+    feature_selector: u16,
+    index: u16,
+};
+
+pub const SetInterfaceRequest = packed struct {
+    alternate_setting: u16,
+    interface: u16,
+};
+
+pub const SyncFrame = packed struct {
+    _: u16,
+    endpoint: u16,
+    length: u16,
+};
+
+const EndpointType = enum(u2) {
+    bulk = 0b00,
+    control = 0b01,
+    iso = 0b10,
+    interrupt = 0b11,
+};
+
+pub const EndpointState = enum(u2) {
+    disabled = 0b00,
+    stall = 0b01,
+    nak = 0b10,
+    valid = 0b11,
+};
+
+pub fn Endpoint(
+    comptime usb: anytype,
+    comptime ep_number: u3,
+    comptime ep_type: EndpointType,
+    comptime ep_max_rx: u10,
+    comptime ep_max_tx: u10,
+    comptime init_rxState: EndpointState,
+    comptime init_txState: EndpointState,
+) type {
+    return struct {
+        pub const BtableEntry = packed struct {
+            USB_ADDR_TX: u16,
+            reserved1: u16 = 0,
+            USB_COUNT_TX: u16,
+            reserved2: u16 = 0,
+            USB_ADDR_RX: u16,
+            reserved3: u16 = 0,
+            USB_COUNT_RX: u16,
+            reserved4: u16 = 0,
+        };
+
+        pub const number = ep_number;
+        pub const max_rx = ep_max_rx;
+        pub const max_tx = ep_max_tx;
+        pub const epr = switch (number) {
+            0 => &usb.EP0R,
+            1 => &usb.EP1R,
+            2 => &usb.EP2R,
+            3 => &usb.EP3R,
+            4 => &usb.EP4R,
+            5 => &usb.EP5R,
+            6 => &usb.EP6R,
+            7 => &usb.EP7R,
+        };
+        pub const BTABLE = @intToPtr(*[8]BtableEntry, 0x40006000);
+        pub const BTABLE_DATA = @intToPtr(*[512]u16, 0x40006000);
+
+        fn encodeRxSize(size: u10) u16 {
+            return if (size > 62) 0x8000 | @as(u16, (size / 32)) << 10 //
+            else @as(u16, (size / 2)) << 10;
+        }
+
+        pub fn init(btable_offset: u16) u16 {
+            epr.modify(.{
+                .STAT_RX = @enumToInt(init_rxState),
+                .STAT_TX = @enumToInt(init_txState),
+                .EP_TYPE = @enumToInt(ep_type),
+                .EA = number,
+            });
+            BTABLE[number].USB_ADDR_TX = btable_offset;
+            BTABLE[number].USB_COUNT_TX = 0;
+            BTABLE[number].USB_ADDR_RX = btable_offset + max_tx;
+            BTABLE[number].USB_COUNT_RX = encodeRxSize(max_rx);
+            return max_rx + max_tx;
+        }
+
+        pub fn setTxState(state: EndpointState) void {
+            var epr_val = epr.readRaw();
+            epr.writeRaw(((epr_val & 0x0fbf) | 0x8080) ^ @as(u16, @enumToInt(state)) << 4);
+        }
+
+        pub fn setRxState(state: EndpointState) void {
+            var epr_val = epr.readRaw();
+            epr.writeRaw(((epr_val & 0xbf0f) | 0x8080) ^ @as(u16, @enumToInt(state)) << 12);
+        }
+
+        pub fn setTxRxState(txState: EndpointState, rxState: EndpointState) void {
+            var epr_val = epr.readRaw();
+            epr.writeRaw(((epr_val & 0xbfbf) | 0x8080) ^ //
+                (@as(u16, @enumToInt(txState)) << 4 | @as(u16, @enumToInt(rxState)) << 12));
+        }
+
+        pub fn getTxState() EndpointState {
+            return @intToEnum(EndpointState, epr.read().STAT_TX);
+        }
+
+        pub fn getRxState() EndpointState {
+            return @intToEnum(EndpointState, epr.read().STAT_RX);
+        }
+
+        pub fn setTxCount(txCount: u10) void {
+            BTABLE[number].USB_COUNT_TX = txCount;
+        }
+
+        pub fn resetRxCount() void {
+            BTABLE[number].USB_COUNT_RX = encodeRxSize(max_rx);
+        }
+
+        pub fn ctrTx() bool {
+            return epr.read().CTR_TX == 1;
+        }
+
+        pub fn ctrRx() bool {
+            return epr.read().CTR_RX == 1;
+        }
+
+        pub fn clearCtrTx() void {
+            var epr_val = epr.readRaw();
+            epr.writeRaw(epr_val & 0x8f0f);
+        }
+
+        pub fn clearCtrRx() void {
+            var epr_val = epr.readRaw();
+            epr.writeRaw(epr_val & 0x0f8f);
+        }
+
+        pub fn ctrSetup() bool {
+            return epr.read().SETUP == 1;
+        }
+
+        pub fn getRxCount() u10 {
+            return @truncate(u10, BTABLE[number].USB_COUNT_RX);
+        }
+
+        pub fn getTxCount() u10 {
+            return @truncate(u10, BTABLE[number].USB_COUNT_TX);
+        }
+
+        pub fn getRxData(buf: []u8) []u8 {
+            var i: usize = 0;
+            var j: usize = 0;
+            const start: usize = BTABLE[number].USB_ADDR_RX;
+            const len = getRxCount();
+            while (i < len) {
+                if (j == buf.len) break;
+                const rx_word = BTABLE_DATA[start + i];
+                buf[j] = @truncate(u8, rx_word);
+                j += 1;
+                if (j == buf.len) break;
+                buf[j] = @truncate(u8, rx_word >> 8);
+                j += 1;
+                i += 2;
+            }
+            return buf[0..j];
+        }
+
+        pub fn read(buffer: anytype) bool {
+            const len = getRxCount();
+            if (len > buffer.free()) return false;
+            var i: usize = 0;
+            const start: usize = BTABLE[number].USB_ADDR_RX;
+            while (i < len) {
+                const rx_word = BTABLE_DATA[start + i];
+                _ = buffer.put(@truncate(u8, rx_word));
+                if (i + 1 < len) {
+                    _ = buffer.put(@truncate(u8, rx_word >> 8));
+                }
+                i += 2;
+            }
+            return true;
+        }
+
+        pub fn putTxData(buf: []const u8) []const u8 {
+            const len = std.math.min(buf.len, max_tx);
+            var i: usize = 0;
+            var j: usize = 0;
+            const start: usize = BTABLE[number].USB_ADDR_TX;
+            setTxCount(@truncate(u10, len));
+            while (j < buf.len and i < len) {
+                var w = @as(u16, buf[j]);
+                if (j + 1 < buf.len) {
+                    j += 1;
+                    w += @as(u16, buf[j]) << 8;
+                }
+                BTABLE_DATA[start + i] = w;
+                j += 1;
+                i += 2;
+            }
+            return buf[j..];
+        }
+
+        pub fn write(buffer: anytype) void {
+            const len = std.math.min(buffer.used(), max_tx);
+            var i: usize = 0;
+            const start: usize = BTABLE[number].USB_ADDR_TX;
+            setTxCount(@truncate(u10, len));
+            while (i < len) {
+                if (buffer.get()) |lo| {
+                    var w = @as(u16, lo);
+                    if (buffer.get()) |hi| {
+                        w += @as(u16, hi) << 8;
+                        BTABLE_DATA[start + i] = w;
+                    } else {
+                        BTABLE_DATA[start + i] = w;
+                        break;
+                    }
+                } else break;
+                i += 2;
+            }
+        }
+
+        pub fn send(data: []const u8) void {
+            defer setTxState(.valid);
+            _ = putTxData(data);
+        }
+    };
+}
+
+pub const Descriptors = struct {
+    device: []const u8,
+    config: []const []const u8,
+    string: []const []const u8,
+    endpoint: []const []const u8,
+    interface: []const []const u8,
+};
+
+fn getValid(data: []const []const u8, index: u16) []const u8 {
+    return if (index < data.len) data[index] else &.{};
+}
+
+pub fn ControlEndpoint(
+    comptime ep: anytype,
+    comptime usb: anytype,
+    comptime descriptors: Descriptors,
+) type {
+    return struct {
+        const Self = @This();
+
+        setup_address: u7 = undefined,
+        active_configuration: u16 = undefined,
+        pending_data: []const u8 = undefined,
+        setup_packet: SetupPacket align(4) = undefined,
+
+        pub fn init(self: *Self, btable_offset: u16) u16 {
+            self.setup_address = 0;
+            self.active_configuration = 0;
+            return ep.init(btable_offset);
+        }
+
+        pub fn send(self: *Self, data: []const u8) void {
+            self.pending_data = data;
+            const length = std.math.min(data.len, ep.max_tx);
+            self.pending_data = ep.putTxData(self.pending_data[0..length]);
+            ep.setTxState(.valid);
+        }
+
+        fn sendDescriptor(self: *Self, d_type: u8, index: u8, max_length: u16) void {
+            switch (@intToEnum(DescriptorType, d_type)) {
+                .device => self.pending_data = descriptors.device,
+                .config => self.pending_data = getValid(descriptors.config, index),
+                .string => self.pending_data = getValid(descriptors.string, index),
+                .endpoint => self.pending_data = getValid(descriptors.endpoint, index),
+                .interface => self.pending_data = getValid(descriptors.interface, index),
+            }
+            const length = std.math.min(self.pending_data.len, max_length);
+            self.pending_data = ep.putTxData(self.pending_data[0..length]);
+            ep.resetRxCount();
+            ep.setTxRxState(.valid, .valid);
+        }
+
+        fn handleIn(self: *Self) void {
+            ep.clearCtrTx();
+            if (self.setup_address != 0) {
+                usb.DADDR.write(.{ .ADD = self.setup_address, .EF = 1 });
+                self.setup_address = 0;
+            }
+            if (self.pending_data.len > 0) {
+                self.pending_data = ep.putTxData(self.pending_data);
+            } else {
+                ep.resetRxCount();
+                ep.setTxCount(0);
+            }
+            ep.setTxRxState(.valid, .valid);
+        }
+
+        fn handleOut(self: *Self) void {
+            _ = self;
+        }
+
+        fn handleSetup(self: *Self) void {
+            var bytes = std.mem.asBytes(&self.setup_packet);
+            _ = ep.getRxData(bytes);
+            if (self.setup_packet.request_type == .standard) {
+                ep.clearCtrRx();
+                const request = self.setup_packet.request;
+                switch (@intToEnum(StandardRequests, self.setup_packet.request_number)) {
+                    .set_address => {
+                        self.setup_address = @truncate(u7, request.set_address.address);
+                        ep.send(&.{});
+                    },
+                    .get_descriptor => self.sendDescriptor(
+                        request.get_descriptor.descriptor_type,
+                        request.get_descriptor.descriptor_index,
+                        request.get_descriptor.length,
+                    ),
+                    .set_configuration => {
+                        self.active_configuration = request.set_configuration.configuration;
+                        ep.send(&.{});
+                    },
+                    else => ep.send(&.{}),
+                }
+            }
+        }
+
+        pub fn ctr(self: *Self) void {
+            if (ep.ctrRx()) {
+                if (ep.ctrSetup()) {
+                    self.handleSetup();
+                } else {
+                    self.handleOut();
+                }
+            } else {
+                self.handleIn();
+            }
+        }
+    };
+}
+
+pub fn BulkEndpoint(
+    comptime ep: anytype,
+    comptime Buffer: type,
+) type {
+    return struct {
+        const Self = @This();
+        const WriteError = error{};
+        const ReadError = error{};
+
+        rx_buffer: Buffer = .{},
+        tx_buffer: Buffer = .{},
+
+        fn handleIn(self: *Self) void {
+            ep.clearCtrTx();
+            if (!self.tx_buffer.empty()) {
+                ep.write(&self.tx_buffer);
+                ep.setTxState(.valid);
+            }
+        }
+
+        fn handleOut(self: *Self) void {
+            ep.clearCtrRx();
+            if (ep.read(&self.rx_buffer)) {
+                ep.resetRxCount();
+                ep.setRxState(.valid);
+            } else {
+                ep.setRxState(.stall);
+            }
+        }
+
+        pub fn ctr(self: *Self) void {
+            if (ep.ctrRx()) {
+                self.handleOut();
+            } else {
+                self.handleIn();
+            }
+        }
+
+        pub fn write(self: *Self, bytes: []const u8) WriteError!usize {
+            if (ep.getTxState() == .valid) return 0;
+            var written: usize = 0;
+            for (bytes) |b| {
+                if (!self.tx_buffer.put(b)) break;
+                written += 1;
+            }
+            ep.write(&self.tx_buffer);
+            ep.setTxState(.valid);
+            return written;
+        }
+
+        pub const Writer = std.io.Writer(*Self, WriteError, write);
+
+        pub fn writer(self: *Self) Writer {
+            return .{ .context = self };
+        }
+
+        pub const Reader = std.io.Reader(*Self, ReadError, read);
+
+        pub fn reader(self: *Self) Reader {
+            return .{ .context = self };
+        }
+
+        pub fn read(self: *Self, bytes: []u8) ReadError!usize {
+            var amount_read: usize = 0;
+            while (amount_read < bytes.len) {
+                if (self.rx_buffer.get()) |b| {
+                    bytes[amount_read] = b;
+                    amount_read += 1;
+                } else break;
+            }
+            return amount_read;
+        }
+    };
+}

@@ -13,22 +13,22 @@ pub fn Exti(comptime exti: anytype, comptime syscfg: anytype) type {
     return struct {
         pub fn connect(comptime pin: anytype) void {
             switch (pin.pin_number) {
-                0 => syscfg.SYSCFG_EXTICR1.modify(.{ .EXTI0 = pin.port_number }),
-                1 => syscfg.SYSCFG_EXTICR1.modify(.{ .EXTI1 = pin.port_number }),
-                2 => syscfg.SYSCFG_EXTICR1.modify(.{ .EXTI2 = pin.port_number }),
-                3 => syscfg.SYSCFG_EXTICR1.modify(.{ .EXTI3 = pin.port_number }),
-                4 => syscfg.SYSCFG_EXTICR2.modify(.{ .EXTI4 = pin.port_number }),
-                5 => syscfg.SYSCFG_EXTICR2.modify(.{ .EXTI5 = pin.port_number }),
-                6 => syscfg.SYSCFG_EXTICR2.modify(.{ .EXTI6 = pin.port_number }),
-                7 => syscfg.SYSCFG_EXTICR2.modify(.{ .EXTI7 = pin.port_number }),
-                8 => syscfg.SYSCFG_EXTICR3.modify(.{ .EXTI8 = pin.port_number }),
-                9 => syscfg.SYSCFG_EXTICR3.modify(.{ .EXTI9 = pin.port_number }),
-                10 => syscfg.SYSCFG_EXTICR3.modify(.{ .EXTI10 = pin.port_number }),
-                11 => syscfg.SYSCFG_EXTICR3.modify(.{ .EXTI11 = pin.port_number }),
-                12 => syscfg.SYSCFG_EXTICR4.modify(.{ .EXTI12 = pin.port_number }),
-                13 => syscfg.SYSCFG_EXTICR4.modify(.{ .EXTI13 = pin.port_number }),
-                14 => syscfg.SYSCFG_EXTICR4.modify(.{ .EXTI14 = pin.port_number }),
-                15 => syscfg.SYSCFG_EXTICR4.modify(.{ .EXTI15 = pin.port_number }),
+                0 => syscfg.EXTICR1.modify(.{ .EXTI0 = pin.port_number }),
+                1 => syscfg.EXTICR1.modify(.{ .EXTI1 = pin.port_number }),
+                2 => syscfg.EXTICR1.modify(.{ .EXTI2 = pin.port_number }),
+                3 => syscfg.EXTICR1.modify(.{ .EXTI3 = pin.port_number }),
+                4 => syscfg.EXTICR2.modify(.{ .EXTI4 = pin.port_number }),
+                5 => syscfg.EXTICR2.modify(.{ .EXTI5 = pin.port_number }),
+                6 => syscfg.EXTICR2.modify(.{ .EXTI6 = pin.port_number }),
+                7 => syscfg.EXTICR2.modify(.{ .EXTI7 = pin.port_number }),
+                8 => syscfg.EXTICR3.modify(.{ .EXTI8 = pin.port_number }),
+                9 => syscfg.EXTICR3.modify(.{ .EXTI9 = pin.port_number }),
+                10 => syscfg.EXTICR3.modify(.{ .EXTI10 = pin.port_number }),
+                11 => syscfg.EXTICR3.modify(.{ .EXTI11 = pin.port_number }),
+                12 => syscfg.EXTICR4.modify(.{ .EXTI12 = pin.port_number }),
+                13 => syscfg.EXTICR4.modify(.{ .EXTI13 = pin.port_number }),
+                14 => syscfg.EXTICR4.modify(.{ .EXTI14 = pin.port_number }),
+                15 => syscfg.EXTICR4.modify(.{ .EXTI15 = pin.port_number }),
             }
         }
 

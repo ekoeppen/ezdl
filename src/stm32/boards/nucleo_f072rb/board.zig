@@ -1,11 +1,11 @@
-pub const mcu = @import("ezdl").stm32.mcus.stm32f072x;
-pub const svd = @import("ezdl").stm32.svd.stm32f072x;
+pub const mcu = @import("ezdl").stm32.mcus.stm32f0x2;
+pub const svd = @import("ezdl").stm32.svd.stm32f0x2;
 
 pub const periph = svd.peripherals;
 pub const interrupts = svd.interrupts;
 
 pub const nvic = mcu.Nvic(periph.NVIC);
-pub const exti = mcu.Exti(periph.EXTI, periph.SYSCFG);
+pub const exti = mcu.Exti(periph.EXTI, periph.SYSCFG_COMP);
 pub const rtc = mcu.Rtc(periph.RTC, exti);
 
 pub const led = mcu.Gpio(periph.GPIOA, 5, .{ .output = .{} });
