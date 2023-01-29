@@ -2,23 +2,31 @@ const std = @import("std");
 
 pub fn Usb(
     comptime usb_periph: anytype,
-    comptime dp_pin: anytype,
     comptime eps: anytype,
+    comptime dp_pin: anytype,
 ) type {
     return struct {
         pub const usb = usb_periph;
         pub const endpoints = eps;
+        pub const reset_via_dp = @TypeOf(dp_pin) != @TypeOf(null);
 
         pub fn init() void {
-            dp_pin.init();
-            dp_pin.clear();
+            if (reset_via_dp) {
+                dp_pin.init();
+                dp_pin.clear();
+            } else {
+                usb.BCDR.modify(.{ .DPPU = 0 });
+            }
             var i: u32 = 1000;
             while (i > 0) {
                 i -= 1;
                 asm volatile ("");
             }
-            dp_pin.setConfig(.{ .output = .{ .mode = .open_drain } });
-
+            if (reset_via_dp) {
+                dp_pin.setConfig(.{ .output = .{ .mode = .open_drain } });
+            } else {
+                usb.BCDR.modify(.{ .DPPU = 1 });
+            }
             usb.CNTR.modify(.{ .FRES = 1 });
             usb.CNTR.modify(.{ .PDWN = 0, .FRES = 0 });
             usb.ISTR.modify(.{
@@ -48,7 +56,7 @@ pub fn Usb(
             }
             if (istr.SUSP == 1) {
                 usb.ISTR.modify(.{ .SUSP = 0 });
-                //suspendRequest();
+                suspendRequest();
             }
             if (istr.WKUP == 1) {
                 usb.ISTR.modify(.{ .WKUP = 0 });
@@ -228,7 +236,9 @@ pub fn Endpoint(
     comptime init_txState: EndpointState,
 ) type {
     return struct {
-        pub const BtableEntry = packed struct {
+        pub const btable_item_size = if (@bitSizeOf(@TypeOf(usb.*)) / 8 == 84) 2 else 1;
+        pub const btable_index_size = if (btable_item_size == 2) 1 else 2;
+        pub const BtableEntry = if (btable_item_size == 2) packed struct {
             USB_ADDR_TX: u16,
             reserved1: u16 = 0,
             USB_COUNT_TX: u16,
@@ -237,6 +247,11 @@ pub fn Endpoint(
             reserved3: u16 = 0,
             USB_COUNT_RX: u16,
             reserved4: u16 = 0,
+        } else packed struct {
+            USB_ADDR_TX: u16,
+            USB_COUNT_TX: u16,
+            USB_ADDR_RX: u16,
+            USB_COUNT_RX: u16,
         };
 
         pub const number = ep_number;
@@ -339,9 +354,9 @@ pub fn Endpoint(
         pub fn getOutData(buf: []u8) []u8 {
             var i: usize = 0;
             var j: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_RX;
+            const start: usize = BTABLE[number].USB_ADDR_RX / btable_index_size;
             const len = getOutCount();
-            while (i < len) {
+            while (i < len) : (i += btable_index_size) {
                 if (j == buf.len) break;
                 const rx_word = BTABLE_DATA[start + i];
                 buf[j] = @truncate(u8, rx_word);
@@ -349,7 +364,6 @@ pub fn Endpoint(
                 if (j == buf.len) break;
                 buf[j] = @truncate(u8, rx_word >> 8);
                 j += 1;
-                i += 2;
             }
             return buf[0..j];
         }
@@ -358,14 +372,13 @@ pub fn Endpoint(
             const len = getOutCount();
             if (len > buffer.free()) return false;
             var i: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_RX;
-            while (i < len) {
+            const start: usize = BTABLE[number].USB_ADDR_RX / btable_index_size;
+            while (i < len) : (i += btable_index_size) {
                 const rx_word = BTABLE_DATA[start + i];
                 _ = buffer.put(@truncate(u8, rx_word));
                 if (i + 1 < len) {
                     _ = buffer.put(@truncate(u8, rx_word >> 8));
                 }
-                i += 2;
             }
             return true;
         }
@@ -374,9 +387,9 @@ pub fn Endpoint(
             const len = std.math.min(buf.len, max_tx);
             var i: usize = 0;
             var j: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_TX;
+            const start: usize = BTABLE[number].USB_ADDR_TX / btable_index_size;
             setInCount(@truncate(u10, len));
-            while (j < buf.len and i < len) {
+            while (j < buf.len and i < len) : (i += btable_item_size) {
                 var w = @as(u16, buf[j]);
                 if (j + 1 < buf.len) {
                     j += 1;
@@ -384,7 +397,6 @@ pub fn Endpoint(
                 }
                 BTABLE_DATA[start + i] = w;
                 j += 1;
-                i += 2;
             }
             return buf[j..];
         }
@@ -392,9 +404,9 @@ pub fn Endpoint(
         pub fn write(buffer: anytype) void {
             const len = std.math.min(buffer.used(), max_tx);
             var i: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_TX;
+            const start: usize = BTABLE[number].USB_ADDR_TX / btable_index_size;
             setInCount(@truncate(u10, len));
-            while (i < len) {
+            while (i < len) : (i += btable_index_size) {
                 if (buffer.get()) |lo| {
                     var w = @as(u16, lo);
                     if (buffer.get()) |hi| {
@@ -405,7 +417,6 @@ pub fn Endpoint(
                         break;
                     }
                 } else break;
-                i += 2;
             }
         }
 

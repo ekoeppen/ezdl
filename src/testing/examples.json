@@ -61,6 +61,9 @@
   {
     "name": "STM32F1 CP2102",
     "path": "examples/stm32/cp2102",
-    "boards": []
+    "boards": [
+      "ezdl/src/stm32/boards/stm32f103c8_base",
+      "ezdl/src/stm32/boards/stm32f072c8_stackable"
+    ]
   }
 ]

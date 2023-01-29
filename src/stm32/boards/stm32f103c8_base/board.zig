@@ -21,12 +21,7 @@ pub const usb_dp = mcu.Gpio(periph.GPIOA, 12, .{ .output = .{} });
 
 const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);
 const ep1 = mcu.usb.Endpoint(periph.USB, 1, .bulk, 256, 256, .valid, .nak);
-
-pub const usb_device = mcu.usb.Usb(
-    periph.USB,
-    usb_dp,
-    .{ ep0, ep1 },
-);
+pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, usb_dp);
 
 pub var serial: cp2102.Cp2102(mcu.usb, usb_device, ezdl.lib.RingBuffer(u8, 256)) = .{};
 
