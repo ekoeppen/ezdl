@@ -84,7 +84,7 @@ const FlashStep = struct {
             .dfu_util => try self.makeDfuUtilFlash(),
             .mspdebug => try self.makeMspDebugFlash(),
             .avrdude => try self.makeAvrdudeFlash(),
-            else => {},
+            .stlink => try self.makeStLinkFlash(),
         }
     }
 
@@ -157,6 +157,13 @@ const FlashStep = struct {
             self.port orelse unreachable,
             operation,
         }, &self.step);
+    }
+
+    fn makeStLinkFlash(self: *FlashStep) !void {
+        _ = try self.builder.execFromStep(
+            &.{ "st-flash", "--reset", "--format", "ihex", "write", self.dest_path },
+            &self.step,
+        );
     }
 };
 

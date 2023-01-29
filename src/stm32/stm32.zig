@@ -34,6 +34,7 @@ pub fn addFamilySteps(
     const hex_cmd = try ezdl.build_tools.addObjCopyStep(b, exe, .hex);
     const bin_cmd = try ezdl.build_tools.addObjCopyStep(b, exe, .bin);
     _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .jlink, board);
+    _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .stlink, board);
     _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .stm32flash, board);
     _ = ezdl.build_tools.addFlashStep(b, bin_cmd, .dfu_util, board);
 }
