@@ -17,5 +17,7 @@ build-examples:
     when: always
     paths:
       - examples.xml
+      - "examples/stm32/*/zig-out/bin/*.elf"
+      - "examples/generic/*/zig-out/bin/*.elf"
     reports:
       junit: examples.xml

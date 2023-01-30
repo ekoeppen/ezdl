@@ -106,7 +106,15 @@ pub fn addExecutable(
 ) anyerror!*std.build.LibExeObjStep {
     const board = try readBoardSettings(b, b.pathJoin(&.{ board_path, "board.json" }));
     const linker_script_path = "zig-cache/memory.ld";
-    const exe = b.addExecutable(elf_name, main);
+    const output_name = if (board_path.len > 1 and board_path[0] != '.')
+        try std.fmt.allocPrint(b.allocator, "{s}_{s}{s}", .{
+            std.fs.path.stem(elf_name),
+            std.fs.path.basename(board_path),
+            std.fs.path.extension(elf_name),
+        })
+    else
+        elf_name;
+    const exe = b.addExecutable(output_name, main);
     const info_tool = b.addExecutable("info_tool", mkPath(@src(), "lib/build_info.zig"));
     const build_info = info_tool.run();
     try generateLinkerScript(linker_script_path, board.memory);
