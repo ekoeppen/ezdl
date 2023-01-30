@@ -98,6 +98,14 @@ pub fn readBoardSettings(b: *std.build.Builder, path: []const u8) !Board {
     return board;
 }
 
+pub fn irqIndicesToInts(comptime indices: anytype) []u8 {
+    var ints: [indices.len]u8 = undefined;
+    for (indices) |index, i| {
+        ints[i] = @enumToInt(index);
+    }
+    return &ints;
+}
+
 pub fn addExecutable(
     b: *std.build.Builder,
     elf_name: []const u8,
@@ -134,19 +142,19 @@ pub fn addExecutable(
         .name = "build_info",
         .source = .{ .path = "zig-cache/build_info.zig" },
     };
-    const mmio_pkg = std.build.Pkg{
-        .name = "mmio",
-        .source = .{ .path = mkPath(@src(), "mmio.zig") },
+    const microzig_pkg = std.build.Pkg{
+        .name = "microzig",
+        .source = .{ .path = mkPath(@src(), "microzig.zig") },
     };
     const ezdl_pkg = std.build.Pkg{
         .name = "ezdl",
         .source = .{ .path = mkPath(@src(), "ezdl.zig") },
-        .dependencies = &.{mmio_pkg},
+        .dependencies = &.{microzig_pkg},
     };
     const board_pkg = std.build.Pkg{
         .name = "board",
         .source = .{ .path = b.pathJoin(&.{ board_path, "board.zig" }) },
-        .dependencies = &.{ ezdl_pkg, mmio_pkg },
+        .dependencies = &.{ ezdl_pkg, microzig_pkg },
     };
 
     exe.addPackage(ezdl_pkg);

@@ -1,4 +1,5 @@
-const mmio = @import("mmio");
+const micro = @import("microzig");
+const mmio = micro.mmio;
 
 pub const devices = struct {
     pub const MSP430G2x53 = struct {
@@ -39,6 +40,13 @@ pub const devices = struct {
             pub const CALIBRATION_DATA = @intToPtr(*volatile types.CALIBRATION_DATA, 0x10f8);
             pub const _INTERRUPTS = @intToPtr(*volatile types._INTERRUPTS, 0xffe0);
         };
+        pub const VectorTable = extern struct {
+            const Handler = micro.interrupt.Handler;
+            const unhandled = micro.interrupt.unhandled;
+
+            padding: [63]u16 = undefined,
+            Reset: Handler = unhandled,
+        };
     };
 };
 
@@ -46,7 +54,7 @@ pub const types = struct {
     ///  Special Function
     pub const SPECIAL_FUNCTION = extern struct {
         ///  Interrupt Enable 1
-        IE1: mmio.Mmio(8, packed struct {
+        IE1: mmio.Mmio(packed struct(u8) {
             ///  Watchdog Interrupt Enable
             WDTIE: u1,
             ///  Osc. Fault Interrupt Enable
@@ -59,7 +67,7 @@ pub const types = struct {
             padding: u2 = 0,
         }),
         ///  Interrupt Enable 2
-        IE2: mmio.Mmio(8, packed struct {
+        IE2: mmio.Mmio(packed struct(u8) {
             ///  RXIE
             RXIE: u1,
             ///  TXIE
@@ -71,7 +79,7 @@ pub const types = struct {
             padding: u4 = 0,
         }),
         ///  Interrupt Flag 1
-        IFG1: mmio.Mmio(8, packed struct {
+        IFG1: mmio.Mmio(packed struct(u8) {
             ///  Watchdog Interrupt Flag
             WDTIFG: u1,
             ///  Osc. Fault Interrupt Flag
@@ -85,7 +93,7 @@ pub const types = struct {
             padding: u3 = 0,
         }),
         ///  Interrupt Flag 2
-        IFG2: mmio.Mmio(8, packed struct {
+        IFG2: mmio.Mmio(packed struct(u8) {
             ///  RXIFG
             RXIFG: u1,
             ///  TXIFG
@@ -101,7 +109,7 @@ pub const types = struct {
     ///  Port 3
     pub const PORT_3 = extern struct {
         ///  Port 3 Resistor Enable
-        REN: mmio.Mmio(8, packed struct {
+        REN: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -121,7 +129,7 @@ pub const types = struct {
         }),
         reserved8: [7]u8,
         ///  Port 3 Input
-        IN: mmio.Mmio(8, packed struct {
+        IN: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -140,7 +148,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 3 Output
-        OUT: mmio.Mmio(8, packed struct {
+        OUT: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -159,7 +167,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 3 Direction
-        DIR: mmio.Mmio(8, packed struct {
+        DIR: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -178,7 +186,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 3 Selection
-        SEL: mmio.Mmio(8, packed struct {
+        SEL: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -198,7 +206,7 @@ pub const types = struct {
         }),
         reserved51: [39]u8,
         ///  Port 3 Selection 2
-        SEL2: mmio.Mmio(8, packed struct {
+        SEL2: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -221,7 +229,7 @@ pub const types = struct {
     ///  Port 1
     pub const PORT_1 = extern struct {
         ///  Port 1 Input
-        IN: mmio.Mmio(8, packed struct {
+        IN: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -240,7 +248,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Output
-        OUT: mmio.Mmio(8, packed struct {
+        OUT: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -259,7 +267,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Direction
-        DIR: mmio.Mmio(8, packed struct {
+        DIR: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -278,7 +286,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Interrupt Flag
-        IFG: mmio.Mmio(8, packed struct {
+        IFG: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -297,7 +305,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Interrupt Edge Select
-        IES: mmio.Mmio(8, packed struct {
+        IES: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -316,7 +324,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Interrupt Enable
-        IE: mmio.Mmio(8, packed struct {
+        IE: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -335,7 +343,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Selection
-        SEL: mmio.Mmio(8, packed struct {
+        SEL: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -354,7 +362,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 1 Resistor Enable
-        REN: mmio.Mmio(8, packed struct {
+        REN: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -374,7 +382,7 @@ pub const types = struct {
         }),
         reserved33: [25]u8,
         ///  Port 1 Selection 2
-        SEL2: mmio.Mmio(8, packed struct {
+        SEL2: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -398,7 +406,7 @@ pub const types = struct {
     pub const PORT_2 = extern struct {
         reserved8: [8]u8,
         ///  Port 2 Input
-        IN: mmio.Mmio(8, packed struct {
+        IN: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -417,7 +425,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Output
-        OUT: mmio.Mmio(8, packed struct {
+        OUT: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -436,7 +444,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Direction
-        DIR: mmio.Mmio(8, packed struct {
+        DIR: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -455,7 +463,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Interrupt Flag
-        IFG: mmio.Mmio(8, packed struct {
+        IFG: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -474,7 +482,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Interrupt Edge Select
-        IES: mmio.Mmio(8, packed struct {
+        IES: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -493,7 +501,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Interrupt Enable
-        IE: mmio.Mmio(8, packed struct {
+        IE: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -512,7 +520,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Selection
-        SEL: mmio.Mmio(8, packed struct {
+        SEL: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -531,7 +539,7 @@ pub const types = struct {
             P7: u1,
         }),
         ///  Port 2 Resistor Enable
-        REN: mmio.Mmio(8, packed struct {
+        REN: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -551,7 +559,7 @@ pub const types = struct {
         }),
         reserved34: [18]u8,
         ///  Port 2 Selection 2
-        SEL2: mmio.Mmio(8, packed struct {
+        SEL2: mmio.Mmio(packed struct(u8) {
             ///  P0
             P0: u1,
             ///  P1
@@ -574,7 +582,7 @@ pub const types = struct {
     ///  ADC10
     pub const ADC10 = extern struct {
         ///  ADC10 Data Transfer Control 0
-        ADC10DTC0: mmio.Mmio(8, packed struct {
+        ADC10DTC0: mmio.Mmio(packed struct(u8) {
             ///  This bit should normally be reset
             ADC10FETCH: u1,
             ///  ADC10 block one
@@ -586,18 +594,18 @@ pub const types = struct {
             padding: u4 = 0,
         }),
         ///  ADC10 Data Transfer Control 1
-        ADC10DTC1: mmio.Mmio(8, packed struct {
+        ADC10DTC1: mmio.Mmio(packed struct(u8) {
             ///  ADC10 Data Transfer Control 1 register
             ADC10DTC1: u8,
         }),
         ///  ADC10 Analog Enable 0
-        ADC10AE0: mmio.Mmio(8, packed struct {
+        ADC10AE0: mmio.Mmio(packed struct(u8) {
             ///  ADC10 Analog Enable 0 register
             ADC10AE0: u8,
         }),
         reserved360: [357]u8,
         ///  ADC10 Control 0
-        ADC10CTL0: mmio.Mmio(16, packed struct {
+        ADC10CTL0: mmio.Mmio(packed struct(u16) {
             ///  ADC10 Start Conversion
             ADC10SC: u1,
             ///  ADC10 Enable Conversion
@@ -658,7 +666,7 @@ pub const types = struct {
             },
         }),
         ///  ADC10 Control 1
-        ADC10CTL1: mmio.Mmio(16, packed struct {
+        ADC10CTL1: mmio.Mmio(packed struct(u16) {
             ///  ADC10 BUSY
             ADC10BUSY: u1,
             ///  ADC10 Conversion Sequence Select 0
@@ -769,13 +777,13 @@ pub const types = struct {
             },
         }),
         ///  ADC10 Memory
-        ADC10MEM: mmio.Mmio(16, packed struct {
+        ADC10MEM: mmio.Mmio(packed struct(u16) {
             ///  ADC10 Memory register
             ADC10MEM: u16,
         }),
         reserved372: [6]u8,
         ///  ADC10 Data Transfer Start Address
-        ADC10SA: mmio.Mmio(16, packed struct {
+        ADC10SA: mmio.Mmio(packed struct(u16) {
             ///  ADC10 Data Transfer Start Address register
             ADC10SA: u16,
         }),
@@ -785,7 +793,7 @@ pub const types = struct {
     pub const SYSTEM_CLOCK = extern struct {
         reserved1: [1]u8,
         ///  Basic Clock System Control 3
-        BCSCTL3: mmio.Mmio(8, packed struct {
+        BCSCTL3: mmio.Mmio(packed struct(u8) {
             ///  Low/high Frequency Oscillator Fault Flag
             LFXT1OF: u1,
             ///  High frequency oscillator 2 fault flag
@@ -835,14 +843,14 @@ pub const types = struct {
         }),
         reserved4: [2]u8,
         ///  DCO Clock Frequency Control
-        DCOCTL: mmio.Mmio(8, packed struct {
+        DCOCTL: mmio.Mmio(packed struct(u8) {
             ///  Modulation Bit 0
             MOD: u5,
             ///  DCO Select Bit 0
             DCO: u3,
         }),
         ///  Basic Clock System Control 1
-        BCSCTL1: mmio.Mmio(8, packed struct {
+        BCSCTL1: mmio.Mmio(packed struct(u8) {
             ///  Range Select Bit 0
             RSEL: u4,
             ///  ACLK Divider 0
@@ -865,7 +873,7 @@ pub const types = struct {
             XT2OFF: u1,
         }),
         ///  Basic Clock System Control 2
-        BCSCTL2: mmio.Mmio(8, packed struct {
+        BCSCTL2: mmio.Mmio(packed struct(u8) {
             reserved1: u1 = 0,
             ///  SMCLK Divider 0
             DIVS: packed union {
@@ -918,7 +926,7 @@ pub const types = struct {
     pub const COMPARATOR_A = extern struct {
         reserved1: [1]u8,
         ///  Comparator A Control 1
-        CACTL1: mmio.Mmio(8, packed struct {
+        CACTL1: mmio.Mmio(packed struct(u8) {
             ///  Comp. A Interrupt Flag
             CAIFG: u1,
             ///  Comp. A Interrupt Enable
@@ -947,7 +955,7 @@ pub const types = struct {
             CAEX: u1,
         }),
         ///  Comparator A Control 2
-        CACTL2: mmio.Mmio(8, packed struct {
+        CACTL2: mmio.Mmio(packed struct(u8) {
             ///  Comp. A Output
             CAOUT: u1,
             ///  Comp. A Enable Output Filter
@@ -1026,7 +1034,7 @@ pub const types = struct {
             CASHORT: u1,
         }),
         ///  Comparator A Port Disable
-        CAPD: mmio.Mmio(8, packed struct {
+        CAPD: mmio.Mmio(packed struct(u8) {
             ///  Comp. A Disable Input Buffer of Port Register .0
             CAPD0: u1,
             ///  Comp. A Disable Input Buffer of Port Register .1
@@ -1050,7 +1058,7 @@ pub const types = struct {
     pub const USCI_A0_UART_MODE = extern struct {
         reserved1: [1]u8,
         ///  USCI A0 LIN Control
-        ABCTL: mmio.Mmio(8, packed struct {
+        ABCTL: mmio.Mmio(packed struct(u8) {
             ///  Auto Baud Rate detect enable
             UCABDEN: u1,
             reserved2: u1 = 0,
@@ -1063,7 +1071,7 @@ pub const types = struct {
             padding: u2 = 0,
         }),
         ///  USCI A0 IrDA Transmit Control
-        IRTCTL: mmio.Mmio(8, packed struct {
+        IRTCTL: mmio.Mmio(packed struct(u8) {
             ///  IRDA Encoder/Decoder enable
             UCIREN: u1,
             ///  IRDA Transmit Pulse Clock Select
@@ -1072,7 +1080,7 @@ pub const types = struct {
             UCIRTXPL: u6,
         }),
         ///  USCI A0 IrDA Receive Control
-        IRRCTL: mmio.Mmio(8, packed struct {
+        IRRCTL: mmio.Mmio(packed struct(u8) {
             ///  IRDA Receive Filter enable
             UCIRRXFE: u1,
             ///  IRDA Receive Input Polarity
@@ -1081,7 +1089,7 @@ pub const types = struct {
             UCIRRXFL: u6,
         }),
         ///  USCI A0 Control Register 0
-        CTL0: mmio.Mmio(8, packed struct {
+        CTL0: mmio.Mmio(packed struct(u8) {
             ///  Sync-Mode 0:UART-Mode / 1:SPI-Mode
             UCSYNC: u1,
             ///  Async. Mode: USCI Mode 1
@@ -1110,7 +1118,7 @@ pub const types = struct {
             UCPEN: u1,
         }),
         ///  USCI A0 Control Register 1
-        CTL1: mmio.Mmio(8, packed struct {
+        CTL1: mmio.Mmio(packed struct(u8) {
             ///  USCI Software Reset
             UCSWRST: u1,
             ///  Send next Data as Break
@@ -1139,17 +1147,17 @@ pub const types = struct {
             },
         }),
         ///  USCI A0 Baud Rate 0
-        BR0: mmio.Mmio(8, packed struct {
+        BR0: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Baud Rate 0 register
             BR0: u8,
         }),
         ///  USCI A0 Baud Rate 1
-        BR1: mmio.Mmio(8, packed struct {
+        BR1: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Baud Rate 1 register
             BR1: u8,
         }),
         ///  USCI A0 Modulation Control
-        MCTL: mmio.Mmio(8, packed struct {
+        MCTL: mmio.Mmio(packed struct(u8) {
             ///  USCI 16-times Oversampling enable
             UCOS16: u1,
             ///  USCI Second Stage Modulation Select 2
@@ -1214,7 +1222,7 @@ pub const types = struct {
             },
         }),
         ///  USCI A0 Status Register
-        STAT: mmio.Mmio(8, packed struct {
+        STAT: mmio.Mmio(packed struct(u8) {
             ///  USCI Busy Flag
             UCBUSY: u1,
             ///  USCI Address received Flag
@@ -1233,12 +1241,12 @@ pub const types = struct {
             UCLISTEN: u1,
         }),
         ///  USCI A0 Receive Buffer
-        RXBUF: mmio.Mmio(8, packed struct {
+        RXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Receive Buffer register
             RXBUF: u8,
         }),
         ///  USCI A0 Transmit Buffer
-        TXBUF: mmio.Mmio(8, packed struct {
+        TXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Transmit Buffer register
             TXBUF: u8,
         }),
@@ -1247,7 +1255,7 @@ pub const types = struct {
     ///  USCI_A0 SPI Mode
     pub const USCI_A0_SPI_MODE = extern struct {
         ///  USCI A0 Control Register 0
-        CTL0: mmio.Mmio(8, packed struct {
+        CTL0: mmio.Mmio(packed struct(u8) {
             ///  Sync-Mode 0:UART-Mode / 1:SPI-Mode
             UCSYNC: u1,
             ///  Sync. Mode: USCI Mode 1
@@ -1276,7 +1284,7 @@ pub const types = struct {
             UCCKPH: u1,
         }),
         ///  USCI A0 Control Register 1
-        CTL1: mmio.Mmio(8, packed struct {
+        CTL1: mmio.Mmio(packed struct(u8) {
             ///  USCI Software Reset
             UCSWRST: u1,
             reserved6: u5 = 0,
@@ -1296,18 +1304,18 @@ pub const types = struct {
             },
         }),
         ///  USCI A0 Baud Rate 0
-        BR0: mmio.Mmio(8, packed struct {
+        BR0: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Baud Rate 0 register
             BR0: u8,
         }),
         ///  USCI A0 Baud Rate 1
-        BR1: mmio.Mmio(8, packed struct {
+        BR1: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Baud Rate 1 register
             BR1: u8,
         }),
         reserved5: [1]u8,
         ///  USCI A0 Status Register
-        STAT: mmio.Mmio(8, packed struct {
+        STAT: mmio.Mmio(packed struct(u8) {
             ///  USCI Busy Flag
             UCBUSY: u1,
             reserved5: u4 = 0,
@@ -1319,12 +1327,12 @@ pub const types = struct {
             UCLISTEN: u1,
         }),
         ///  USCI A0 Receive Buffer
-        RXBUF: mmio.Mmio(8, packed struct {
+        RXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Receive Buffer register
             RXBUF: u8,
         }),
         ///  USCI A0 Transmit Buffer
-        TXBUF: mmio.Mmio(8, packed struct {
+        TXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI A0 Transmit Buffer register
             TXBUF: u8,
         }),
@@ -1333,7 +1341,7 @@ pub const types = struct {
     ///  USCI_B0 I2C Mode
     pub const USCI_B0_I2C_MODE = extern struct {
         ///  USCI B0 Control Register 0
-        CTL0: mmio.Mmio(8, packed struct {
+        CTL0: mmio.Mmio(packed struct(u8) {
             ///  Sync-Mode 0:UART-Mode / 1:SPI-Mode
             UCSYNC: u1,
             ///  Sync. Mode: USCI Mode 1
@@ -1361,7 +1369,7 @@ pub const types = struct {
             UCA10: u1,
         }),
         ///  USCI B0 Control Register 1
-        CTL1: mmio.Mmio(8, packed struct {
+        CTL1: mmio.Mmio(packed struct(u8) {
             ///  USCI Software Reset
             UCSWRST: u1,
             ///  Transmit START
@@ -1389,17 +1397,17 @@ pub const types = struct {
             },
         }),
         ///  USCI B0 Baud Rate 0
-        BR0: mmio.Mmio(8, packed struct {
+        BR0: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Baud Rate 0 register
             BR0: u8,
         }),
         ///  USCI B0 Baud Rate 1
-        BR1: mmio.Mmio(8, packed struct {
+        BR1: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Baud Rate 1 register
             BR1: u8,
         }),
         ///  USCI B0 I2C Interrupt Enable Register
-        I2CIE: mmio.Mmio(8, packed struct {
+        I2CIE: mmio.Mmio(packed struct(u8) {
             ///  Arbitration Lost interrupt enable
             UCALIE: u1,
             ///  START Condition interrupt enable
@@ -1411,7 +1419,7 @@ pub const types = struct {
             padding: u4 = 0,
         }),
         ///  USCI B0 Status Register
-        STAT: mmio.Mmio(8, packed struct {
+        STAT: mmio.Mmio(packed struct(u8) {
             ///  Arbitration Lost interrupt Flag
             UCALIFG: u1,
             ///  START Condition interrupt Flag
@@ -1430,18 +1438,18 @@ pub const types = struct {
             UCLISTEN: u1,
         }),
         ///  USCI B0 Receive Buffer
-        RXBUF: mmio.Mmio(8, packed struct {
+        RXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Receive Buffer register
             RXBUF: u8,
         }),
         ///  USCI B0 Transmit Buffer
-        TXBUF: mmio.Mmio(8, packed struct {
+        TXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Transmit Buffer register
             TXBUF: u8,
         }),
         reserved176: [168]u8,
         ///  USCI B0 I2C Own Address
-        I2COA: mmio.Mmio(16, packed struct {
+        I2COA: mmio.Mmio(packed struct(u16) {
             ///  I2C Own Address 0
             UCOA: u10,
             reserved15: u5 = 0,
@@ -1449,7 +1457,7 @@ pub const types = struct {
             UCGCEN: u1,
         }),
         ///  USCI B0 I2C Slave Address
-        I2CSA: mmio.Mmio(16, packed struct {
+        I2CSA: mmio.Mmio(packed struct(u16) {
             ///  I2C Slave Address 0
             UCSA: u10,
             padding: u6 = 0,
@@ -1459,7 +1467,7 @@ pub const types = struct {
     ///  USCI_B0 SPI Mode
     pub const USCI_B0_SPI_MODE = extern struct {
         ///  USCI B0 Control Register 0
-        CTL0: mmio.Mmio(8, packed struct {
+        CTL0: mmio.Mmio(packed struct(u8) {
             ///  Sync-Mode 0:UART-Mode / 1:SPI-Mode
             UCSYNC: u1,
             ///  Sync. Mode: USCI Mode 1
@@ -1488,7 +1496,7 @@ pub const types = struct {
             UCCKPH: u1,
         }),
         ///  USCI B0 Control Register 1
-        CTL1: mmio.Mmio(8, packed struct {
+        CTL1: mmio.Mmio(packed struct(u8) {
             ///  USCI Software Reset
             UCSWRST: u1,
             reserved6: u5 = 0,
@@ -1508,18 +1516,18 @@ pub const types = struct {
             },
         }),
         ///  USCI B0 Baud Rate 0
-        BR0: mmio.Mmio(8, packed struct {
+        BR0: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Baud Rate 0 register
             BR0: u8,
         }),
         ///  USCI B0 Baud Rate 1
-        BR1: mmio.Mmio(8, packed struct {
+        BR1: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Baud Rate 1 register
             BR1: u8,
         }),
         reserved5: [1]u8,
         ///  USCI B0 Status Register
-        STAT: mmio.Mmio(8, packed struct {
+        STAT: mmio.Mmio(packed struct(u8) {
             ///  USCI Busy Flag
             UCBUSY: u1,
             reserved5: u4 = 0,
@@ -1531,12 +1539,12 @@ pub const types = struct {
             UCLISTEN: u1,
         }),
         ///  USCI B0 Receive Buffer
-        RXBUF: mmio.Mmio(8, packed struct {
+        RXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Receive Buffer register
             RXBUF: u8,
         }),
         ///  USCI B0 Transmit Buffer
-        TXBUF: mmio.Mmio(8, packed struct {
+        TXBUF: mmio.Mmio(packed struct(u8) {
             ///  USCI B0 Transmit Buffer register
             TXBUF: u8,
         }),
@@ -1545,29 +1553,29 @@ pub const types = struct {
     ///  TLV Calibration Data
     pub const TLV_CALIBRATION_DATA = extern struct {
         ///  TLV CHECK SUM
-        TLV_CHECKSUM: mmio.Mmio(16, packed struct {
+        TLV_CHECKSUM: mmio.Mmio(packed struct(u16) {
             ///  TLV CHECK SUM register
             TLV_CHECKSUM: u16,
         }),
         reserved26: [24]u8,
         ///  TLV ADC10_1 TAG
-        TLV_ADC10_1_TAG: mmio.Mmio(8, packed struct {
+        TLV_ADC10_1_TAG: mmio.Mmio(packed struct(u8) {
             ///  TLV ADC10_1 TAG register
             TLV_ADC10_1_TAG: u8,
         }),
         ///  TLV ADC10_1 LEN
-        TLV_ADC10_1_LEN: mmio.Mmio(8, packed struct {
+        TLV_ADC10_1_LEN: mmio.Mmio(packed struct(u8) {
             ///  TLV ADC10_1 LEN register
             TLV_ADC10_1_LEN: u8,
         }),
         reserved54: [26]u8,
         ///  TLV TAG_DCO30 TAG
-        TLV_DCO_30_TAG: mmio.Mmio(8, packed struct {
+        TLV_DCO_30_TAG: mmio.Mmio(packed struct(u8) {
             ///  TLV TAG_DCO30 TAG register
             TLV_DCO_30_TAG: u8,
         }),
         ///  TLV TAG_DCO30 LEN
-        TLV_DCO_30_LEN: mmio.Mmio(8, packed struct {
+        TLV_DCO_30_LEN: mmio.Mmio(packed struct(u8) {
             ///  TLV TAG_DCO30 LEN register
             TLV_DCO_30_LEN: u8,
         }),
@@ -1576,42 +1584,42 @@ pub const types = struct {
     ///  Calibration Data
     pub const CALIBRATION_DATA = extern struct {
         ///  DCOCTL Calibration Data for 16MHz
-        CALDCO_16MHZ: mmio.Mmio(8, packed struct {
+        CALDCO_16MHZ: mmio.Mmio(packed struct(u8) {
             ///  DCOCTL Calibration Data for 16MHz register
             CALDCO_16MHZ: u8,
         }),
         ///  BCSCTL1 Calibration Data for 16MHz
-        CALBC1_16MHZ: mmio.Mmio(8, packed struct {
+        CALBC1_16MHZ: mmio.Mmio(packed struct(u8) {
             ///  BCSCTL1 Calibration Data for 16MHz register
             CALBC1_16MHZ: u8,
         }),
         ///  DCOCTL Calibration Data for 12MHz
-        CALDCO_12MHZ: mmio.Mmio(8, packed struct {
+        CALDCO_12MHZ: mmio.Mmio(packed struct(u8) {
             ///  DCOCTL Calibration Data for 12MHz register
             CALDCO_12MHZ: u8,
         }),
         ///  BCSCTL1 Calibration Data for 12MHz
-        CALBC1_12MHZ: mmio.Mmio(8, packed struct {
+        CALBC1_12MHZ: mmio.Mmio(packed struct(u8) {
             ///  BCSCTL1 Calibration Data for 12MHz register
             CALBC1_12MHZ: u8,
         }),
         ///  DCOCTL Calibration Data for 8MHz
-        CALDCO_8MHZ: mmio.Mmio(8, packed struct {
+        CALDCO_8MHZ: mmio.Mmio(packed struct(u8) {
             ///  DCOCTL Calibration Data for 8MHz register
             CALDCO_8MHZ: u8,
         }),
         ///  BCSCTL1 Calibration Data for 8MHz
-        CALBC1_8MHZ: mmio.Mmio(8, packed struct {
+        CALBC1_8MHZ: mmio.Mmio(packed struct(u8) {
             ///  BCSCTL1 Calibration Data for 8MHz register
             CALBC1_8MHZ: u8,
         }),
         ///  DCOCTL Calibration Data for 1MHz
-        CALDCO_1MHZ: mmio.Mmio(8, packed struct {
+        CALDCO_1MHZ: mmio.Mmio(packed struct(u8) {
             ///  DCOCTL Calibration Data for 1MHz register
             CALDCO_1MHZ: u8,
         }),
         ///  BCSCTL1 Calibration Data for 1MHz
-        CALBC1_1MHZ: mmio.Mmio(8, packed struct {
+        CALBC1_1MHZ: mmio.Mmio(packed struct(u8) {
             ///  BCSCTL1 Calibration Data for 1MHz register
             CALBC1_1MHZ: u8,
         }),
@@ -1620,7 +1628,7 @@ pub const types = struct {
     ///  Watchdog Timer
     pub const WATCHDOG_TIMER = extern struct {
         ///  Watchdog Timer Control
-        WDTCTL: mmio.Mmio(16, packed struct {
+        WDTCTL: mmio.Mmio(packed struct(u16) {
             ///  WDTIS0
             WDTIS: u2,
             ///  WDTSSEL
@@ -1650,7 +1658,7 @@ pub const types = struct {
     ///  Flash
     pub const FLASH = extern struct {
         ///  FLASH Control 1
-        FCTL1: mmio.Mmio(16, packed struct {
+        FCTL1: mmio.Mmio(packed struct(u16) {
             reserved1: u1 = 0,
             ///  Enable bit for Flash segment erase
             ERASE: u1,
@@ -1672,7 +1680,7 @@ pub const types = struct {
             },
         }),
         ///  FLASH Control 2
-        FCTL2: mmio.Mmio(16, packed struct {
+        FCTL2: mmio.Mmio(packed struct(u16) {
             ///  Divide Flash clock by 1 to 64 using FN0 to FN5 according to:
             FN: u6,
             ///  Flash clock select 0 */ /* to distinguish from USART SSELx
@@ -1700,7 +1708,7 @@ pub const types = struct {
             },
         }),
         ///  FLASH Control 3
-        FCTL3: mmio.Mmio(16, packed struct {
+        FCTL3: mmio.Mmio(packed struct(u16) {
             ///  Flash busy: 1
             BUSY: u1,
             ///  Flash Key violation flag
@@ -1732,7 +1740,7 @@ pub const types = struct {
     ///  Timer A3
     pub const TIMER0_A3 = extern struct {
         ///  Timer0_A3 Interrupt Vector Word
-        TAIV: mmio.Mmio(16, packed struct {
+        TAIV: mmio.Mmio(packed struct(u16) {
             ///  Timer A Interrupt Vector value
             TAIV: packed union {
                 raw: u4,
@@ -1752,7 +1760,7 @@ pub const types = struct {
         }),
         reserved50: [48]u8,
         ///  Timer0_A3 Control
-        TACTL: mmio.Mmio(16, packed struct {
+        TACTL: mmio.Mmio(packed struct(u16) {
             ///  Timer A counter interrupt flag
             TAIFG: u1,
             ///  Timer A counter interrupt enable
@@ -1805,7 +1813,7 @@ pub const types = struct {
             padding: u6 = 0,
         }),
         ///  Timer0_A3 Capture/Compare Control 0
-        TACCTL0: mmio.Mmio(16, packed struct {
+        TACCTL0: mmio.Mmio(packed struct(u16) {
             ///  Capture/compare interrupt flag
             CCIFG: u1,
             ///  Capture/compare overflow flag
@@ -1875,7 +1883,7 @@ pub const types = struct {
             },
         }),
         ///  Timer0_A3 Capture/Compare Control 1
-        TACCTL1: mmio.Mmio(16, packed struct {
+        TACCTL1: mmio.Mmio(packed struct(u16) {
             ///  Capture/compare interrupt flag
             CCIFG: u1,
             ///  Capture/compare overflow flag
@@ -1945,7 +1953,7 @@ pub const types = struct {
             },
         }),
         ///  Timer0_A3 Capture/Compare Control 2
-        TACCTL2: mmio.Mmio(16, packed struct {
+        TACCTL2: mmio.Mmio(packed struct(u16) {
             ///  Capture/compare interrupt flag
             CCIFG: u1,
             ///  Capture/compare overflow flag
@@ -2016,22 +2024,22 @@ pub const types = struct {
         }),
         reserved66: [8]u8,
         ///  Timer0_A3 Counter Register
-        TAR: mmio.Mmio(16, packed struct {
+        TAR: mmio.Mmio(packed struct(u16) {
             ///  Timer A Counter Register
             TAR: u16,
         }),
         ///  Timer0_A3 Capture/Compare 0
-        TACCR0: mmio.Mmio(16, packed struct {
+        TACCR0: mmio.Mmio(packed struct(u16) {
             ///  Timer A Capture/Compare register 0
             TACCR0: u16,
         }),
         ///  Timer0_A3 Capture/Compare 1
-        TACCR1: mmio.Mmio(16, packed struct {
+        TACCR1: mmio.Mmio(packed struct(u16) {
             ///  Timer A Capture/Compare register 1
             TACCR1: u16,
         }),
         ///  Timer0_A3 Capture/Compare 2
-        TACCR2: mmio.Mmio(16, packed struct {
+        TACCR2: mmio.Mmio(packed struct(u16) {
             ///  Timer A Capture/Compare register 2
             TACCR2: u16,
         }),

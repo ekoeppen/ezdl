@@ -1,29 +1,12 @@
-ENTRY(resetHandler)
+ENTRY(main)
 PROVIDE(_stack = ORIGIN(ram) + LENGTH(ram));
 
 SECTIONS
 {
-    .vectors : {
-        LONG(_stack)
-        LONG(resetHandler)
-        LONG(DEFINED(nmiHandler) ? nmiHandler : 0xffffffff)
-        LONG(DEFINED(hardFaultHandler) ? hardFaultHandler : 0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(DEFINED(svcHandler) ? svcHandler : 0xffffffff)
-        LONG(0xffffffff)
-        LONG(0xffffffff)
-        LONG(DEFINED(pendSvHandler) ? pendSvHandler : 0xffffffff)
-        LONG(DEFINED(sysTickHandler) ? sysTickHandler : 0xffffffff)
-        KEEP(*(.vectors*))
-    } >rom
-
     .text : {
+        LONG(_stack);
+        LONG(resetHandler);
+        KEEP(*(.vectors));
         *(.text*)
         . = ALIGN(4);
 

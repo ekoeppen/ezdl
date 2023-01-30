@@ -1,5 +1,6 @@
-pub const mcu = @import("ezdl").stm32.mcus.stm32f103;
-pub const svd = @import("ezdl").stm32.svd.stm32f103;
+pub const ezdl = @import("ezdl");
+pub const mcu = ezdl.stm32.mcus.stm32f103;
+pub const svd = ezdl.stm32.svd.stm32f103;
 
 pub const periph = svd.peripherals;
 
@@ -27,6 +28,8 @@ pub const sda = mcu.Gpio(periph.GPIOB, 11, .{ .alternate = .{} });
 pub const spi = mcu.Spi(periph.SPI1);
 pub const usart = mcu.Usart(periph.USART1, .{ .speed = 115200 });
 pub const i2c = mcu.I2c(periph.I2C2);
+
+pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
 pub fn init() void {
     periph.RCC.APB2ENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1, .SPI1EN = 1, .USART1EN = 1 });

@@ -4,9 +4,9 @@
   "cpu_model": "msp430",
   "programmer": "rf2500",
   "memory": [
-    { "name": "rom", "attrs": "rx", "start": "0xc000", "size": "0x3f40" },
+    { "name": "rom", "attrs": "rx", "start": "0xc000", "size": "0x3f80" },
     { "name": "ram", "attrs": "rwx", "start": "0x0200", "size": 512 },
-    { "name": "vectors", "attrs": "rx", "start": "0xffc0", "size": "0xc0" }
+    { "name": "vectors", "attrs": "rx", "start": "0xff80", "size": 128 }
   ]
 }
 

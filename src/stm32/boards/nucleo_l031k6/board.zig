@@ -1,5 +1,6 @@
-pub const mcu = @import("ezdl").stm32.mcus.stm32l0x1;
-pub const svd = @import("ezdl").stm32.svd.stm32l0x1;
+pub const ezdl = @import("ezdl");
+pub const mcu = ezdl.stm32.mcus.stm32l0x1;
+pub const svd = ezdl.stm32.svd.stm32l0x1;
 
 pub const periph = svd.peripherals;
 
@@ -30,7 +31,7 @@ pub const usart = mcu.Usart(periph.USART2, .{
 });
 pub const i2c = mcu.I2c(periph.I2C1);
 
-pub const handlers = &.{};
+pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
 pub var rx_buffer: [64]u8 = undefined;
 pub var rx_index: usize = 0;

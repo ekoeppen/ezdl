@@ -1,9 +1,8 @@
-const ezdl = @import("ezdl");
-pub const mcu = @import("ezdl").stm32.mcus.stm32f0x2;
-pub const svd = @import("ezdl").stm32.svd.stm32f0x2;
+pub const ezdl = @import("ezdl");
+pub const mcu = ezdl.stm32.mcus.stm32f0x2;
+pub const svd = ezdl.stm32.svd.stm32f0x2;
 
 pub const periph = svd.peripherals;
-pub const interrupts = svd.interrupts;
 
 const cp2102 = ezdl.drivers.cp2102;
 
@@ -48,19 +47,19 @@ const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);
 const ep1 = mcu.usb.Endpoint(periph.USB, 1, .bulk, 256, 256, .valid, .nak);
 pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, null);
 
+pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
+
 pub var serial: cp2102.Cp2102(mcu.usb, usb_device, ezdl.lib.RingBuffer(u8, 256)) = .{};
 
 fn serialIrqHandler() void {
     serial.irqHandler();
 }
 
-fn defaultHandler() void {}
+const irqs: []const svd.VectorIndex = &.{ .SPI1, .USART1, .I2C2, .RTC, .EXTI4_15, .USB };
 
-pub const handlers: []const ezdl.stm32.IrqHandler = &.{
-    .{ .number = interrupts.USB, .handler = serialIrqHandler },
+export const vectors: VectorTable linksection(".vectors") = .{
+    .USB = serialIrqHandler,
 };
-
-export const vectors linksection(".vectors") = ezdl.stm32.mkVectors(interrupts, handlers);
 
 pub fn init() void {
     periph.RCC.AHBENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1 });
@@ -72,4 +71,5 @@ pub fn init() void {
     while (periph.RCC.CR2.read().HSI48RDY == 0) {}
     periph.RCC.CFGR.modify(.{ .SW = 3 });
     while (periph.RCC.CFGR.read().SWS != 3) {}
+    nvic.enableInterrupts(ezdl.irqIndicesToInts(irqs));
 }

@@ -10,15 +10,13 @@ const button = board.mcu.Gpio(board.svd.peripherals.GPIOC, 13, .{ .input = .{
 const writer = board.usart.writer();
 
 fn extiHandler() void {
-    board.nvic.clearPending(board.interrupts.EXTI4_15);
-    board.exti.clearInterrupt(board.interrupts.EXTI4_15);
+    board.nvic.clearPending(@enumToInt(@as(board.svd.VectorIndex, .EXTI4_15)));
+    board.exti.clearInterrupt(@enumToInt(@as(board.svd.VectorIndex, .EXTI4_15)));
 }
 
-const handlers: []const ezdl.stm32.IrqHandler = &.{
-    .{ .number = board.interrupts.EXTI4_15, .handler = extiHandler },
+export const vectors: board.VectorTable linksection(".vectors") = .{
+    .EXTI4_15 = extiHandler,
 };
-
-export const vectors linksection(".vectors") = ezdl.stm32.mkVectors(board.interrupts, handlers);
 
 fn run() anyerror!void {
     _ = try writer.print("---- Starting -----------------------------------\n", .{});
@@ -33,7 +31,6 @@ pub export fn main() void {
     board.tx.init();
     board.rx.init();
     board.usart.init();
-    board.nvic.enableInterrupts(handlers);
     button.init();
 
     if (run()) {} else |_| {

@@ -1,3 +1,4 @@
+const microzig = @import("microzig");
 pub const mcu = @import("ezdl").stm32.mcus.stm32f103;
 pub const svd = @import("ezdl").stm32.svd.stm32f103;
 

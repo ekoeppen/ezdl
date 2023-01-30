@@ -29,7 +29,6 @@ pub export fn main() void {
     board.led2.init();
     board.led.init();
 
-    board.nvic.enableInterrupts(board.handlers);
     board.usb_device.init();
     board.led.set();
 
