@@ -236,24 +236,9 @@ pub fn Endpoint(
     comptime init_txState: EndpointState,
 ) type {
     return struct {
-        pub const btable_gapless = @bitSizeOf(@TypeOf(usb.*)) / 8 > 84;
-        pub const btable_item_size = if (btable_gapless) 1 else 2;
-        pub const btable_index_size = if (btable_gapless) 2 else 1;
-        pub const BtableEntry = if (btable_gapless) packed struct {
-            USB_ADDR_TX: u16,
-            USB_COUNT_TX: u16,
-            USB_ADDR_RX: u16,
-            USB_COUNT_RX: u16,
-        } else packed struct {
-            USB_ADDR_TX: u16,
-            reserved1: u16 = 0,
-            USB_COUNT_TX: u16,
-            reserved2: u16 = 0,
-            USB_ADDR_RX: u16,
-            reserved3: u16 = 0,
-            USB_COUNT_RX: u16,
-            reserved4: u16 = 0,
-        };
+        pub const gapless = @bitSizeOf(@TypeOf(usb.*)) / 8 > 84;
+        pub const item_size = if (gapless) 1 else 2;
+        pub const index_div = if (gapless) 2 else 1;
 
         pub const number = ep_number;
         pub const max_rx = ep_max_rx;
@@ -268,8 +253,11 @@ pub fn Endpoint(
             6 => &usb.EP6R,
             7 => &usb.EP7R,
         };
-        pub const BTABLE = @intToPtr(*[8]BtableEntry, 0x40006000);
-        pub const BTABLE_DATA = @intToPtr(*[512]u16, 0x40006000);
+        pub const BTABLE = @intToPtr(*[512]u16, 0x40006000);
+        pub const addr_tx_index = item_size * (@as(u11, number) * 4);
+        pub const count_tx_index = item_size * (@as(u11, number) * 4 + 1);
+        pub const addr_rx_index = item_size * (@as(u11, number) * 4 + 2);
+        pub const count_rx_index = item_size * (@as(u11, number) * 4 + 3);
 
         fn encodeOutSize(size: u10) u16 {
             return if (size > 62) 0x8000 | @as(u16, (size / 32)) << 10 //
@@ -283,10 +271,10 @@ pub fn Endpoint(
                 .EP_TYPE = @enumToInt(ep_type),
                 .EA = number,
             });
-            BTABLE[number].USB_ADDR_TX = btable_offset;
-            BTABLE[number].USB_COUNT_TX = 0;
-            BTABLE[number].USB_ADDR_RX = btable_offset + max_tx;
-            BTABLE[number].USB_COUNT_RX = encodeOutSize(max_rx);
+            BTABLE[addr_tx_index] = btable_offset;
+            BTABLE[addr_rx_index] = btable_offset + max_tx;
+            setInCount(0);
+            resetOutCount();
             return max_rx + max_tx;
         }
 
@@ -314,12 +302,12 @@ pub fn Endpoint(
             return @intToEnum(EndpointState, epr.read().STAT_RX);
         }
 
-        pub fn setInCount(txCount: u10) void {
-            BTABLE[number].USB_COUNT_TX = txCount;
+        pub fn setInCount(tx_count: u10) void {
+            BTABLE[count_tx_index] = tx_count;
         }
 
         pub fn resetOutCount() void {
-            BTABLE[number].USB_COUNT_RX = encodeOutSize(max_rx);
+            BTABLE[count_rx_index] = encodeOutSize(max_rx);
         }
 
         pub fn inTransferComplete() bool {
@@ -345,21 +333,21 @@ pub fn Endpoint(
         }
 
         pub fn getOutCount() u10 {
-            return @truncate(u10, BTABLE[number].USB_COUNT_RX);
+            return @truncate(u10, BTABLE[count_rx_index]);
         }
 
         pub fn getInCount() u10 {
-            return @truncate(u10, BTABLE[number].USB_COUNT_TX);
+            return @truncate(u10, BTABLE[count_tx_index]);
         }
 
         pub fn getOutData(buf: []u8) []u8 {
             var i: usize = 0;
             var j: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_RX / btable_index_size;
+            const start: usize = BTABLE[addr_rx_index] / index_div;
             const len = getOutCount();
-            while (i < len) : (i += btable_item_size) {
+            while (i < len) : (i += item_size) {
                 if (j == buf.len) break;
-                const rx_word = BTABLE_DATA[start + i];
+                const rx_word = BTABLE[start + i];
                 buf[j] = @truncate(u8, rx_word);
                 j += 1;
                 if (j == buf.len) break;
@@ -373,9 +361,9 @@ pub fn Endpoint(
             const len = getOutCount();
             if (len > buffer.free()) return false;
             var i: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_RX / btable_index_size;
-            while (i < len) : (i += btable_item_size) {
-                const rx_word = BTABLE_DATA[start + i];
+            const start: usize = BTABLE[addr_rx_index] / index_div;
+            while (i < len) : (i += item_size) {
+                const rx_word = BTABLE[start + i];
                 _ = buffer.put(@truncate(u8, rx_word));
                 if (i + 1 < len) {
                     _ = buffer.put(@truncate(u8, rx_word >> 8));
@@ -388,15 +376,15 @@ pub fn Endpoint(
             const len = std.math.min(buf.len, max_tx);
             var i: usize = 0;
             var j: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_TX / btable_index_size;
+            const start: usize = BTABLE[addr_tx_index] / index_div;
             setInCount(@truncate(u10, len));
-            while (j < buf.len and i < len) : (i += btable_item_size) {
+            while (j < buf.len and i < len) : (i += item_size) {
                 var w = @as(u16, buf[j]);
                 if (j + 1 < buf.len) {
                     j += 1;
                     w += @as(u16, buf[j]) << 8;
                 }
-                BTABLE_DATA[start + i] = w;
+                BTABLE[start + i] = w;
                 j += 1;
             }
             return buf[j..];
@@ -405,16 +393,16 @@ pub fn Endpoint(
         pub fn write(buffer: anytype) void {
             const len = std.math.min(buffer.used(), max_tx);
             var i: usize = 0;
-            const start: usize = BTABLE[number].USB_ADDR_TX / btable_index_size;
+            const start: usize = BTABLE[addr_tx_index] / index_div;
             setInCount(@truncate(u10, len));
-            while (i < len) : (i += btable_item_size) {
+            while (i < len) : (i += item_size) {
                 if (buffer.get()) |lo| {
                     var w = @as(u16, lo);
                     if (buffer.get()) |hi| {
                         w += @as(u16, hi) << 8;
-                        BTABLE_DATA[start + i] = w;
+                        BTABLE[start + i] = w;
                     } else {
-                        BTABLE_DATA[start + i] = w;
+                        BTABLE[start + i] = w;
                         break;
                     }
                 } else break;
