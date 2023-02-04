@@ -66,6 +66,7 @@ pub const boards = .{
     @import("stm32/boards/nucleo_f103rb/stm32f103rb.zig"),
     @import("stm32/boards/nucleo_l031k6/stm32l031k6.zig"),
     @import("stm32/boards/olimexino_stm32/stm32f103rb.zig"),
+    @import("stm32/boards/olimexino_stm32/stm32f103rb_bl.zig"),
     @import("stm32/boards/stm32f0_stackable/stm32f072c8.zig"),
     @import("stm32/boards/stm32f1_base/stm32f103c8.zig"),
     @import("msp430/boards/exp_msp430g2/msp430g2553.zig"),
