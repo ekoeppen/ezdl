@@ -6,7 +6,7 @@ const Example = struct {
     boards: []const []const u8,
 };
 
-const mode_arg = "-Drelease-small";
+const mode_arg = "-Doptimize=ReleaseSmall";
 
 var allocator: std.mem.Allocator = undefined;
 const stdout = std.io.getStdOut().writer();

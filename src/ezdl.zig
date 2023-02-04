@@ -91,32 +91,37 @@ pub fn irqIndicesToInts(comptime indices: anytype) []u8 {
 }
 
 pub fn addExecutable(
-    b: *std.build.Builder,
+    b: *std.Build,
     elf_name: []const u8,
     main: []const u8,
     board: *const Board,
-) anyerror!*std.build.LibExeObjStep {
+) anyerror!*std.build.CompileStep {
     const linker_script_path = "zig-cache/memory.ld";
     const output_name = try std.fmt.allocPrint(b.allocator, "{s}_{s}{s}", .{
         std.fs.path.stem(elf_name),
         board.name,
         std.fs.path.extension(elf_name),
     });
-    const exe = b.addExecutable(output_name, main);
-    const info_tool = b.addExecutable("info_tool", mkPath(@src(), "lib/build_info.zig"));
-    const build_info = info_tool.run();
-    try generateLinkerScript(linker_script_path, board.memory);
-    exe.setLinkerScriptPath(.{ .path = linker_script_path });
-    exe.setBuildMode(b.standardReleaseOptions());
-    exe.step.dependOn(&build_info.step);
-    exe.strip = false;
-
     const target = .{
         .cpu_arch = board.cpu_arch,
         .cpu_model = board.cpu_model,
         .os_tag = .freestanding,
     };
-    exe.setTarget(target);
+    const exe = b.addExecutable(.{
+        .name = output_name,
+        .optimize = b.standardOptimizeOption(.{}),
+        .target = target,
+        .root_source_file = .{ .path = main },
+    });
+    const info_tool = b.addExecutable(.{
+        .name = "info_tool",
+        .root_source_file = .{ .path = mkPath(@src(), "lib/build_info.zig") },
+    });
+    const build_info = info_tool.run();
+    try generateLinkerScript(linker_script_path, board.memory);
+    exe.setLinkerScriptPath(.{ .path = linker_script_path });
+    exe.step.dependOn(&build_info.step);
+    exe.strip = false;
 
     const info_pkg = std.build.Pkg{
         .name = "build_info",

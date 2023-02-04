@@ -5,13 +5,16 @@ pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
 
 pub fn addFamilySteps(
-    b: *std.build.Builder,
-    exe: *std.build.LibExeObjStep,
+    b: *std.Build,
+    exe: *std.build.CompileStep,
     board: *const ezdl.Board,
 ) !void {
-    const startup = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
-    startup.setTarget(exe.target);
-    startup.setBuildMode(b.standardReleaseOptions());
+    const startup = b.addObject(.{
+        .name = "startup",
+        .root_source_file = .{ .path = ezdl.mkPath(@src(), "startup.zig") },
+        .target = exe.target,
+        .optimize = exe.optimize,
+    });
     exe.addObject(startup);
     exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 

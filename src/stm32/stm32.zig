@@ -4,7 +4,6 @@ const microzig = @import("microzig");
 
 pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
-pub const startup = @import("startup.zig");
 
 pub fn VectorTable(comptime T: type) type {
     return @Type(.{ .Struct = .{
@@ -35,14 +34,17 @@ pub fn getInterrupts(comptime vectors: anytype) []u8 {
 }
 
 pub fn addFamilySteps(
-    b: *std.build.Builder,
-    exe: *std.build.LibExeObjStep,
+    b: *std.Build,
+    exe: *std.build.CompileStep,
     board: *const ezdl.Board,
 ) !void {
-    const s = b.addObject("startup", ezdl.mkPath(@src(), "startup.zig"));
-    s.setTarget(exe.target);
-    s.setBuildMode(b.standardReleaseOptions());
-    exe.addObject(s);
+    const startup = b.addObject(.{
+        .name = "startup",
+        .root_source_file = .{ .path = ezdl.mkPath(@src(), "startup.zig") },
+        .target = exe.target,
+        .optimize = exe.optimize,
+    });
+    exe.addObject(startup);
     exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 
     const hex_cmd = try ezdl.build_tools.addObjCopyStep(b, exe, .hex);
