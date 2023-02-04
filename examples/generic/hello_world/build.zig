@@ -2,8 +2,8 @@ const std = @import("std");
 const ezdl = @import("ezdl/src/ezdl.zig");
 
 pub fn build(b: *std.build.Builder) anyerror!void {
-    const board_path = b.option([]const u8, "board", "Board directory") orelse //
-        "ezdl/src/stm32/boards/nucleo_f072rb";
-    const exe = try ezdl.addExecutable(b, "hello_world.elf", "main.zig", board_path);
-    exe.install();
+    const board_name = b.option([]const u8, "board", "Board") orelse "nucleo_f072rb";
+    const board = try ezdl.boardFromName(board_name);
+    const exe = try ezdl.addExecutable(b, "hello_world.elf", "main.zig", &board);
+    b.installArtifact(exe);
 }

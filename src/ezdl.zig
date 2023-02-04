@@ -24,13 +24,6 @@ pub fn mkPath(
     };
 }
 
-pub fn deviceFamily(device: []const u8) DeviceFamily {
-    if (device.len >= 5 and std.mem.eql(u8, device[0..5], "stm32")) return .stm32;
-    if (device.len >= 6 and std.mem.eql(u8, device[0..6], "msp430")) return .msp430;
-    if (device.len >= 6 and std.mem.eql(u8, device[0..6], "atmega")) return .avr;
-    return .unknown;
-}
-
 pub const MemoryRegion = struct {
     name: []const u8,
     attrs: []const u8,
@@ -39,12 +32,14 @@ pub const MemoryRegion = struct {
 };
 
 pub const Board = struct {
-    memory: []const MemoryRegion = &.{},
+    name: []const u8,
+    memory: []const MemoryRegion,
+    cpu_name: []const u8 = undefined,
     cpu_arch: std.Target.Cpu.Arch,
-    cpu_model: []const u8 = "",
-    device: []const u8 = "",
-    port: []const u8 = "",
-    programmer: []const u8 = "",
+    cpu_model: std.zig.CrossTarget.CpuModel,
+    port: []const u8 = undefined,
+    programmer: []const u8 = undefined,
+    board_path: ?[]const u8 = null,
 };
 
 pub fn generateLinkerScript(
@@ -66,36 +61,25 @@ pub fn generateLinkerScript(
     try writer.print("}}\nINCLUDE sections.ld\n", .{});
 }
 
-const Model = struct { name: []const u8, cpu: *const std.Target.Cpu.Model };
-
-const model_table: []const Model = &.{
-    .{ .name = "cortex_m0", .cpu = &std.Target.arm.cpu.cortex_m0 },
-    .{ .name = "cortex_m0plus", .cpu = &std.Target.arm.cpu.cortex_m0plus },
-    .{ .name = "cortex_m1", .cpu = &std.Target.arm.cpu.cortex_m1 },
-    .{ .name = "cortex_m3", .cpu = &std.Target.arm.cpu.cortex_m3 },
-    .{ .name = "cortex_m4", .cpu = &std.Target.arm.cpu.cortex_m4 },
-    .{ .name = "cortex_m7", .cpu = &std.Target.arm.cpu.cortex_m4 },
-    .{ .name = "msp430", .cpu = &std.Target.msp430.cpu.msp430 },
-    .{ .name = "atmega328", .cpu = &std.Target.avr.cpu.atmega328 },
-    .{ .name = "atmega328p", .cpu = &std.Target.avr.cpu.atmega328p },
-    .{ .name = "atmega32u4", .cpu = &std.Target.avr.cpu.atmega32u4 },
+pub const boards = .{
+    @import("stm32/boards/nucleo_f072rb/stm32f072rb.zig"),
+    @import("stm32/boards/nucleo_f103rb/stm32f103rb.zig"),
+    @import("stm32/boards/nucleo_l031k6/stm32l031k6.zig"),
+    @import("stm32/boards/olimexino_stm32/stm32f103rb.zig"),
+    @import("stm32/boards/stm32f0_stackable/stm32f072c8.zig"),
+    @import("stm32/boards/stm32f1_base/stm32f103c8.zig"),
+    @import("msp430/boards/exp_msp430g2/msp430g2553.zig"),
+    @import("avr/boards/arduino_uno/atmega328p.zig"),
+    @import("avr/boards/arduino_leonardo/atmega32u4.zig"),
 };
 
-pub fn toCpuModel(model: []const u8) !*const std.Target.Cpu.Model {
-    for (model_table) |known_model| {
-        if (std.mem.eql(u8, known_model.name, model)) return known_model.cpu;
+pub fn boardFromName(name: []const u8) !Board {
+    inline for (boards) |board| {
+        if (std.ascii.eqlIgnoreCase(board.config.name, name)) {
+            return board.config;
+        }
     }
-    return error.UnkownCpuModel;
-}
-
-pub fn readBoardSettings(b: *std.build.Builder, path: []const u8) !Board {
-    const file = try std.fs.cwd().createFile(path, .{ .read = true, .truncate = false });
-    defer file.close();
-    const settings = try file.reader().readAllAlloc(b.allocator, 65536);
-    defer b.allocator.free(settings);
-    var stream = std.json.TokenStream.init(settings);
-    const board = try std.json.parse(Board, &stream, .{ .allocator = b.allocator });
-    return board;
+    return error.BoardDoesNotExist;
 }
 
 pub fn irqIndicesToInts(comptime indices: anytype) []u8 {
@@ -110,18 +94,14 @@ pub fn addExecutable(
     b: *std.build.Builder,
     elf_name: []const u8,
     main: []const u8,
-    board_path: []const u8,
+    board: *const Board,
 ) anyerror!*std.build.LibExeObjStep {
-    const board = try readBoardSettings(b, b.pathJoin(&.{ board_path, "board.json" }));
     const linker_script_path = "zig-cache/memory.ld";
-    const output_name = if (board_path.len > 1 and board_path[0] != '.')
-        try std.fmt.allocPrint(b.allocator, "{s}_{s}{s}", .{
-            std.fs.path.stem(elf_name),
-            std.fs.path.basename(board_path),
-            std.fs.path.extension(elf_name),
-        })
-    else
-        elf_name;
+    const output_name = try std.fmt.allocPrint(b.allocator, "{s}_{s}{s}", .{
+        std.fs.path.stem(elf_name),
+        board.name,
+        std.fs.path.extension(elf_name),
+    });
     const exe = b.addExecutable(output_name, main);
     const info_tool = b.addExecutable("info_tool", mkPath(@src(), "lib/build_info.zig"));
     const build_info = info_tool.run();
@@ -133,7 +113,7 @@ pub fn addExecutable(
 
     const target = .{
         .cpu_arch = board.cpu_arch,
-        .cpu_model = .{ .explicit = try toCpuModel(board.cpu_model) },
+        .cpu_model = board.cpu_model,
         .os_tag = .freestanding,
     };
     exe.setTarget(target);
@@ -151,24 +131,27 @@ pub fn addExecutable(
         .source = .{ .path = mkPath(@src(), "ezdl.zig") },
         .dependencies = &.{microzig_pkg},
     };
-    const board_pkg = std.build.Pkg{
-        .name = "board",
-        .source = .{ .path = b.pathJoin(&.{ board_path, "board.zig" }) },
-        .dependencies = &.{ ezdl_pkg, microzig_pkg },
-    };
 
     exe.addPackage(ezdl_pkg);
-    exe.addPackage(board_pkg);
     exe.addPackage(info_pkg);
+
+    if (board.board_path) |board_path| {
+        const board_pkg = std.build.Pkg{
+            .name = "board",
+            .source = .{ .path = board_path },
+            .dependencies = &.{ ezdl_pkg, microzig_pkg },
+        };
+        exe.addPackage(board_pkg);
+    }
 
     const size_cmd = b.addSystemCommand(&[_][]const u8{"size"});
     size_cmd.addArtifactArg(exe);
     b.getInstallStep().dependOn(&size_cmd.step);
 
-    switch (deviceFamily(board.device)) {
-        .stm32 => try stm32.addFamilySteps(b, exe, &board),
-        .msp430 => try msp430.addFamilySteps(b, exe, &board),
-        .avr => try avr.addFamilySteps(b, exe, &board),
+    switch (board.cpu_arch) {
+        .arm, .thumb => try stm32.addFamilySteps(b, exe, board),
+        .msp430 => try msp430.addFamilySteps(b, exe, board),
+        .avr => try avr.addFamilySteps(b, exe, board),
         else => {},
     }
 

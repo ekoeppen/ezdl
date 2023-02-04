@@ -3,42 +3,42 @@
     "name": "Empty",
     "path": "examples/generic/empty",
     "boards": [
-      "ezdl/src/stm32/boards/nucleo_l031k6",
-      "ezdl/src/stm32/boards/nucleo_f103rb",
-      "ezdl/src/stm32/boards/nucleo_f072rb",
-      "ezdl/src/msp430/boards/exp_msp430g2",
-      "ezdl/src/avr/boards/arduino_uno",
-      "ezdl/src/avr/boards/arduino_leonardo"
+      "nucleo_l031k6",
+      "nucleo_f103rb",
+      "nucleo_f072rb",
+      "exp_msp430g2",
+      "arduino_uno",
+      "arduino_leonardo"
     ]
   },
   {
     "name": "Blink",
     "path": "examples/generic/blink",
     "boards": [
-      "ezdl/src/stm32/boards/nucleo_f103rb",
-      "ezdl/src/stm32/boards/nucleo_f072rb",
-      "ezdl/src/stm32/boards/olimexino_stm32",
-      "ezdl/src/msp430/boards/exp_msp430g2",
-      "ezdl/src/avr/boards/arduino_uno",
-      "ezdl/src/avr/boards/arduino_leonardo"
+      "nucleo_f103rb",
+      "nucleo_f072rb",
+      "olimexino_stm32",
+      "exp_msp430g2",
+      "arduino_uno",
+      "arduino_leonardo"
     ]
   },
   {
     "name": "Accept",
     "path": "examples/generic/accept",
     "boards": [
-      "3rdparty/ezdl/src/stm32/boards/nucleo_f072rb",
-      "3rdparty/ezdl/src/msp430/boards/exp_msp430g2",
-      "3rdparty/ezdl/src/avr/boards/arduino_uno"
+      "nucleo_f072rb",
+      "exp_msp430g2",
+      "arduino_uno"
     ]
   },
   {
     "name": "Hello, World",
     "path": "examples/generic/hello_world",
     "boards": [
-      "ezdl/src/stm32/boards/nucleo_f072rb",
-      "ezdl/src/stm32/boards/nucleo_l031k6",
-      "ezdl/src/avr/boards/arduino_uno"
+      "nucleo_f072rb",
+      "nucleo_l031k6",
+      "arduino_uno"
     ]
   },
   {
@@ -55,15 +55,15 @@
     "name": "STM32 EXTI IRQ",
     "path": "examples/stm32/exti_irq",
     "boards": [
-      "ezdl/src/stm32/boards/nucleo_f072rb"
+      "nucleo_f072rb"
     ]
   },
   {
     "name": "STM32F1 CP2102",
     "path": "examples/stm32/cp2102",
     "boards": [
-      "ezdl/src/stm32/boards/stm32f103c8_base",
-      "ezdl/src/stm32/boards/stm32f072c8_stackable"
+      "stm32f103c8_base",
+      "stm32f072c8_stackable"
     ]
   }
 ]

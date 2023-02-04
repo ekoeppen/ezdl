@@ -1,9 +1,0 @@
-{
-  "device": "stm32f072rb",
-  "cpu_arch": "thumb",
-  "cpu_model": "cortex_m0",
-  "memory": [
-    { "name": "rom", "attrs": "rx", "start": "0x08000000", "size": 131072 },
-    { "name": "ram", "attrs": "rwx", "start": "0x20000000", "size": 16384 }
-  ]
-}
