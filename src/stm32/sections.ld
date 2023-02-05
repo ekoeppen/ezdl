@@ -1,4 +1,4 @@
-ENTRY(main)
+ENTRY(resetHandler)
 PROVIDE(_stack = ORIGIN(ram) + LENGTH(ram));
 
 SECTIONS
