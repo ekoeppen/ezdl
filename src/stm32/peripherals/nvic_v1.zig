@@ -2,6 +2,7 @@ pub fn Nvic(comptime nvic: anytype) type {
     return struct {
         pub fn enableInterrupts(comptime interrupts: []const u8) void {
             inline for (interrupts) |irq| {
+                clearPending(irq);
                 if (irq < 31) {
                     nvic.ISER0.modify(.{ .SETENA = 1 << irq });
                 } else if (irq < 63) {
@@ -16,13 +17,13 @@ pub fn Nvic(comptime nvic: anytype) type {
 
         pub fn clearPending(irq: u8) void {
             if (irq < 31) {
-                nvic.ICPR0.modify(.{ .CLRPEND = 1 << irq });
+                nvic.ICPR0.modify(.{ .CLRPEND = @as(u32, 1) << @truncate(u5, irq) });
             } else if (irq < 63) {
-                nvic.ICPR1.modify(.{ .CLRPEND = 1 << (irq - 32) });
+                nvic.ICPR0.modify(.{ .CLRPEND = @as(u32, 1) << @truncate(u5, irq - 32) });
             } else if (irq < 95) {
-                nvic.ICPR2.modify(.{ .CLRPEND = 1 << (irq - 64) });
+                nvic.ICPR0.modify(.{ .CLRPEND = @as(u32, 1) << @truncate(u5, irq - 64) });
             } else if (irq < 127) {
-                nvic.ICPR3.modify(.{ .CLRPEND = 1 << (irq - 96) });
+                nvic.ICPR0.modify(.{ .CLRPEND = @as(u32, 1) << @truncate(u5, irq - 96) });
             }
         }
     };
