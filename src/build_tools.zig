@@ -28,6 +28,8 @@ const FlashStep = struct {
     port: ?[]const u8,
     programmer: ?[]const u8,
     device: []const u8,
+    reset_cmd: ?[]const u8,
+    reset_wait: ?u32,
 
     pub fn create(
         builder: *std.build.Builder,
@@ -48,6 +50,14 @@ const FlashStep = struct {
             .avrdude => builder.option([]const u8, "programmer", "Driver for flashing via avrdude") orelse board.programmer,
             else => null,
         };
+        const reset_cmd = switch (tool) {
+            .dfu_util => builder.option([]const u8, "reset", "Extra commands to run to reset to DFU mode") orelse null,
+            else => null,
+        };
+        const reset_wait = switch (tool) {
+            .dfu_util => builder.option(u32, "reset-wait", "Milliseconds to wait after reset before programming") orelse 1_000,
+            else => null,
+        };
         self.* = FlashStep{
             .builder = builder,
             .step = std.build.Step.init(.run, name, builder.allocator, make),
@@ -56,6 +66,8 @@ const FlashStep = struct {
             .dest_path = builder.getInstallPath(hex.dest_dir, hex.dest_filename),
             .port = port,
             .programmer = programmer,
+            .reset_cmd = reset_cmd,
+            .reset_wait = reset_wait,
             .name = switch (tool) {
                 .jlink => "flash-jlink",
                 .stlink => "flash-stlink",
@@ -121,6 +133,23 @@ const FlashStep = struct {
     }
 
     fn makeDfuUtilFlash(self: *FlashStep) !void {
+        if (self.reset_cmd) |reset_cmd| {
+            const reset_args = args: {
+                var n: usize = 0;
+                var pieces: [256][]const u8 = undefined;
+                var it = std.mem.split(u8, reset_cmd, " ");
+                while (it.next()) |arg| {
+                    pieces[n] = arg;
+                    n += 1;
+                }
+                break :args pieces[0..n];
+            };
+            var code: u8 = 0;
+            _ = self.builder.execAllowFail(reset_args, &code, .Inherit) catch {};
+            if (self.reset_wait) |reset_wait| {
+                std.time.sleep(reset_wait * 1_000_000);
+            }
+        }
         const altSep = std.mem.indexOfScalar(u8, self.port.?, ',');
         const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
         const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
