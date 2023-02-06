@@ -124,30 +124,31 @@ pub fn addExecutable(
     exe.step.dependOn(&build_info.step);
     exe.strip = false;
 
-    const info_pkg = std.build.Pkg{
-        .name = "build_info",
-        .source = .{ .path = "zig-cache/build_info.zig" },
-    };
-    const microzig_pkg = std.build.Pkg{
-        .name = "microzig",
-        .source = .{ .path = mkPath(@src(), "microzig.zig") },
-    };
-    const ezdl_pkg = std.build.Pkg{
-        .name = "ezdl",
-        .source = .{ .path = mkPath(@src(), "ezdl.zig") },
-        .dependencies = &.{microzig_pkg},
-    };
+    var info_mod = b.createModule(.{
+        .source_file = .{ .path = "zig-cache/build_info.zig" },
+    });
+    var microzig_mod = b.createModule(.{
+        .source_file = .{ .path = mkPath(@src(), "microzig.zig") },
+    });
+    var ezdl_mod = b.createModule(.{
+        .source_file = .{ .path = mkPath(@src(), "ezdl.zig") },
+        .dependencies = &.{
+            .{ .name = "microzig", .module = microzig_mod },
+        },
+    });
 
-    exe.addPackage(ezdl_pkg);
-    exe.addPackage(info_pkg);
+    exe.addModule("ezdl", ezdl_mod);
+    exe.addModule("build_info", info_mod);
 
     if (board.board_path) |board_path| {
-        const board_pkg = std.build.Pkg{
-            .name = "board",
-            .source = .{ .path = board_path },
-            .dependencies = &.{ ezdl_pkg, microzig_pkg },
-        };
-        exe.addPackage(board_pkg);
+        var board_mod = b.createModule(.{
+            .source_file = .{ .path = board_path },
+            .dependencies = &.{
+                .{ .name = "ezdl", .module = ezdl_mod },
+                .{ .name = "microzig", .module = microzig_mod },
+            },
+        });
+        exe.addModule("board", board_mod);
     }
 
     const size_cmd = b.addSystemCommand(&[_][]const u8{"size"});

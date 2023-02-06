@@ -13,15 +13,13 @@ pub fn build(b: *std.Build) anyerror!void {
         .optimize = b.standardOptimizeOption(.{}),
     });
     exe.setLinkerScriptPath(.{ .path = "linker.ld" });
-    const microzig = std.build.Pkg{
-        .name = "microzig",
-        .source = .{ .path = "ezdl/src/microzig.zig" },
-    };
-    const ezdl_pkg = std.build.Pkg{
-        .name = "ezdl",
-        .source = .{ .path = "ezdl/src/ezdl.zig" },
-        .dependencies = &.{microzig},
-    };
-    exe.addPackage(ezdl_pkg);
+    var microzig = b.createModule(.{
+        .source_file = .{ .path = "ezdl/src/microzig.zig" },
+    });
+    var ezdl = b.createModule(.{
+        .source_file = .{ .path = "ezdl/src/ezdl.zig" },
+        .dependencies = &.{.{ .name = "microzig", .module = microzig }},
+    });
+    exe.addModule("ezdl", ezdl);
     exe.install();
 }
