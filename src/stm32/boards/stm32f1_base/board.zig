@@ -18,7 +18,7 @@ pub const usb_dp = mcu.Gpio(periph.GPIOA, 12, .{ .output = .{} });
 
 const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);
 const ep1 = mcu.usb.Endpoint(periph.USB, 1, .bulk, 256, 256, .valid, .nak);
-pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, usb_dp);
+pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, usb_dp, null);
 
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 

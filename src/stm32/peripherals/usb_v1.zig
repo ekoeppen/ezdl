@@ -4,16 +4,21 @@ pub fn Usb(
     comptime usb_periph: anytype,
     comptime eps: anytype,
     comptime dp_pin: anytype,
+    comptime disc_pin: anytype,
 ) type {
     return struct {
         pub const usb = usb_periph;
         pub const endpoints = eps;
         pub const reset_via_dp = @TypeOf(dp_pin) != @TypeOf(null);
+        pub const reset_via_disc = @TypeOf(disc_pin) != @TypeOf(null);
 
         pub fn init() void {
             if (reset_via_dp) {
                 dp_pin.init();
                 dp_pin.clear();
+            } else if (reset_via_disc) {
+                disc_pin.init();
+                disc_pin.set();
             } else {
                 usb.BCDR.modify(.{ .DPPU = 0 });
             }
@@ -24,11 +29,19 @@ pub fn Usb(
             }
             if (reset_via_dp) {
                 dp_pin.setConfig(.{ .output = .{ .mode = .open_drain } });
+            } else if (reset_via_disc) {
+                disc_pin.clear();
             } else {
                 usb.BCDR.modify(.{ .DPPU = 1 });
             }
             usb.CNTR.modify(.{ .FRES = 1 });
-            usb.CNTR.modify(.{ .PDWN = 0, .FRES = 0 });
+            usb.CNTR.modify(.{
+                .PDWN = 0,
+                .FRES = 0,
+                .ESOFM = 0,
+                .SOFM = 0,
+                .ERRM = 0,
+            });
             usb.ISTR.modify(.{
                 .PMAOVR = 0,
                 .ERR = 0,
@@ -44,12 +57,7 @@ pub fn Usb(
 
         pub fn irqHandler() ?u8 {
             const istr = usb.ISTR.read();
-            const ep_id: ?u8 = ep_id: {
-                if (istr.CTR == 1) {
-                    usb.ISTR.modify(.{ .CTR = 0 });
-                    break :ep_id istr.EP_ID;
-                } else break :ep_id null;
-            };
+            const ep_id: ?u8 = if (istr.CTR == 1) istr.EP_ID else null;
             if (istr.RESET == 1) {
                 usb.ISTR.modify(.{ .RESET = 0 });
                 resetRequest();
@@ -436,16 +444,10 @@ pub fn ControlEndpoint(
     return struct {
         const Self = @This();
 
-        setup_address: u7 = undefined,
-        active_configuration: u16 = undefined,
-        pending_data: []const u8 = undefined,
+        setup_address: u7 = 0,
+        active_configuration: u16 = 0,
+        pending_data: []const u8 = &.{},
         setup_packet: SetupPacket align(4) = undefined,
-
-        pub fn init(self: *Self, btable_offset: u16) u16 {
-            self.setup_address = 0;
-            self.active_configuration = 0;
-            return ep.init(btable_offset);
-        }
 
         pub fn send(self: *Self, data: []const u8) void {
             const length = std.math.min(data.len, ep.max_tx);
