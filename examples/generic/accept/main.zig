@@ -1,5 +1,5 @@
 const board = @import("board");
-const accept = @import("3rdparty/accept/src/main.zig");
+const accept = @import("accept");
 const build_info = @import("build_info");
 const writer = board.usart.writer();
 
