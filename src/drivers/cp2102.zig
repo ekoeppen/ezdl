@@ -176,11 +176,6 @@ fn ControlEndpoint(
                 .set_baudrate => {
                     _ = ep.getOutData(std.mem.asBytes(&self.state.baud_rate));
                     ep.send(&.{});
-                    if (self.state.baud_rate == 1200) {
-                        const AIRCR = @intToPtr(*volatile u32, 0xe000ed0c);
-                        AIRCR.* = 0x05fa0004;
-                        while (true) {}
-                    }
                 },
                 .set_flow, .set_chars => {
                     ep.send(&.{});
