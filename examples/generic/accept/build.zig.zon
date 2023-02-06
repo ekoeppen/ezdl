@@ -4,7 +4,10 @@
     .dependencies = .{
         .accept = .{
             .url = "https://gitlab.com/40hz/zig/accept/-/archive/v0.1.0/accept-v0.1.0.tar.gz",
-			.hash = "1220e268a76582c3fbbf0890e0362ace7c9cecf7b5127588c1c2ae93b648737c0197",
+            .hash = "1220e268a76582c3fbbf0890e0362ace7c9cecf7b5127588c1c2ae93b648737c0197",
+        },
+        .ezdl = .{
+            .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/15d674a2989d3650ce9daa59afaab5f0c35444f5/ezdl-15d674a2989d3650ce9daa59afaab5f0c35444f5.tar.gz",
         },
     },
 }
