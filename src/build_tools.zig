@@ -125,7 +125,7 @@ const FlashStep = struct {
         const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
         const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
         _ = try self.builder.execFromStep(
-            &.{ "dfu-util", "-D", self.dest_path, "-d", dev, "-a", altId },
+            &.{ "dfu-util", "-D", self.dest_path, "-d", dev, "-a", altId, "-R" },
             &self.step,
         );
     }

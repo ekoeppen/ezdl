@@ -26,11 +26,12 @@ pub fn run() !void {
 
 pub export fn main() void {
     board.init();
-    board.led2.init();
     board.led.init();
+    board.led2.init();
 
     board.usb_device.init();
     board.led.set();
+    board.led2.clear();
 
     if (run()) {} else |_| {
         @panic("Runtime exception");
