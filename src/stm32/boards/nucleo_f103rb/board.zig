@@ -8,6 +8,4 @@ pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
 pub fn init() void {
     svd.peripherals.RCC.APB2ENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1, .SPI1EN = 1 });
-
-    led.init();
 }

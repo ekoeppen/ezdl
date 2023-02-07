@@ -138,9 +138,8 @@ const FlashStep = struct {
                 var n: usize = 0;
                 var pieces: [256][]const u8 = undefined;
                 var it = std.mem.split(u8, reset_cmd, " ");
-                while (it.next()) |arg| {
+                while (it.next()) |arg| : (n += 1) {
                     pieces[n] = arg;
-                    n += 1;
                 }
                 break :args pieces[0..n];
             };

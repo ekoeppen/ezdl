@@ -43,27 +43,4 @@ pub fn init() void {
     periph.RCC.AHBENR.modify(.{ .DMAEN = 1 });
     periph.PWR.CR.modify(.{ .DBP = 1 });
     periph.RCC.CSR.modify(.{ .RTCSEL = 0b10, .RTCEN = 1 });
-
-    button.init();
-
-    cs.init();
-    cs.set();
-    sck.init();
-    sdi.init();
-    sdo.init();
-
-    tx.init();
-    rx.init();
-
-    usart.init();
-    spi.init();
-
-    if (false) {
-        periph.DMA1.CPAR5.modify(.{ .PA = @ptrToInt(periph.USART2.RDR.raw_ptr) });
-        periph.DMA1.CMAR5.modify(.{ .MA = @ptrToInt(&rx_buffer) });
-        periph.DMA1.CCR5.modify(.{ .CIRC = 1, .MINC = 1 });
-        periph.DMA1.CNDTR5.modify(.{ .NDT = @as(u32, rx_buffer.len) });
-        periph.DMA1.CSELR.modify(.{ .C5S = 4 });
-        periph.DMA1.CCR5.modify(.{ .EN = 1 });
-    }
 }
