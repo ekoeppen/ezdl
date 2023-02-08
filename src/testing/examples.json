@@ -42,6 +42,13 @@
     ]
   },
   {
+    "name": "NRF24",
+    "path": "examples/generic/nrf24",
+    "boards": [
+      "nucleo_f072rb"
+    ]
+  },
+  {
     "name": "STM32 Custom Board",
     "path": "examples/stm32/custom_board",
     "boards": [ ]

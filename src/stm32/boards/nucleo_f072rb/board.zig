@@ -28,6 +28,11 @@ pub const spi = mcu.Spi(periph.SPI1);
 pub const usart = mcu.Usart(periph.USART2, .{ .speed = 115200 });
 pub const i2c = mcu.I2c(periph.I2C1);
 
+pub const nrf24 = struct {
+    pub const ce = mcu.Gpio(periph.GPIOB, 10, .{ .output = .{} });
+    pub const irq = mcu.Gpio(periph.GPIOB, 4, .{ .output = .{} });
+};
+
 const irqs: []const svd.VectorIndex = &.{ .SPI1, .USART2, .I2C1, .RTC, .EXTI4_15 };
 
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
