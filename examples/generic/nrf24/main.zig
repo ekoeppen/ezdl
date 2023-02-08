@@ -9,6 +9,10 @@ const Nrf24 = @import("ezdl").drivers.nrf24.Nrf24;
 
 const nrf24 = Nrf24(board.spi, board.cs, board.nrf24.ce, board.nrf24.irq);
 
+const rx_addr = .{ 0x00, 0xf0, 0xf0, 0xf0, 0xf0 };
+const tx_addr = .{ 0x00, 0xf0, 0xf0, 0xf0, 0xf0 };
+const tx_data = .{ 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x55 };
+
 var line: [16]u8 = undefined;
 
 fn writeByte(byte: u8) void {
@@ -31,7 +35,7 @@ fn readLine() []u8 {
 const Command = struct {
     name: []const u8,
     description: []const u8,
-    command: *const fn () anyerror!void,
+    command: *const fn (args: *std.mem.SplitIterator(u8)) anyerror!void,
 };
 
 const commands: []const Command = &.{
@@ -39,26 +43,55 @@ const commands: []const Command = &.{
     .{ .name = "regs", .description = "Print NRF24 registers", .command = regs },
     .{ .name = "init", .description = "Re-initialize NRF24", .command = init },
     .{ .name = "reset", .description = "Reset the board", .command = reset },
+    .{ .name = "rx", .description = "Receive packet", .command = rx },
+    .{ .name = "tx", .description = "Send packet", .command = tx },
 };
 
-fn help() !void {
+fn help(_: *std.mem.SplitIterator(u8)) !void {
     _ = try writer.writeAll("Commands: \n");
     for (commands) |command| {
         _ = try writer.print("{s}: {s}\n", .{ command.name, command.description });
     }
 }
 
-fn regs() !void {
+fn regs(_: *std.mem.SplitIterator(u8)) !void {
     _ = try nrf24.printRegisters(writer);
 }
 
-fn reset() !void {
+fn reset(_: *std.mem.SplitIterator(u8)) !void {
     board.mcu.reset();
 }
 
-fn init() !void {
+fn init(_: *std.mem.SplitIterator(u8)) !void {
     nrf24.init();
     nrf24.setChannel(70);
+    nrf24.setRxAddress(rx_addr);
+}
+
+fn rx(_: *std.mem.SplitIterator(u8)) !void {
+    var buffer: [64]u8 = undefined;
+    _ = try writer.writeAll("Waiting for packet...\n");
+    nrf24.rxMode();
+    while (!nrf24.rxAvailable()) {
+        if (board.console.rxAvailable()) {
+            _ = board.console.receive();
+            _ = try writer.writeAll("Cancelled.\n");
+            return;
+        }
+    }
+    _ = try writer.writeAll("Packet received:\n");
+    const packet = nrf24.rx(&buffer);
+    for (packet) |d| _ = try writer.print("{X:0<2} ", .{d});
+    _ = try writer.writeAll("\n");
+    nrf24.idle();
+}
+
+fn tx(_: *std.mem.SplitIterator(u8)) !void {
+    _ = try writer.writeAll("Sending packet...\n");
+    nrf24.setTxAddress(tx_addr);
+    nrf24.txMode();
+    nrf24.tx(&tx_data);
+    _ = try writer.writeAll("Done.\n");
 }
 
 fn handleInput(buffer: []const u8) anyerror!void {
@@ -66,7 +99,9 @@ fn handleInput(buffer: []const u8) anyerror!void {
     const cmd = args.first();
     for (commands) |command| {
         if (std.ascii.eqlIgnoreCase(command.name, cmd)) {
-            try command.command();
+            command.command(&args) catch |e| {
+                _ = try writer.print("Error: {}\n", .{e});
+            };
             break;
         }
     }
@@ -81,8 +116,6 @@ pub fn run() !void {
         build_info.build_time,
         build_info.commit,
     });
-    try help();
-    _ = try writer.writeAll("\n");
     nrf24.init();
     nrf24.setChannel(70);
     while (true) {

@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub fn Nrf24(
     comptime spi: anytype,
     comptime cs: anytype,
@@ -66,6 +68,7 @@ pub fn Nrf24(
             ENAA_P3: u1 = 0,
             ENAA_P4: u1 = 0,
             ENAA_P5: u1 = 0,
+            _: u2 = 0,
         };
 
         pub const EN_RXADDR = packed struct {
@@ -90,11 +93,12 @@ pub fn Nrf24(
         };
 
         pub const RF_SETUP = packed struct {
-            _: u1 = 0,
+            _1: u1 = 0,
             RF_PWR: u2 = 0,
             RF_DR_HIGH: u1 = 0,
             PLL_LOCK: u1 = 0,
             RF_DR_LOW: u1 = 0,
+            _6: u1 = 0,
             CONST_WAVE: u1 = 0,
         };
 
@@ -138,16 +142,19 @@ pub fn Nrf24(
         const STATUS_Init = STATUS{ .RX_DR = 1, .TX_DS = 1, .MAX_RT = 1 };
         const SETUP_AW_Init = SETUP_AW{ .AW = .AW_5_Bytes };
         const EN_RXADDR_Init = EN_RXADDR{ .ERX_P0 = 1, .ERX_P1 = 1 };
-        const RF_SETUP_Init = RF_SETUP{ .RF_DR_LOW = 1 };
+        const RF_SETUP_Init = RF_SETUP{ .RF_DR_LOW = 1, .RF_PWR = 3 };
         const FEATURE_Init = FEATURE{ .EN_DPL = 1, .EN_DYN_ACK = 1 };
         const DYNPD_Init = DYNPD{ .DPL_P0 = 1, .DPL_P1 = 1 };
+        const EN_AA_Init = EN_AA{};
 
         pub fn init() void {
             writeRegister(.CONFIG, CONFIG_Init);
             writeRegister(.STATUS, STATUS_Init);
             writeRegister(.SETUP_AW, SETUP_AW_Init);
+            writeRegister(.EN_AA, EN_AA_Init);
             writeRegister(.EN_RXADDR, EN_RXADDR_Init);
             writeRegister(.FEATURE, FEATURE_Init);
+            writeRegister(.RF_SETUP, RF_SETUP_Init);
             writeRegister(.DYNPD, DYNPD_Init);
         }
 
@@ -198,9 +205,24 @@ pub fn Nrf24(
 
         pub fn rxMode() void {
             writeRegister(.CONFIG, CONFIG{ .EN_CRC = 1, .PRIM_RX = 1, .PWR_UP = 1 });
+            ce.set();
+        }
+
+        pub fn idle() void {
+            ce.clear();
+        }
+
+        pub fn powerDown() void {
+            ce.clear();
+        }
+
+        pub fn rxAvailable() bool {
+            const reg = @bitCast(STATUS, readRegister(.STATUS));
+            return reg.RX_DR == 1;
         }
 
         pub fn tx(data: []const u8) void {
+            var status: STATUS = undefined;
             cs.clear();
             spi.send(@enumToInt(Command.FLUSH_TX));
             cs.set();
@@ -209,12 +231,37 @@ pub fn Nrf24(
             for (data) |d| spi.send(d);
             cs.set();
             ce.set();
-            var i: usize = 15000;
-            while (i > 0) : (i -= 1) {
-                asm volatile ("nop");
+            while (true) {
+                status = @bitCast(STATUS, readRegister(.STATUS));
+                if (status.TX_DS == 1) break;
             }
             ce.clear();
+            writeRegister(.STATUS, status);
             if (!irq.isSet()) {}
+        }
+
+        pub fn readPayload(data: []u8) []u8 {
+            cs.clear();
+            spi.send(@enumToInt(Command.R_RX_PL_WID));
+            const n = std.math.min(spi.receive(), data.len);
+            cs.set();
+            cs.clear();
+            spi.send(@enumToInt(Command.R_RX_PAYLOAD));
+            for (data) |_, i| {
+                data[i] = spi.receive();
+            }
+            cs.set();
+            cs.clear();
+            spi.send(@enumToInt(Command.FLUSH_RX));
+            cs.set();
+            return data[0..n];
+        }
+
+        pub fn rx(data: []u8) []u8 {
+            rxMode();
+            while (!rxAvailable()) {}
+            writeRegister(.STATUS, @bitCast(STATUS, readRegister(.STATUS)));
+            return readPayload(data);
         }
 
         pub fn printRegisters(writer: anytype) @TypeOf(writer).Error!void {

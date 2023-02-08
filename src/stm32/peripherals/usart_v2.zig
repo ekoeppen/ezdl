@@ -42,8 +42,12 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
         }
 
         pub fn receive() u8 {
-            while (periph.ISR.read().RXNE == 0) {}
+            while (!rxAvailable()) {}
             return @truncate(u8, periph.RDR.read().RDR);
+        }
+
+        pub fn rxAvailable() bool {
+            return periph.ISR.read().RXNE == 1;
         }
 
         pub fn send(data: u8) void {

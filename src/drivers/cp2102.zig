@@ -296,6 +296,10 @@ pub fn Cp2102(
             }
         }
 
+        pub fn rxAvailable(self: *Self) bool {
+            return !self.data.rx_buffer.empty();
+        }
+
         pub fn write(self: *Self, bytes: []const u8) WriteError!usize {
             return self.data.write(bytes);
         }
