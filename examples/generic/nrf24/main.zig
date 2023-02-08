@@ -29,6 +29,7 @@ const Command = struct {
 const commands: []const Command = &.{
     .{ .name = "help", .description = "Print commands", .command = help },
     .{ .name = "regs", .description = "Print NRF24 registers", .command = regs },
+    .{ .name = "init", .description = "Re-initialize NRF24", .command = init },
 };
 
 fn help() !void {
@@ -40,6 +41,11 @@ fn help() !void {
 
 fn regs() !void {
     _ = try nrf24.printRegisters(writer);
+}
+
+fn init() !void {
+    nrf24.init();
+    nrf24.setChannel(70);
 }
 
 fn handleInput(buffer: []const u8) anyerror!void {
