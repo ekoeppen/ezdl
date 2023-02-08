@@ -30,8 +30,7 @@ pub const mmio = struct {
             }
 
             pub inline fn writeRaw(addr: *volatile Self, val: IntT) void {
-                var tmp = @bitCast(IntT, val);
-                addr.raw = tmp;
+                addr.raw = @bitCast(IntT, val);
             }
 
             pub fn modifyRaw(

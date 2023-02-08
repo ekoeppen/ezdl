@@ -7,22 +7,20 @@ pub fn Spi(comptime spi: anytype) type {
         }
 
         pub fn receive() u8 {
-            const DR = @intToPtr(*volatile u8, spi.DR.raw);
-            while (spi.SR.read().TXE == 0) {}
-            DR.* = 0x0;
-            while (spi.SR.read().RXNE == 0) {}
-            while (spi.SR.read().BSY == 1) {}
-            return DR.*;
+            return transmit(0x00);
         }
 
         pub fn send(data: u8) void {
-            const DR = @intToPtr(*volatile u8, spi.DR.raw);
+            _ = transmit(data);
+        }
+
+        pub fn transmit(data: u8) u8 {
+            const DR = @ptrCast(*volatile u8, &spi.DR.raw);
             while (spi.SR.read().TXE == 0) {}
             DR.* = data;
             while (spi.SR.read().RXNE == 0) {}
             while (spi.SR.read().BSY == 1) {}
-            const r = DR.*;
-            _ = r;
+            return DR.*;
         }
     };
 }

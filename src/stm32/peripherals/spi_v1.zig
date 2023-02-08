@@ -14,11 +14,12 @@ pub fn Spi(comptime spi: anytype) type {
         }
 
         pub fn transmit(data: u8) u8 {
+            const DR = @ptrCast(*volatile u8, &spi.DR.raw);
             while (spi.SR.read().TXE == 0) {}
-            spi.DR.write(.{ .DR = data });
+            DR.* = data;
             while (spi.SR.read().RXNE == 0) {}
             while (spi.SR.read().BSY == 1) {}
-            return @truncate(u8, spi.DR.read().DR);
+            return DR.*;
         }
     };
 }
