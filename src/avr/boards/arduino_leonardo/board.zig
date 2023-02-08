@@ -13,6 +13,7 @@ pub const sdo = mcu.Gpio(svd.PORTB, 2, .output);
 pub const sdi = mcu.Gpio(svd.PORTB, 3, .input);
 pub const uext_pwr = mcu.Gpio(svd.PORTB, 4, .output);
 pub const cs = mcu.Gpio(svd.PORTC, 7, .output);
+pub const rx = mcu.Gpio(svd.PORTD, 3, .output);
 pub const tx = mcu.Gpio(svd.PORTD, 3, .output);
 pub const button = mcu.Gpio(svd.PORTE, 2, .input);
 pub const led = mcu.Gpio(svd.PORTE, 6, .output);
