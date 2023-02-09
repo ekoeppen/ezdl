@@ -21,4 +21,11 @@ pub const led = mcu.Gpio(svd.PORTE, 6, .output);
 pub const usart = mcu.Usart(svd.USART1);
 pub const spi = mcu.Spi(svd.SPI, 0, 1);
 
+pub const nrf24 = struct {
+    pub const ce = mcu.Gpio(svd.PORTD, 7, .output);
+    pub const irq = mcu.Gpio(svd.PORTC, 6, .input);
+};
+
 pub fn init() void {}
+
+pub const reset = @intToPtr(*allowzero const fn () void, 0);

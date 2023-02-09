@@ -4,9 +4,7 @@ const build_info = @import("build_info");
 
 fn checkReset() void {
     if (board.serial.control.state.baud_rate == 1200) {
-        const AIRCR = @intToPtr(*volatile u32, 0xe000ed0c);
-        AIRCR.* = 0x05fa0004;
-        while (true) {}
+        board.reset();
     }
 }
 

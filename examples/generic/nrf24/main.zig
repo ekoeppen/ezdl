@@ -30,6 +30,7 @@ const commands: []const Command = &.{
     .{ .name = "help", .description = "Print commands", .command = help },
     .{ .name = "regs", .description = "Print NRF24 registers", .command = regs },
     .{ .name = "init", .description = "Re-initialize NRF24", .command = init },
+    .{ .name = "reset", .description = "Reset the board", .command = reset },
 };
 
 fn help() !void {
@@ -41,6 +42,10 @@ fn help() !void {
 
 fn regs() !void {
     _ = try nrf24.printRegisters(writer);
+}
+
+fn reset() !void {
+    board.reset();
 }
 
 fn init() !void {
