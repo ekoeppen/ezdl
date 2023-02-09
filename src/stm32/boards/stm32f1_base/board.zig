@@ -58,8 +58,3 @@ pub fn init() void {
     while (periph.RCC.CFGR.read().SWS != 2) {}
     nvic.enableInterrupts(ezdl.irqIndicesToInts(irqs));
 }
-pub fn reset() void {
-    const AIRCR = @intToPtr(*volatile u32, 0xe000ed0c);
-    AIRCR.* = 0x05fa0004;
-    while (true) {}
-}

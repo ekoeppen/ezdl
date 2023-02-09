@@ -4,7 +4,7 @@ const build_info = @import("build_info");
 
 fn checkReset() void {
     if (board.serial.control.state.baud_rate == 1200) {
-        board.reset();
+        board.mcu.reset();
     }
 }
 

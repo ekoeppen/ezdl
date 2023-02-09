@@ -45,7 +45,7 @@ fn regs() !void {
 }
 
 fn reset() !void {
-    board.reset();
+    board.mcu.reset();
 }
 
 fn init() !void {

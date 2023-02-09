@@ -27,3 +27,7 @@ export fn __mspabi_mpyi(x: i16, y: i16) i16 {
 
     return if (neg) -rv else rv;
 }
+
+pub fn reset() void {
+    @import("../svd/msp430g2x53.zig").devices.MSP430G2x53.peripherals.WATCHDOG_TIMER.WDTCTL.modify(.{ .WDTPW = .{ .raw = 0x5a }, .WDTHOLD = 1 });
+}

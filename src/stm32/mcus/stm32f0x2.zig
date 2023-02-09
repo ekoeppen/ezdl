@@ -6,3 +6,9 @@ pub const Exti = @import("../peripherals/peripherals.zig").exti_v2.Exti;
 pub const Rtc = @import("../peripherals/peripherals.zig").rtc_v2.Rtc;
 pub const Nvic = @import("../peripherals/peripherals.zig").nvic_v2.Nvic;
 pub const usb = @import("../peripherals/peripherals.zig").usb_v1;
+
+pub fn reset() void {
+    const AIRCR = @intToPtr(*volatile u32, 0xe000ed0c);
+    AIRCR.* = 0x05fa0004;
+    while (true) {}
+}

@@ -27,5 +27,3 @@ pub const nrf24 = struct {
 };
 
 pub fn init() void {}
-
-pub const reset = @intToPtr(*allowzero const fn () void, 0);
