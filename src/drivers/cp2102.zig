@@ -1,8 +1,21 @@
 const std = @import("std");
 
+pub const State = struct {
+    enable: bool = false,
+    rts: bool = false,
+    cts: bool = false,
+    dtr: bool = false,
+    dsr: bool = false,
+    ri: bool = false,
+    dcd: bool = false,
+    xon: bool = false,
+    baud_rate: u32 = 9600,
+};
+
 fn ControlEndpoint(
     comptime usb_periph: anytype,
     comptime ep: anytype,
+    comptime state_change_handler: ?*const fn (state: *const State) void,
 ) type {
     return struct {
         const ControlCommand = enum(u8) {
@@ -112,22 +125,16 @@ fn ControlEndpoint(
             .control_handshake = .{},
             .flow_replace = .{},
         };
-
-        const State = struct {
-            enable: bool = false,
-            rts: bool = false,
-            cts: bool = false,
-            dtr: bool = false,
-            dsr: bool = false,
-            ri: bool = false,
-            dcd: bool = false,
-            xon: bool = false,
-            chars: [6]u8 = .{ 0, 0, 0, 0, 17, 19 },
-            baud_rate: u32 = 9600,
-        };
+        var chars: [6]u8 = .{ 0, 0, 0, 0, 17, 19 };
 
         const Self = @This();
         state: State = .{},
+
+        fn forwardStateChange(self: *const Self) void {
+            if (state_change_handler) |handler| {
+                handler(&self.state);
+            }
+        }
 
         fn handleSetup(self: *Self, setup_packet: usb_periph.SetupPacket) void {
             if (setup_packet.request_type != .vendor and setup_packet.request_type != .class) {
@@ -139,12 +146,14 @@ fn ControlEndpoint(
                 .ifc_enable => {
                     self.state.enable = @truncate(u1, request.generic.value) == 1;
                     ep.send(&.{});
+                    self.forwardStateChange();
                 },
                 .get_line_ctl => ep.send(&.{ 0x08, 0x00 }),
                 .set_mhs => {
                     self.state.dtr = request.generic.value & 0b0000_0001_0000_0000 != 0;
                     self.state.rts = request.generic.value & 0b0000_0010_0000_0000 != 0;
                     ep.send(&.{});
+                    self.forwardStateChange();
                 },
                 .get_mdmsts => {
                     var mdmsts: [1]u8 = .{
@@ -158,6 +167,7 @@ fn ControlEndpoint(
                 .get_baudrate => ep.send(std.mem.asBytes(&self.state.baud_rate)),
                 .get_props => ep.send(std.mem.asBytes(&comm_props)),
                 .get_flow => ep.send(std.mem.asBytes(&flow_control_state)),
+                .get_chars => ep.send(std.mem.asBytes(&chars)),
                 .vendor_specific => ep.send(&.{0x02}),
                 .set_baudrate, .set_flow, .set_chars => {
                     ep.resetOutCount();
@@ -176,9 +186,17 @@ fn ControlEndpoint(
                 .set_baudrate => {
                     _ = ep.getOutData(std.mem.asBytes(&self.state.baud_rate));
                     ep.send(&.{});
+                    self.forwardStateChange();
                 },
-                .set_flow, .set_chars => {
+                .set_flow => {
+                    _ = ep.getOutData(std.mem.asBytes(&flow_control_state));
                     ep.send(&.{});
+                    self.forwardStateChange();
+                },
+                .set_chars => {
+                    _ = ep.getOutData(std.mem.asBytes(&chars));
+                    ep.send(&.{});
+                    self.forwardStateChange();
                 },
                 else => {},
             }
@@ -200,9 +218,13 @@ pub fn Cp2102(
     comptime usb_periph: anytype,
     comptime usb: anytype,
     comptime Buffer: type,
+    comptime state_change_handler: ?*const fn (state: *const State) void,
 ) type {
     return struct {
         const Self = @This();
+
+        const WriteError = error{};
+        const ReadError = error{};
 
         const device_descriptor: []const u8 = &.{
             0x12, 0x01, 0x10, 0x01, 0x00, 0x00, 0x00, 0x40, 0xc4, 0x10, 0x60,
@@ -243,7 +265,7 @@ pub fn Cp2102(
             .interface = &.{},
         }) = .{},
         data: usb_periph.BulkEndpoint(usb.endpoints[1], Buffer) = .{},
-        control: ControlEndpoint(usb_periph, usb.endpoints[0]) = .{},
+        control: ControlEndpoint(usb_periph, usb.endpoints[0], state_change_handler) = .{},
 
         pub fn irqHandler(self: *Self) void {
             if (usb.irqHandler()) |ep| {
@@ -257,6 +279,34 @@ pub fn Cp2102(
                     else => {},
                 }
             }
+        }
+
+        pub fn write(self: *Self, bytes: []const u8) WriteError!usize {
+            return self.data.write(bytes);
+        }
+
+        pub const Writer = std.io.Writer(*Self, WriteError, write);
+
+        pub fn writer(self: *Self) Writer {
+            return .{ .context = self };
+        }
+
+        pub const Reader = std.io.Reader(*Self, ReadError, read);
+
+        pub fn reader(self: *Self) Reader {
+            return .{ .context = self };
+        }
+
+        pub fn read(self: *Self, bytes: []u8) ReadError!usize {
+            return self.data.read(bytes);
+        }
+
+        pub fn dtr(self: *const Self) bool {
+            return self.control.state.dtr;
+        }
+
+        pub fn rts(self: *const Self) bool {
+            return self.control.state.rts;
         }
     };
 }

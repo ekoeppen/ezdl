@@ -39,7 +39,17 @@ pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, null, usb_disc);
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
 const cp2102 = ezdl.drivers.cp2102;
-pub var serial: cp2102.Cp2102(mcu.usb, usb_device, ezdl.lib.RingBuffer(u8, 256)) = .{};
+
+pub var serial: cp2102.Cp2102(
+    mcu.usb,
+    usb_device,
+    ezdl.lib.RingBuffer(u8, 256),
+    cp2102StateHandler,
+) = .{};
+
+fn cp2102StateHandler(state: *const cp2102.State) void {
+    if (state.baud_rate == 1200) mcu.reset();
+}
 
 fn serialIrqHandler() void {
     serial.irqHandler();

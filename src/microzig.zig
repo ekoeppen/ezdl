@@ -97,5 +97,7 @@ pub const mmio = struct {
 pub const interrupt = struct {
     pub const Handler = *const fn () void;
 
-    pub fn unhandled() void {}
+    pub fn unhandled() void {
+        while (true) {}
+    }
 };
