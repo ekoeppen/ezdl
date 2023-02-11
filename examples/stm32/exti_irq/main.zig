@@ -7,7 +7,7 @@ const button = board.mcu.Gpio(board.svd.peripherals.GPIOC, 13, .{ .input = .{
     .trigger = .falling,
 } });
 
-const writer = board.usart.writer();
+const writer = board.console.writer();
 
 fn extiHandler() void {
     board.nvic.clearPending(@enumToInt(@as(board.svd.VectorIndex, .EXTI4_15)));
@@ -30,7 +30,7 @@ pub export fn main() void {
     board.init();
     board.tx.init();
     board.rx.init();
-    board.usart.init();
+    board.console.init();
     button.init();
 
     if (run()) {} else |_| {

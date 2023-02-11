@@ -14,6 +14,9 @@ pub const led = mcu.Gpio(periph.GPIOB, 8, .{ .output = .{} });
 pub const led2 = mcu.Gpio(periph.GPIOB, 9, .{ .output = .{} });
 pub const button = mcu.Gpio(periph.GPIOB, 7, .{ .input = .{} });
 
+pub const tx = mcu.Gpio(periph.GPIOA, 9, .{ .alternate = .{} });
+pub const rx = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{} });
+
 pub const usb_dp = mcu.Gpio(periph.GPIOA, 12, .{ .output = .{} });
 
 const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);

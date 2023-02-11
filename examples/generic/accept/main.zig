@@ -1,13 +1,24 @@
+const std = @import("std");
 const board = @import("board");
 const accept = @import("accept");
 const build_info = @import("build_info");
+
 const writer = board.console.writer();
+const reader = board.console.reader();
 
 var line: [16]u8 = undefined;
 
+fn writeByte(byte: u8) void {
+    board.console.send(byte);
+}
+
+fn readByte() u8 {
+    return board.console.receive();
+}
+
 fn acceptMinimal() []u8 {
     while (true) {
-        switch (accept.handleMinimal(board.console.send, board.console.receive())) {
+        switch (accept.handleMinimal(writeByte, readByte())) {
             .accepted => |accepted| return accepted,
             else => {},
         }
@@ -32,7 +43,7 @@ pub export fn main() void {
     board.init();
     board.tx.init();
     board.rx.init();
-    board.usart.init();
+    board.console.init();
     board.led.init();
     if (run()) {} else |_| {}
 }

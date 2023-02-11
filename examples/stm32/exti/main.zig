@@ -1,6 +1,6 @@
 const board = @import("board");
 
-const writer = board.usart.writer();
+const writer = board.console.writer();
 
 fn run() anyerror!void {
     _ = try writer.print("---- Starting -----------------------------------\n", .{});

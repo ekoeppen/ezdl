@@ -1,7 +1,7 @@
 const board = @import("board");
 const accept = @import("accept");
 const build_info = @import("build_info");
-const writer = board.usart.writer();
+const writer = board.console.writer();
 
 var line: [16]u8 = undefined;
 
@@ -12,7 +12,7 @@ fn acceptFull() []u8 {
             const c = board.rx_buffer[board.rx_index];
             board.rx_index += 1;
             if (board.rx_index == board.rx_buffer.len) board.rx_index = 0;
-            switch (accept.handle(board.usart.send, c)) {
+            switch (accept.handle(board.console.send, c)) {
                 .accepted => |accepted| return accepted,
                 else => {},
             }
@@ -27,7 +27,7 @@ fn acceptMinimal() []u8 {
             const c = board.rx_buffer[board.rx_index];
             board.rx_index += 1;
             if (board.rx_index == board.rx_buffer.len) board.rx_index = 0;
-            switch (accept.handleMinimal(board.usart.send, c)) {
+            switch (accept.handleMinimal(board.console.send, c)) {
                 .accepted => |accepted| return accepted,
                 else => {},
             }
@@ -37,7 +37,7 @@ fn acceptMinimal() []u8 {
 
 fn acceptMinimalNoDma() []u8 {
     while (true) {
-        switch (accept.handleMinimal(board.usart.send, board.usart.receive())) {
+        switch (accept.handleMinimal(board.console.send, board.console.receive())) {
             .accepted => |accepted| return accepted,
             else => {},
         }
@@ -46,7 +46,7 @@ fn acceptMinimalNoDma() []u8 {
 
 fn echo() !void {
     while (true) {
-        const c = board.usart.receive();
+        const c = board.console.receive();
         _ = try writer.print("{d} ", .{c});
     }
 }

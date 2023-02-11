@@ -281,6 +281,21 @@ pub fn Cp2102(
             }
         }
 
+        pub fn init(self: *Self) void {
+            _ = self;
+            usb.init();
+        }
+
+        pub fn send(self: *Self, byte: u8) void {
+            while (self.data.write(&.{byte}) catch 0 == 0) {}
+        }
+
+        pub fn receive(self: *Self) u8 {
+            while (true) {
+                if (self.data.rx_buffer.get()) |b| return b;
+            }
+        }
+
         pub fn write(self: *Self, bytes: []const u8) WriteError!usize {
             return self.data.write(bytes);
         }

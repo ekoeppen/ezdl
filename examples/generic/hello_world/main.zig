@@ -4,11 +4,11 @@ export fn main() void {
     board.init();
     board.tx.init();
     board.rx.init();
-    board.usart.init();
+    board.console.init();
     for ("Hello, World!\n") |c| {
-        board.usart.send(c);
+        board.console.send(c);
     }
     while (true) {
-        board.usart.send(board.usart.receive());
+        board.console.send(board.console.receive());
     }
 }

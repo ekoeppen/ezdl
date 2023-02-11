@@ -29,7 +29,7 @@ pub export fn main() void {
     board.led.init();
     board.led2.init();
 
-    board.usb_device.init();
+    board.console.init();
     board.led.set();
     board.led2.clear();
 

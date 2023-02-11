@@ -2,8 +2,8 @@ const std = @import("std");
 const ezdl = @import("ezdl");
 const board = @import("board");
 
-const writer = board.usart.writer();
-const reader = board.usart.reader();
+const writer = board.console.writer();
+const reader = board.console.reader();
 
 fn run() anyerror!void {
     board.init();
