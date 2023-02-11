@@ -1,13 +1,13 @@
 const board = @import("board");
 const accept = @import("accept");
 const build_info = @import("build_info");
-const writer = board.usart.writer();
+const writer = board.console.writer();
 
 var line: [16]u8 = undefined;
 
 fn acceptMinimal() []u8 {
     while (true) {
-        switch (accept.handleMinimal(board.usart.send, board.usart.receive())) {
+        switch (accept.handleMinimal(board.console.send, board.console.receive())) {
             .accepted => |accepted| return accepted,
             else => {},
         }

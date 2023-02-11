@@ -3,9 +3,9 @@ const ezdl = @import("ezdl");
 const build_info = @import("build_info");
 
 pub fn run() !void {
-    const writer = board.serial.writer();
-    const reader = board.serial.reader();
-    while (!board.serial.dtr()) {
+    const writer = board.console.writer();
+    const reader = board.console.reader();
+    while (!board.console.dtr()) {
         asm volatile ("wfi");
     }
     board.led2.set();

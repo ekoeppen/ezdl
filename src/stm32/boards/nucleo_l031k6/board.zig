@@ -31,6 +31,8 @@ pub const usart = mcu.Usart(periph.USART2, .{
 });
 pub const i2c = mcu.I2c(periph.I2C1);
 
+pub const console = usart;
+
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
 pub var rx_buffer: [64]u8 = undefined;

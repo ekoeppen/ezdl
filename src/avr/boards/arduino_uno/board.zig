@@ -18,4 +18,6 @@ pub const tx = mcu.Gpio(svd.PORTD, 1, .output);
 pub const usart = mcu.Usart(svd.USART0);
 pub const spi = mcu.Spi(svd.SPI, 0, 1);
 
+pub const console = usart;
+
 pub fn init() void {}

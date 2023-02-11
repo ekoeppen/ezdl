@@ -20,6 +20,8 @@ pub const cs = mcu.Gpio(periph.PORT_2, 1, .{ .direction = .output });
 pub const usart = mcu.Usart(periph.USCI_A0_UART_MODE, 9600, clock, .smclk);
 pub const spi = mcu.Spi(periph.USCI_B0_SPI_MODE, 8_000_000, 0, clock, .smclk);
 
+pub const console = usart;
+
 pub fn init() void {
     periph.WATCHDOG_TIMER.WDTCTL.modify(.{ .WDTPW = .{ .raw = 0x5a }, .WDTHOLD = 1 });
     clock.init();

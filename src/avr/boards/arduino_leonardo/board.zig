@@ -26,4 +26,6 @@ pub const nrf24 = struct {
     pub const irq = mcu.Gpio(svd.PORTC, 6, .input);
 };
 
+pub const console = usart;
+
 pub fn init() void {}

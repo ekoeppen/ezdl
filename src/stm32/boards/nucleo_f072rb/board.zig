@@ -33,6 +33,8 @@ pub const nrf24 = struct {
     pub const irq = mcu.Gpio(periph.GPIOB, 4, .{ .output = .{} });
 };
 
+pub const console = usart;
+
 const irqs: []const svd.VectorIndex = &.{ .SPI1, .USART2, .I2C1, .RTC, .EXTI4_15 };
 
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);

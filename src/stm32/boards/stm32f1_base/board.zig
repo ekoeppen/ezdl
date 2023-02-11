@@ -22,7 +22,7 @@ pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, usb_dp, null);
 
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
-pub var serial: cp2102.Cp2102(
+pub var console: cp2102.Cp2102(
     mcu.usb,
     usb_device,
     ezdl.lib.RingBuffer(u8, 256),
@@ -33,8 +33,8 @@ fn cp2102StateHandler(state: *const cp2102.State) void {
     if (state.baud_rate == 1200) mcu.reset();
 }
 
-fn serialIrqHandler() void {
-    serial.irqHandler();
+fn cp2102IrqHandler() void {
+    console.irqHandler();
 }
 
 const irqs: []const svd.VectorIndex = &.{
@@ -48,8 +48,8 @@ const irqs: []const svd.VectorIndex = &.{
 };
 
 export const vectors: VectorTable linksection(".vectors") = .{
-    .USB_HP_CAN_TX = serialIrqHandler,
-    .USB_LP_CAN_RX0 = serialIrqHandler,
+    .USB_HP_CAN_TX = cp2102IrqHandler,
+    .USB_LP_CAN_RX0 = cp2102IrqHandler,
 };
 
 pub fn init() void {
