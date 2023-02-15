@@ -21,12 +21,13 @@ pub const sdo = mcu.Gpio(periph.GPIOA, 7, .{ .alternate = .{} });
 pub const tx = mcu.Gpio(periph.GPIOA, 2, .{ .alternate = .{ .pull = .up, .function = 1 } });
 pub const rx = mcu.Gpio(periph.GPIOA, 3, .{ .alternate = .{ .pull = .up, .function = 1 } });
 
-pub const scl = mcu.Gpio(periph.GPIOB, 8, .{ .alternate = .{ .pull = .up } });
-pub const sda = mcu.Gpio(periph.GPIOB, 9, .{ .alternate = .{ .pull = .up } });
+pub const scl = mcu.Gpio(periph.GPIOB, 8, .{ .alternate = .{ .mode = .open_drain, .function = 1 } });
+pub const sda = mcu.Gpio(periph.GPIOB, 9, .{ .alternate = .{ .mode = .open_drain, .function = 1 } });
+pub const sda_pp = mcu.Gpio(periph.GPIOB, 9, .{ .output = .{} });
 
 pub const spi = mcu.Spi(periph.SPI1);
 pub const usart = mcu.Usart(periph.USART2, .{ .speed = 115200 });
-pub const i2c = mcu.I2c(periph.I2C1);
+pub const i2c = mcu.I2c(periph.I2C1, 8_000_000, 400_000);
 
 pub const nrf24 = struct {
     pub const ce = mcu.Gpio(periph.GPIOB, 10, .{ .output = .{} });
@@ -42,7 +43,7 @@ pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 pub fn init() void {
     periph.RCC.AHBENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1 });
     periph.RCC.APB2ENR.modify(.{ .SPI1EN = 1, .SYSCFGEN = 1 });
-    periph.RCC.APB1ENR.modify(.{ .I2C2EN = 1, .USART2EN = 1, .PWREN = 1 });
+    periph.RCC.APB1ENR.modify(.{ .I2C1EN = 1, .USART2EN = 1, .PWREN = 1 });
     periph.PWR.CR.modify(.{ .DBP = 1 });
     periph.RCC.BDCR.modify(.{ .BDRST = 0, .RTCSEL = 0b10, .RTCEN = 1 });
     nvic.enableInterrupts(ezdl.irqIndicesToInts(irqs));

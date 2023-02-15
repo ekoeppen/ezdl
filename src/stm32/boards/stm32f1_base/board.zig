@@ -14,14 +14,30 @@ pub const led = mcu.Gpio(periph.GPIOB, 8, .{ .output = .{} });
 pub const led2 = mcu.Gpio(periph.GPIOB, 9, .{ .output = .{} });
 pub const button = mcu.Gpio(periph.GPIOB, 7, .{ .input = .{} });
 
+pub const scl_hw = mcu.Gpio(periph.GPIOB, 10, .{ .alternate = .{ .mode = .open_drain } });
+pub const sda_hw = mcu.Gpio(periph.GPIOB, 11, .{ .alternate = .{ .mode = .open_drain } });
+
+pub const scl_pp = mcu.Gpio(periph.GPIOB, 10, .{ .output = .{} });
+pub const sda_pp = mcu.Gpio(periph.GPIOB, 11, .{ .output = .{} });
+
+pub const scl_od = mcu.Gpio(periph.GPIOB, 10, .{ .output = .{ .mode = .open_drain } });
+pub const sda_od = mcu.Gpio(periph.GPIOB, 11, .{ .output = .{ .mode = .open_drain } });
+
 pub const tx = mcu.Gpio(periph.GPIOA, 9, .{ .alternate = .{} });
 pub const rx = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{} });
+
+pub const i2c_hw = mcu.I2c(periph.I2C2, 36_000_000, 100_000);
+pub const i2c_soft = ezdl.drivers.soft_i2c.I2c(scl_od, sda_od, 10);
 
 pub const usb_dp = mcu.Gpio(periph.GPIOA, 12, .{ .output = .{} });
 
 const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);
 const ep1 = mcu.usb.Endpoint(periph.USB, 1, .bulk, 256, 256, .valid, .nak);
 pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, usb_dp, null);
+
+pub const scl = scl_hw;
+pub const sda = sda_hw;
+pub const i2c = i2c_hw;
 
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
@@ -62,8 +78,14 @@ pub fn init() void {
     periph.FLASH.ACR.modify(.{ .LATENCY = 2 });
     periph.RCC.CR.modify(.{ .HSEON = 1 });
     while (periph.RCC.CR.read().HSERDY == 0) {}
-    periph.RCC.CFGR.modify(.{ .PLLSRC = 0, .PLLXTPRE = 0, .PLLMUL = 0 });
-    periph.RCC.CFGR.modify(.{ .PLLSRC = 1, .PLLMUL = 7, .PPRE1 = 4 });
+    periph.RCC.CFGR.modify(.{
+        .PLLXTPRE = 0,
+        .PPRE1 = 4,
+        .PPRE2 = 4,
+        .HPRE = 0,
+        .PLLSRC = 1,
+        .PLLMUL = 7,
+    });
     periph.RCC.CR.modify(.{ .PLLON = 1 });
     while (periph.RCC.CR.read().PLLRDY == 0) {}
     periph.RCC.CFGR.modify(.{ .SW = 2 });

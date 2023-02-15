@@ -23,12 +23,18 @@ pub const sdo = mcu.Gpio(periph.GPIOA, 7, .{ .alternate = .{} });
 pub const tx = mcu.Gpio(periph.GPIOA, 9, .{ .alternate = .{} });
 pub const rx = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{} });
 
-pub const scl = mcu.Gpio(periph.GPIOB, 10, .{ .alternate = .{} });
-pub const sda = mcu.Gpio(periph.GPIOB, 11, .{ .alternate = .{} });
+pub const scl_soft = mcu.Gpio(periph.GPIOB, 6, .{ .output = .{ .mode = .open_drain } });
+pub const sda_soft = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{ .mode = .open_drain } });
+pub const sda_soft_pp = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{} });
+pub const i2c_soft = ezdl.drivers.soft_i2c.I2c(scl_soft, sda_soft, 10);
+
+pub const scl = mcu.Gpio(periph.GPIOB, 6, .{ .alternate = .{} });
+pub const sda = mcu.Gpio(periph.GPIOB, 7, .{ .alternate = .{} });
+pub const sda_pp = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{} });
+pub const i2c = mcu.I2c(periph.I2C1, 36_000_000, 100_000);
 
 pub const spi = mcu.Spi(periph.SPI1);
 pub const usart = mcu.Usart(periph.USART1, .{ .speed = 115200 });
-pub const i2c = mcu.I2c(periph.I2C2);
 
 pub const usb_disc = mcu.Gpio(periph.GPIOC, 12, .{ .output = .{} });
 
@@ -71,7 +77,7 @@ export const vectors: VectorTable linksection(".vectors") = .{
 };
 
 pub fn init() void {
-    periph.RCC.APB1ENR.modify(.{ .I2C2EN = 1, .USBEN = 1 });
+    periph.RCC.APB1ENR.modify(.{ .I2C1EN = 1, .I2C2EN = 1, .USBEN = 1 });
     periph.RCC.APB2ENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1, .USART1EN = 1 });
 
     periph.FLASH.ACR.modify(.{ .LATENCY = 2 });
