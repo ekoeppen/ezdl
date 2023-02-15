@@ -7,8 +7,6 @@ const build_info = @import("build_info");
 const writer = board.console.writer();
 const reader = board.console.reader();
 
-const si7006 = ezdl.drivers.si7006.Si7006(board.i2c);
-
 var line: [16]u8 = undefined;
 
 fn writeByte(byte: u8) void {

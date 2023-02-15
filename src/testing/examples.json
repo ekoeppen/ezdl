@@ -49,6 +49,24 @@
     ]
   },
   {
+    "name": "I2C",
+    "path": "examples/generic/i2c",
+    "boards": [
+      "nucleo_f103rb",
+      "nucleo_f072rb",
+      "olimexino_stm32"
+    ]
+  },
+  {
+    "name": "Si7006",
+    "path": "examples/generic/si7006",
+    "boards": [
+      "nucleo_f103rb",
+      "nucleo_f072rb",
+      "olimexino_stm32"
+    ]
+  },
+  {
     "name": "STM32 Custom Board",
     "path": "examples/stm32/custom_board",
     "boards": [ ]
