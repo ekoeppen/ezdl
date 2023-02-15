@@ -27,7 +27,7 @@ pub fn I2c(comptime scl: anytype, comptime sda: anytype, comptime cycle: u32) ty
         pub fn checkTarget(address: u7) bool {
             generateStart();
             defer generateStop();
-            send(@as(u8, address << 1)) catch {
+            send(@as(u8, address) << 1) catch {
                 return false;
             };
             return true;
@@ -120,29 +120,13 @@ pub fn I2c(comptime scl: anytype, comptime sda: anytype, comptime cycle: u32) ty
         }
 
         pub fn writeRegister(address: u7, register: u8, data: []const u8) !void {
-            generateStart();
-            errdefer generateStop();
-            try send(@as(u8, address) << 1);
-            try send(register);
-            generateStart();
-            try send(@as(u8, address) << 1);
-            for (data) |_, i| {
-                try send(data[i]);
-            }
-            generateStop();
+            try controllerSend(address, &.{register}, true);
+            try controllerSend(address, data, false);
         }
 
         pub fn readRegister(address: u7, register: u8, data: []u8) !void {
-            generateStart();
-            errdefer generateStop();
-            try send(@as(u8, address) << 1);
-            try send(register);
-            generateStart();
-            try send(@as(u8, address) << 1 | 1);
-            for (data) |_, i| {
-                data[i] = try receive(i < data.len - 1);
-            }
-            generateStop();
+            try controllerSend(address, &.{register}, true);
+            try controllerReceive(address, data);
         }
     };
 }
