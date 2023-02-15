@@ -36,6 +36,10 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
             });
         }
 
+        pub fn dtr() bool {
+            return true;
+        }
+
         pub fn receive() u8 {
             while (periph.SR.read().RXNE == 0) {}
             return @truncate(u8, periph.DR.read().DR);
@@ -68,7 +72,7 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
             while (amountRead < bytes.len) {
                 const isr = periph.SR.read();
                 if (isr.ORE == 1) return error.OverrunError;
-                if (isr.NF == 1) return error.NoiseDetected;
+                if (isr.NE == 1) return error.NoiseDetected;
                 if (isr.FE == 1) return error.FramingError;
                 if (isr.PE == 1) return error.ParityError;
                 bytes[amountRead] = receive();
