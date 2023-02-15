@@ -31,3 +31,13 @@ export fn __mspabi_mpyi(x: i16, y: i16) i16 {
 pub fn reset() void {
     @import("../svd/msp430g2x53.zig").devices.MSP430G2x53.peripherals.WATCHDOG_TIMER.WDTCTL.modify(.{ .WDTPW = .{ .raw = 0x5a }, .WDTHOLD = 1 });
 }
+
+pub inline fn sleep() void {
+    asm volatile ("bis sr, 0b1101000");
+}
+
+pub inline fn waitForInterrupt() void {}
+
+pub inline fn waitForEvent() void {
+    waitForInterrupt();
+}

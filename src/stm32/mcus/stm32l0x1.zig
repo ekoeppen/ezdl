@@ -11,3 +11,15 @@ pub fn reset() void {
     AIRCR.* = 0x05fa0004;
     while (true) {}
 }
+
+pub inline fn sleep() void {
+    asm volatile ("wfi");
+}
+
+pub inline fn waitForInterrupt() void {
+    asm volatile ("wfi");
+}
+
+pub inline fn waitForEvent() void {
+    asm volatile ("wfi");
+}
