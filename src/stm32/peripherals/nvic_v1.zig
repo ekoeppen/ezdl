@@ -2,7 +2,6 @@ pub fn Nvic(comptime nvic: anytype) type {
     return struct {
         pub fn enableInterrupts(comptime interrupts: []const u8) void {
             inline for (interrupts) |irq| {
-                @compileLog(irq);
                 if (irq < 32) {
                     nvic.ISER0.modify(.{ .SETENA = 1 << irq });
                 } else if (irq < 64) {
