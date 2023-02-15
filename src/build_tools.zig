@@ -101,7 +101,7 @@ const FlashStep = struct {
     }
 
     fn makeJLink(self: *FlashStep) !void {
-        const path = self.builder.pathJoin(&.{ self.builder.cache_root, "flash.jlink" });
+        const path = try self.builder.cache_root.join(self.builder.allocator, &.{"flash.jlink"});
         try self.createCommandFile(path);
         _ = try self.builder.execFromStep(&.{ "JLinkExe", path }, &self.step);
     }
