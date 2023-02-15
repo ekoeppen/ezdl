@@ -37,6 +37,10 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
             periph.ICR.modify(.{ .FECF = 1, .ORECF = 1 });
         }
 
+        pub fn dtr() bool {
+            return true;
+        }
+
         pub fn receive() u8 {
             while (periph.ISR.read().RXNE == 0) {}
             return @truncate(u8, periph.RDR.read().RDR);
