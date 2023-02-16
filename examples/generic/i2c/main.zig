@@ -53,21 +53,21 @@ const commands: []const Command = &.{
 };
 
 fn help() !void {
-    _ = try writer.write("Commands: \n");
+    _ = try writer.writeAll("Commands: \n");
     for (commands) |command| {
         _ = try writer.print("{s}: {s}\n", .{ command.name, command.description });
     }
 }
 
 fn scan() !void {
-    _ = try writer.write("Scanning...\n");
+    _ = try writer.writeAll("Scanning...\n");
     var addr: u7 = 0;
     while (addr < 127) : (addr += 1) {
         if (board.i2c.checkTarget(addr)) {
             _ = try writer.print("{x:02} \n", .{addr});
         }
     }
-    _ = try writer.write("Done.\n");
+    _ = try writer.writeAll("Done.\n");
 }
 
 fn reset() !void {
@@ -96,16 +96,16 @@ pub fn run() !void {
     while (!board.console.dtr()) {
         board.mcu.sleep();
     }
-    _ = try writer.write("\n---- I2C Tests -----------------------------------\n");
+    _ = try writer.writeAll("\n---- I2C Tests -----------------------------------\n");
     _ = try writer.print("---- Built: {s} from {s}\n", .{
         build_info.build_time,
         build_info.commit,
     });
     while (true) {
-        _ = try writer.write("> ");
+        _ = try writer.writeAll("> ");
         accept.init(&line);
         const cmd = readLine();
-        _ = try writer.write("\n");
+        _ = try writer.writeAll("\n");
         _ = try handleInput(cmd);
     }
 }

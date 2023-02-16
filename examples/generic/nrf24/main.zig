@@ -3,7 +3,7 @@ const std = @import("std");
 const board = @import("board");
 const accept = @import("accept");
 const build_info = @import("build_info");
-const writer = board.usart.writer();
+const writer = board.console.writer();
 
 const Nrf24 = @import("ezdl").drivers.nrf24.Nrf24;
 
@@ -11,9 +11,17 @@ const nrf24 = Nrf24(board.spi, board.cs, board.nrf24.ce, board.nrf24.irq);
 
 var line: [16]u8 = undefined;
 
-fn acceptMinimal() []u8 {
+fn writeByte(byte: u8) void {
+    board.console.send(byte);
+}
+
+fn readByte() u8 {
+    return board.console.receive();
+}
+
+fn readLine() []u8 {
     while (true) {
-        switch (accept.handleMinimal(board.usart.send, board.usart.receive())) {
+        switch (accept.handleMinimal(writeByte, readByte())) {
             .accepted => |accepted| return accepted,
             else => {},
         }
@@ -34,7 +42,7 @@ const commands: []const Command = &.{
 };
 
 fn help() !void {
-    _ = try writer.write("Commands: \n");
+    _ = try writer.writeAll("Commands: \n");
     for (commands) |command| {
         _ = try writer.print("{s}: {s}\n", .{ command.name, command.description });
     }
@@ -65,18 +73,23 @@ fn handleInput(buffer: []const u8) anyerror!void {
 }
 
 pub fn run() !void {
-    _ = try writer.write("\n---- NRF24 Example -----------------------------------\n");
+    while (!board.console.dtr()) {
+        board.mcu.sleep();
+    }
+    _ = try writer.writeAll("\n---- NRF24 Example -----------------------------------\n");
     _ = try writer.print("---- Built: {s} from {s}\n\n", .{
         build_info.build_time,
         build_info.commit,
     });
     try help();
-    _ = try writer.write("\n");
+    _ = try writer.writeAll("\n");
+    nrf24.init();
+    nrf24.setChannel(70);
     while (true) {
-        _ = try writer.write("> ");
+        _ = try writer.writeAll("> ");
         accept.init(&line);
-        const cmd = acceptMinimal();
-        _ = try writer.write("\n");
+        const cmd = readLine();
+        _ = try writer.writeAll("\n");
         _ = try handleInput(cmd);
     }
 }
@@ -87,7 +100,7 @@ pub export fn main() void {
 
     board.tx.init();
     board.rx.init();
-    board.usart.init();
+    board.console.init();
 
     board.sck.init();
     board.sdo.init();
@@ -99,7 +112,5 @@ pub export fn main() void {
     board.nrf24.irq.init();
 
     board.cs.set();
-    nrf24.init();
-    nrf24.setChannel(70);
     if (run()) {} else |_| {}
 }

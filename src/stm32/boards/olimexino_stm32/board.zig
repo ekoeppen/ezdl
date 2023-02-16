@@ -15,7 +15,7 @@ pub const button = mcu.Gpio(periph.GPIOC, 9, .{ .input = .{
     .trigger = .falling,
 } });
 
-pub const cs = mcu.Gpio(periph.GPIOB, 5, .{ .output = .{} });
+pub const cs = mcu.Gpio(periph.GPIOA, 4, .{ .output = .{} });
 pub const sck = mcu.Gpio(periph.GPIOA, 5, .{ .alternate = .{} });
 pub const sdi = mcu.Gpio(periph.GPIOA, 6, .{ .input = .{} });
 pub const sdo = mcu.Gpio(periph.GPIOA, 7, .{ .alternate = .{} });
@@ -42,6 +42,11 @@ const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);
 const ep1 = mcu.usb.Endpoint(periph.USB, 1, .bulk, 256, 256, .valid, .nak);
 pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, null, usb_disc);
 
+pub const nrf24 = struct {
+    pub const ce = mcu.Gpio(periph.GPIOA, 8, .{ .output = .{} });
+    pub const irq = mcu.Gpio(periph.GPIOB, 6, .{ .output = .{} });
+};
+
 pub const VectorTable = ezdl.stm32.VectorTable(svd.VectorTable);
 
 const cp2102 = ezdl.drivers.cp2102;
@@ -64,7 +69,7 @@ fn cp2102IrqHandler() void {
 const irqs: []const svd.VectorIndex = &.{
     .SPI1,
     .USART1,
-    .I2C2_EV,
+    .I2C1_EV,
     .RTC,
     .EXTI9_5,
     .USB_HP_CAN_TX,
@@ -77,8 +82,14 @@ export const vectors: VectorTable linksection(".vectors") = .{
 };
 
 pub fn init() void {
-    periph.RCC.APB1ENR.modify(.{ .I2C1EN = 1, .I2C2EN = 1, .USBEN = 1 });
-    periph.RCC.APB2ENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .IOPCEN = 1, .USART1EN = 1 });
+    periph.RCC.APB1ENR.modify(.{ .I2C1EN = 1, .USBEN = 1 });
+    periph.RCC.APB2ENR.modify(.{
+        .IOPAEN = 1,
+        .IOPBEN = 1,
+        .IOPCEN = 1,
+        .USART1EN = 1,
+        .SPI1EN = 1,
+    });
 
     periph.FLASH.ACR.modify(.{ .LATENCY = 2 });
     periph.RCC.CR.modify(.{ .HSEON = 1 });

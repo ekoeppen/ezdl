@@ -31,13 +31,13 @@ pub fn run() !void {
     while (!board.console.dtr()) {
         board.mcu.sleep();
     }
-    _ = try writer.write("\n---- Si7006 Test -----------------------------------\n");
+    _ = try writer.writeAll("\n---- Si7006 Test -----------------------------------\n");
     _ = try writer.print("---- Built: {s} from {s}\n", .{
         build_info.build_time,
         build_info.commit,
     });
     while (true) {
-        _ = try writer.write("Press a key to reading temperature and humidity...\n");
+        _ = try writer.writeAll("Press a key to reading temperature and humidity...\n");
         _ = board.console.receive();
         const rh = try si7006.measureHumidity();
         const t = try si7006.readTemperature();
