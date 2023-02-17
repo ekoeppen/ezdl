@@ -17,7 +17,7 @@ pub const button = mcu.Gpio(periph.GPIOC, 9, .{ .input = .{
 
 pub const cs = mcu.Gpio(periph.GPIOA, 4, .{ .output = .{} });
 pub const sck = mcu.Gpio(periph.GPIOA, 5, .{ .alternate = .{} });
-pub const sdi = mcu.Gpio(periph.GPIOA, 6, .{ .input = .{} });
+pub const sdi = mcu.Gpio(periph.GPIOA, 6, .{ .alternate = .{} });
 pub const sdo = mcu.Gpio(periph.GPIOA, 7, .{ .alternate = .{} });
 
 pub const tx = mcu.Gpio(periph.GPIOA, 9, .{ .alternate = .{} });
@@ -33,7 +33,7 @@ pub const sda = mcu.Gpio(periph.GPIOB, 7, .{ .alternate = .{} });
 pub const sda_pp = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{} });
 pub const i2c = mcu.I2c(periph.I2C1, 36_000_000, 100_000);
 
-pub const spi = mcu.Spi(periph.SPI1);
+pub const spi = mcu.Spi(periph.SPI1, 36_000_000, 6_000_000);
 pub const usart = mcu.Usart(periph.USART1, .{ .speed = 115200 });
 
 pub const usb_disc = mcu.Gpio(periph.GPIOC, 12, .{ .output = .{} });

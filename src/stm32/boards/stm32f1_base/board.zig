@@ -14,6 +14,11 @@ pub const led = mcu.Gpio(periph.GPIOB, 8, .{ .output = .{} });
 pub const led2 = mcu.Gpio(periph.GPIOB, 9, .{ .output = .{} });
 pub const button = mcu.Gpio(periph.GPIOB, 7, .{ .input = .{} });
 
+pub const cs = mcu.Gpio(periph.GPIOA, 4, .{ .output = .{} });
+pub const sck = mcu.Gpio(periph.GPIOA, 5, .{ .alternate = .{} });
+pub const sdi = mcu.Gpio(periph.GPIOA, 6, .{ .alternate = .{} });
+pub const sdo = mcu.Gpio(periph.GPIOA, 7, .{ .alternate = .{} });
+
 pub const scl_hw = mcu.Gpio(periph.GPIOB, 10, .{ .alternate = .{ .mode = .open_drain } });
 pub const sda_hw = mcu.Gpio(periph.GPIOB, 11, .{ .alternate = .{ .mode = .open_drain } });
 
@@ -29,11 +34,17 @@ pub const rx = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{} });
 pub const i2c_hw = mcu.I2c(periph.I2C2, 36_000_000, 100_000);
 pub const i2c_soft = ezdl.drivers.soft_i2c.I2c(scl_od, sda_od, 10);
 
+pub const spi = mcu.Spi(periph.SPI1, 36_000_000, 6_000_000);
 pub const usb_dp = mcu.Gpio(periph.GPIOA, 12, .{ .output = .{} });
 
 const ep0 = mcu.usb.Endpoint(periph.USB, 0, .control, 64, 64, .stall, .valid);
 const ep1 = mcu.usb.Endpoint(periph.USB, 1, .bulk, 256, 256, .valid, .nak);
 pub const usb_device = mcu.usb.Usb(periph.USB, .{ ep0, ep1 }, usb_dp, null);
+
+pub const nrf24 = struct {
+    pub const ce = mcu.Gpio(periph.GPIOA, 2, .{ .output = .{} });
+    pub const irq = mcu.Gpio(periph.GPIOA, 3, .{ .output = .{} });
+};
 
 pub const scl = scl_hw;
 pub const sda = sda_hw;
@@ -73,7 +84,12 @@ export const vectors: VectorTable linksection(".vectors") = .{
 
 pub fn init() void {
     periph.RCC.APB1ENR.modify(.{ .I2C2EN = 1, .USBEN = 1 });
-    periph.RCC.APB2ENR.modify(.{ .IOPAEN = 1, .IOPBEN = 1, .USART1EN = 1 });
+    periph.RCC.APB2ENR.modify(.{
+        .IOPAEN = 1,
+        .IOPBEN = 1,
+        .USART1EN = 1,
+        .SPI1EN = 1,
+    });
 
     periph.FLASH.ACR.modify(.{ .LATENCY = 2 });
     periph.RCC.CR.modify(.{ .HSEON = 1 });
