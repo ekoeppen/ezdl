@@ -52,12 +52,20 @@ pub fn Spi(
             return in;
         }
 
-        pub fn send(comptime T: type, out: T) void {
+        pub fn genericSend(comptime T: type, out: T) void {
             _ = transfer(T, out);
         }
 
-        pub fn receive(comptime T: type) T {
+        pub fn genericReceive(comptime T: type) T {
             return transfer(T, 0);
+        }
+
+        pub fn send(out: u8) void {
+            _ = transfer(u8, out);
+        }
+
+        pub fn receive() u8 {
+            return transfer(u8, 0);
         }
     };
 }
