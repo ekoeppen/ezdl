@@ -29,9 +29,19 @@ fn rxTest() anyerror!void {
 
 fn run() anyerror!void {
     board.init();
+    board.led.init();
+    board.tx.init();
+    board.rx.init();
+    board.sck.init();
+    board.sdo.init();
+    board.sdi.init();
+    board.cs.init();
+    board.spi.init();
+
+    board.console.init();
     board.led.set();
-    board.exti.connect(board.modem_irq);
-    board.exti.enable(board.modem_irq.pin_number, .event, .rising);
+    // board.exti.connect(board.modem_irq);
+    // board.exti.enable(board.modem_irq.pin_number, .event, .rising);
     _ = try writer.print("---- Starting -----------------------------------\n", .{});
     _ = try writer.print("     Built: {s} from {s}\n", .{
         build_info.build_time,
@@ -50,19 +60,18 @@ fn run() anyerror!void {
     if (!radio.init()) {
         _ = try writer.print("!!!! Modem init failed\n", .{});
         board.led.clear();
-        board.led2.set();
         _ = try radio.printRegisters(writer);
         return error.InitFailed;
     }
 
     radio.setFrequency(868_000_000);
     while (true) {
-        _ = try writer.print("Press r for receive test, t for transmit test\n", .{});
-        var c: [1]u8 = undefined;
-        _ = try reader.read(&c);
-        switch (c[0]) {
+        _ = try writer.writeAll("Press r for receive test, t for transmit test, i for registers\n");
+        const c = try reader.readByte();
+        switch (c) {
             'r' => _ = try rxTest(),
             't' => _ = try txTest(),
+            'i' => _ = try radio.printRegisters(writer),
             else => {},
         }
         board.led.clear();
@@ -71,7 +80,6 @@ fn run() anyerror!void {
 
 pub export fn main() void {
     if (run()) {} else |_| {
-        board.led3.set();
         @panic("Runtime exception");
     }
     while (true) {
