@@ -42,7 +42,7 @@ pub fn Si7006(comptime i2c: type) type {
         }
 
         pub fn reset() !void {
-            try i2c.controllerSend(address, @enumToInt(Command.reset), &.{});
+            try i2c.controllerSend(address, &.{@enumToInt(Command.reset)}, false);
         }
     };
 }

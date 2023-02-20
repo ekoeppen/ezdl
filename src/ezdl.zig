@@ -64,6 +64,7 @@ pub fn generateLinkerScript(
 pub const boards = .{
     @import("stm32/boards/stm32f0_nrf24/stm32f030f4.zig"),
     @import("stm32/boards/stm32l0_nrf24/stm32l011f4.zig"),
+    @import("stm32/boards/stm32l0_rfm69/stm32l011f4.zig"),
     @import("stm32/boards/nucleo_f072rb/stm32f072rb.zig"),
     @import("stm32/boards/nucleo_f103rb/stm32f103rb.zig"),
     @import("stm32/boards/nucleo_l031k6/stm32l031k6.zig"),

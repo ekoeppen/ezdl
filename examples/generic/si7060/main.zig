@@ -7,7 +7,7 @@ const build_info = @import("build_info");
 const writer = board.console.writer();
 const reader = board.console.reader();
 
-const si7006 = ezdl.drivers.si7006.Si7006(board.i2c);
+const si7060 = ezdl.drivers.si7060.Si7060(board.i2c, 0x32);
 
 fn busReset() !void {
     board.sda_pp.init();
@@ -31,31 +31,31 @@ pub fn run() !void {
     while (!board.console.dtr()) {
         board.mcu.sleep();
     }
-    _ = try writer.writeAll("\n---- Si7006 Test -----------------------------------\n");
+    _ = try writer.writeAll("\n---- Si7060 Test -----------------------------------\n");
     _ = try writer.print("---- Built: {s} from {s}\n", .{
         build_info.build_time,
         build_info.commit,
     });
     while (true) {
-        _ = try writer.writeAll("\nboard (r)eset\n(b)us reset\nsi7006 r(e)set\n(m)easure\n");
+        _ = try writer.writeAll("\nboard (r)eset\n(b)us reset\n(w)akeup\n(s)leep\n(m)easure\n");
         const c = board.console.receive();
         switch (c) {
             'r' => board.mcu.reset(),
             'b' => try busReset(),
-            'e' => si7006.reset() catch |err| {
-                _ = try writer.print("Reset error: {}\n", .{err});
+            'w' => si7060.wakeup() catch |err| {
+                _ = try writer.print("Wakeup error: {}\n", .{err});
+                continue;
+            },
+            's' => si7060.sleep() catch |err| {
+                _ = try writer.print("Sleep error: {}\n", .{err});
                 continue;
             },
             'm' => {
-                const rh = si7006.measureHumidity() catch |err| {
-                    _ = try writer.print("Humidity measurement error: {}\n", .{err});
+                const t = si7060.measureTemperature() catch |err| {
+                    _ = try writer.print("Measurement error: {}\n", .{err});
                     continue;
                 };
-                const t = si7006.readTemperature() catch |err| {
-                    _ = try writer.print("Temperature reading error: {}\n", .{err});
-                    continue;
-                };
-                _ = try writer.print("t: {d} rh: {d}\n", .{ t, rh });
+                _ = try writer.print("t: {d}\n", .{t});
             },
             else => {},
         }

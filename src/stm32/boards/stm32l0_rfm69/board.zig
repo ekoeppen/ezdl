@@ -8,12 +8,7 @@ pub const nvic = mcu.Nvic(periph.NVIC);
 pub const exti = mcu.Exti(periph.EXTI, periph.SYSCFG_COMP);
 pub const rtc = mcu.Rtc(periph.RTC, exti);
 
-pub const led = mcu.Gpio(periph.GPIOA, 1, .{ .output = .{} });
-pub const led2 = mcu.Gpio(periph.GPIOA, 1, .{ .output = .{} });
-pub const button = mcu.Gpio(periph.GPIOA, 0, .{ .input = .{
-    .exti = exti,
-    .trigger = .falling,
-} });
+pub const led = mcu.Gpio(periph.GPIOB, 1, .{ .output = .{} });
 
 pub const cs = mcu.Gpio(periph.GPIOA, 4, .{ .output = .{} });
 pub const sck = mcu.Gpio(periph.GPIOA, 5, .{ .alternate = .{} });
@@ -25,11 +20,13 @@ pub const tx = mcu.Gpio(periph.GPIOA, 2, .{ .alternate = .{ .pull = .up, .functi
 pub const rx = mcu.Gpio(periph.GPIOA, 3, .{ .alternate = .{ .pull = .up, .function = 4 } });
 
 pub const scl = mcu.Gpio(periph.GPIOA, 9, .{ .alternate = .{
+    .pull = .up,
     .function = 1,
     .speed = .very_high,
     .mode = .open_drain,
 } });
 pub const sda = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{
+    .pull = .up,
     .function = 1,
     .speed = .very_high,
     .mode = .open_drain,
@@ -37,7 +34,7 @@ pub const sda = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{
 pub const sda_pp = mcu.Gpio(periph.GPIOA, 10, .{ .output = .{} });
 
 pub const usart = mcu.Usart(periph.USART2, .{ .speed = 115200, .clock_speed = 2_100_000 });
-pub const i2c = mcu.I2c(periph.I2C1, 2_100_000, 100_000);
+pub const i2c = mcu.I2c(periph.I2C1, 2_100_000, 400_000);
 
 pub const nrf24 = struct {
     pub const ce = mcu.Gpio(periph.GPIOB, 1, .{ .output = .{} });

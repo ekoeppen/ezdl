@@ -28,8 +28,12 @@ pub const sda_soft = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{ .mode = .open_dra
 pub const sda_soft_pp = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{} });
 pub const i2c_soft = ezdl.drivers.soft_i2c.I2c(scl_soft, sda_soft, 10);
 
-pub const scl = mcu.Gpio(periph.GPIOB, 6, .{ .alternate = .{} });
-pub const sda = mcu.Gpio(periph.GPIOB, 7, .{ .alternate = .{} });
+pub const scl = mcu.Gpio(periph.GPIOB, 6, .{ .alternate = .{
+    .mode = .open_drain,
+} });
+pub const sda = mcu.Gpio(periph.GPIOB, 7, .{ .alternate = .{
+    .mode = .open_drain,
+} });
 pub const sda_pp = mcu.Gpio(periph.GPIOB, 7, .{ .output = .{} });
 pub const i2c = mcu.I2c(periph.I2C1, 36_000_000, 100_000);
 

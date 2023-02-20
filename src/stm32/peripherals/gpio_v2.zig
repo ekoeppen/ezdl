@@ -22,6 +22,13 @@ const TriggerMode = enum {
     rising_falling,
 };
 
+const Speed = enum(u2) {
+    low = 0b00,
+    medium = 0b01,
+    high = 0b10,
+    very_high = 0b11,
+};
+
 const Config = union(PinMode) {
     input: struct {
         pull: PullMode = .none,
@@ -33,11 +40,13 @@ const Config = union(PinMode) {
     output: struct {
         pull: PullMode = .none,
         mode: OutputMode = .push_pull,
+        speed: Speed = .low,
     },
     alternate: struct {
         pull: PullMode = .none,
         mode: OutputMode = .push_pull,
         function: u4 = 0,
+        speed: Speed = .low,
     },
     analog,
 };
@@ -75,10 +84,12 @@ pub fn Gpio(comptime periph: anytype, comptime pin: u8, comptime config: Config)
                 .output => |output| {
                     periph.OTYPER.modifyRaw(pin, 1, @enumToInt(output.mode));
                     periph.PUPDR.modifyRaw(pin * 2, 2, @enumToInt(output.pull));
+                    periph.OSPEEDR.modifyRaw(pin * 2, 2, @enumToInt(output.speed));
                 },
                 .alternate => |alternate| {
                     periph.OTYPER.modifyRaw(pin, 1, @enumToInt(alternate.mode));
                     periph.PUPDR.modifyRaw(pin * 2, 2, @enumToInt(alternate.pull));
+                    periph.OSPEEDR.modifyRaw(pin * 2, 2, @enumToInt(alternate.speed));
                     if (pin < 8) {
                         periph.AFRL.modifyRaw(pin * 4, 4, alternate.function);
                     } else {
