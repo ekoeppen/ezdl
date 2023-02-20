@@ -26,9 +26,10 @@ pub const rx = mcu.Gpio(periph.GPIOA, 3, .{ .alternate = .{ .pull = .up, .functi
 
 pub const scl = mcu.Gpio(periph.GPIOA, 9, .{ .alternate = .{ .pull = .up } });
 pub const sda = mcu.Gpio(periph.GPIOA, 10, .{ .alternate = .{ .pull = .up } });
+pub const sda_pp = mcu.Gpio(periph.GPIOA, 10, .{ .output = .{} });
 
 pub const usart = mcu.Usart(periph.USART2, .{ .speed = 115200, .clock_speed = 2_100_000 });
-pub const i2c = mcu.I2c(periph.I2C1);
+pub const i2c = mcu.I2c(periph.I2C1, 2_100_000, 100_000);
 
 pub const nrf24 = struct {
     pub const ce = mcu.Gpio(periph.GPIOB, 1, .{ .output = .{} });

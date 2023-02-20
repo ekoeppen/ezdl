@@ -12,3 +12,4 @@ pub const nvic_v2 = @import("nvic_v2.zig");
 pub const usb_v1 = @import("usb_v1.zig");
 pub const i2c_v1 = @import("i2c_v1.zig");
 pub const i2c_v2 = @import("i2c_v2.zig");
+pub const i2c_v3 = @import("i2c_v3.zig");

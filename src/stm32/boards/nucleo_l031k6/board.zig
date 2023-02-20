@@ -11,6 +11,7 @@ pub const button = mcu.Gpio(periph.GPIOA, 0, .{ .input = .{
     .exti = exti,
     .trigger = .falling,
 } });
+pub const led = mcu.Gpio(periph.GPIOB, 3, .{ .output = .{} });
 
 pub const cs = mcu.Gpio(periph.GPIOA, 4, .{ .output = .{} });
 pub const sck = mcu.Gpio(periph.GPIOA, 5, .{ .alternate = .{} });

@@ -18,6 +18,9 @@
       "nucleo_f103rb",
       "nucleo_f072rb",
       "olimexino_stm32",
+      "stm32f030f4_nrf24",
+      "stm32l011f4_nrf24",
+      "nucleo_l031k6",
       "exp_msp430g2",
       "arduino_uno",
       "arduino_leonardo"
