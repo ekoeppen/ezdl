@@ -16,7 +16,7 @@ export fn resetHandler() callconv(.Naked) void {
     const data_loadaddr = @ptrCast([*]const u8, &_data_loadaddr);
     const data = @ptrCast([*]u8, &_data);
     const data_size = @ptrToInt(&_edata) - @ptrToInt(&_data);
-    for (data_loadaddr[0..data_size]) |_, i| data[i] = lpm(&data_loadaddr[i]);
+    for (data_loadaddr[0..data_size], data[0..data_size]) |*from, *to| to.* = lpm(from);
 
     const bss = @ptrCast([*]u8, &_bss);
     const bss_size = @ptrToInt(&_ebss) - @ptrToInt(&_bss);

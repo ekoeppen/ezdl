@@ -11,7 +11,7 @@ export fn resetHandler() void {
     const data = @ptrCast([*]u8, &_data);
     const data_end = @ptrCast([*]u8, &_edata);
     const data_size = @ptrToInt(data_end) - @ptrToInt(data);
-    for (data_loadaddr[0..data_size]) |d, i| data[i] = d;
+    for (data_loadaddr[0..data_size], data[0..data_size]) |from, *to| to.* = from;
 
     const bss = @ptrCast([*]u8, &_bss);
     const bss_end = @ptrCast([*]u8, &_ebss);

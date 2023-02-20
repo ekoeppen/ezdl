@@ -247,8 +247,8 @@ pub fn Nrf24(
             cs.set();
             cs.clear();
             spi.send(@enumToInt(Command.R_RX_PAYLOAD));
-            for (data) |_, i| {
-                data[i] = spi.receive();
+            for (data) |*d| {
+                d.* = spi.receive();
             }
             cs.set();
             cs.clear();

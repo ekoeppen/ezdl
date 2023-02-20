@@ -88,8 +88,8 @@ pub fn boardFromName(name: []const u8) !Board {
 
 pub fn irqIndicesToInts(comptime indices: anytype) []u8 {
     var ints: [indices.len]u8 = undefined;
-    for (indices) |index, i| {
-        ints[i] = @enumToInt(index);
+    for (indices, &ints) |index, *int| {
+        int.* = @enumToInt(index);
     }
     return &ints;
 }

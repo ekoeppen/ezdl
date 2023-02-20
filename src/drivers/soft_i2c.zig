@@ -103,8 +103,8 @@ pub fn I2c(comptime scl: anytype, comptime sda: anytype, comptime cycle: u32) ty
             generateStart();
             errdefer generateStop();
             try send(@as(u8, address) << 1);
-            for (data) |_, i| {
-                try send(data[i]);
+            for (data) |d| {
+                try send(d);
             }
             if (!restart) generateStop();
         }
@@ -113,8 +113,8 @@ pub fn I2c(comptime scl: anytype, comptime sda: anytype, comptime cycle: u32) ty
             generateStart();
             errdefer generateStop();
             try send(@as(u8, address) << 1 | 1);
-            for (data) |_, i| {
-                data[i] = try receive(i < data.len - 1);
+            for (data, 0..) |*d, i| {
+                d.* = try receive(i < data.len - 1);
             }
             generateStop();
         }

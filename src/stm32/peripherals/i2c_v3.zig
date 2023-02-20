@@ -118,9 +118,9 @@ pub fn I2c(comptime i2c: anytype, comptime pclk: u32, comptime frequency: u32) t
                 .RD_WRN = 1,
                 .START = 1,
             });
-            for (data) |_, i| {
+            for (data) |*d| {
                 try waitForRxne();
-                data[i] = i2c.RXDR.read().RXDATA;
+                d.* = i2c.RXDR.read().RXDATA;
             }
             i2c.CR2.modify(.{ .STOP = 1 });
         }
