@@ -45,6 +45,7 @@ pub fn addFamilySteps(
         .optimize = exe.optimize,
     });
     exe.addObject(startup);
+    if (board.board_path) |path| exe.addLibraryPath(std.fs.path.dirname(path).?);
     exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 
     const hex_cmd = try ezdl.build_tools.addObjCopyStep(b, exe, .hex);

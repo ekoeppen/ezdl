@@ -8,7 +8,8 @@
       "nucleo_f072rb",
       "exp_msp430g2",
       "arduino_uno",
-      "arduino_leonardo"
+      "arduino_leonardo",
+      "avr64dd32_curiosity_nano"
     ]
   },
   {
@@ -23,7 +24,8 @@
       "nucleo_l031k6",
       "exp_msp430g2",
       "arduino_uno",
-      "arduino_leonardo"
+      "arduino_leonardo",
+      "avr64dd32_curiosity_nano"
     ]
   },
   {
@@ -32,7 +34,8 @@
     "boards": [
       "nucleo_f072rb",
       "exp_msp430g2",
-      "arduino_uno"
+      "arduino_uno",
+      "avr64dd32_curiosity_nano"
     ]
   },
   {
@@ -41,7 +44,8 @@
     "boards": [
       "nucleo_f072rb",
       "nucleo_l031k6",
-      "arduino_uno"
+      "arduino_uno",
+      "avr64dd32_curiosity_nano"
     ]
   },
   {

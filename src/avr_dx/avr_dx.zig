@@ -1,8 +1,8 @@
 const std = @import("std");
 const ezdl = @import("../ezdl.zig");
 
-pub const mcus = @import("mcus/mcus.zig");
 pub const svd = @import("svd/svd.zig");
+pub const mcus = @import("mcus/mcus.zig");
 
 pub fn addFamilySteps(
     b: *std.Build,
@@ -16,9 +16,10 @@ pub fn addFamilySteps(
         .optimize = exe.optimize,
     });
     exe.addObject(startup);
-    if (board.board_path) |path| exe.addLibraryPath(std.fs.path.dirname(path).?);
+    if (board.board_path) |path|
+        exe.addLibraryPath(std.fs.path.dirname(path).?);
     exe.addLibraryPath(ezdl.mkPath(@src(), ""));
 
     const hex_cmd = try ezdl.build_tools.addObjCopyStep(b, exe, .hex);
-    _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .mspdebug, board);
+    _ = ezdl.build_tools.addFlashStep(b, hex_cmd, .avrdude, board);
 }
