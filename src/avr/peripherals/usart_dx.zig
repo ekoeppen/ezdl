@@ -17,6 +17,14 @@ pub fn Usart(comptime usart: anytype) type {
             usart.CTRLB.modify(.{ .RXEN = 1, .TXEN = 1 });
         }
 
+        pub fn dtr() bool {
+            return true;
+        }
+
+        pub fn rxAvailable() bool {
+            return usart.STATUS.read().RXCIF == 1;
+        }
+
         pub fn send(c: u8) void {
             while (usart.STATUS.read().DREIF == 0) {}
             usart.TXDATAL.write(.{ .DATA = c });

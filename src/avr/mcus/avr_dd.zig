@@ -1,5 +1,6 @@
 pub const Gpio = @import("../peripherals/peripherals.zig").gpio_dx.Gpio;
 pub const Usart = @import("../peripherals/peripherals.zig").usart_dx.Usart;
+pub const Spi = @import("../peripherals/peripherals.zig").spi_dx.Spi;
 
 pub const reset = @intToPtr(*allowzero const fn () void, 0);
 
