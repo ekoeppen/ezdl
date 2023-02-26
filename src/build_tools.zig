@@ -6,12 +6,10 @@ pub const ObjCopyFormat = enum { bin, hex };
 pub fn addObjCopyStep(
     b: *std.build.Builder,
     exe: *std.build.LibExeObjStep,
-    format: ObjCopyFormat,
-) !*std.build.InstallRawStep {
-    const name = if (format == .bin) "bin" else "hex";
-    const file_name = b.fmt("{s}.{s}", .{ std.fs.path.stem(exe.name), name });
-    const cmd = b.addInstallRaw(exe, file_name, .{});
-    const objcopy_step = b.step(name, "Generate file to be flashed");
+    format: std.build.ObjCopyStep.RawFormat,
+) !*std.build.ObjCopyStep {
+    const cmd = exe.addObjCopy(.{ .format = format });
+    const objcopy_step = b.step(@tagName(format), "Generate file to be flashed");
     objcopy_step.dependOn(&cmd.step);
     return cmd;
 }
@@ -20,11 +18,11 @@ const FlashTool = enum { jlink, stlink, stm32flash, dfu_util, mspdebug, avrdude 
 
 const FlashStep = struct {
     builder: *std.build.Builder,
+    hex: *std.build.ObjCopyStep,
     step: std.build.Step,
     tool: FlashTool,
     name: []const u8,
     description: []const u8,
-    dest_path: []const u8,
     port: ?[]const u8,
     programmer: ?[]const u8,
     device: []const u8,
@@ -35,7 +33,7 @@ const FlashStep = struct {
         builder: *std.build.Builder,
         name: []const u8,
         tool: FlashTool,
-        hex: *std.build.InstallRawStep,
+        hex: *std.build.ObjCopyStep,
         board: *const ezdl.Board,
     ) *FlashStep {
         const self = builder.allocator.create(FlashStep) catch unreachable;
@@ -61,9 +59,9 @@ const FlashStep = struct {
         self.* = FlashStep{
             .builder = builder,
             .step = std.build.Step.init(.run, name, builder.allocator, make),
+            .hex = hex,
             .tool = tool,
             .device = board.cpu_name,
-            .dest_path = builder.getInstallPath(hex.dest_dir, hex.dest_filename),
             .port = port,
             .programmer = programmer,
             .reset_cmd = reset_cmd,
@@ -121,13 +119,13 @@ const FlashStep = struct {
             \\
         , .{
             self.device,
-            self.dest_path,
+            self.hex.output_file.getPath(),
         });
     }
 
     fn makeStm32Flash(self: *FlashStep) !void {
         _ = try self.builder.execFromStep(
-            &.{ "stm32flash", "-w", self.dest_path, self.port.? },
+            &.{ "stm32flash", "-w", self.hex.output_file.getPath(), self.port.? },
             &self.step,
         );
     }
@@ -153,13 +151,26 @@ const FlashStep = struct {
         const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
         const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
         _ = try self.builder.execFromStep(
-            &.{ "dfu-util", "-D", self.dest_path, "-d", dev, "-a", altId, "-R" },
+            &.{
+                "dfu-util",
+                "-D",
+                self.hex.output_file.getPath(),
+                "-d",
+                dev,
+                "-a",
+                altId,
+                "-R",
+            },
             &self.step,
         );
     }
 
     fn makeMspDebugFlash(self: *FlashStep) !void {
-        const command = try std.mem.join(self.builder.allocator, " ", &.{ "prog", self.dest_path });
+        const command = try std.mem.join(
+            self.builder.allocator,
+            " ",
+            &.{ "prog", self.hex.output_file.getPath() },
+        );
         _ = try self.builder.execFromStep(
             &.{ "mspdebug", self.programmer orelse unreachable, command },
             &self.step,
@@ -170,7 +181,7 @@ const FlashStep = struct {
         const operation = try std.fmt.allocPrint(
             self.builder.allocator,
             "-Uflash:w:{s}",
-            .{self.dest_path},
+            .{self.hex.output_file.getPath()},
         );
         _ = try self.builder.execFromStep(&[_][]const u8{
             "avrdude",
@@ -189,7 +200,14 @@ const FlashStep = struct {
 
     fn makeStLinkFlash(self: *FlashStep) !void {
         _ = try self.builder.execFromStep(
-            &.{ "st-flash", "--reset", "--format", "ihex", "write", self.dest_path },
+            &.{
+                "st-flash",
+                "--reset",
+                "--format",
+                "ihex",
+                "write",
+                self.hex.output_file.getPath(),
+            },
             &self.step,
         );
     }
@@ -197,7 +215,7 @@ const FlashStep = struct {
 
 pub fn addFlashStep(
     b: *std.build.Builder,
-    hex: *std.build.InstallRawStep,
+    hex: *std.build.ObjCopyStep,
     tool: FlashTool,
     board: *const ezdl.Board,
 ) *FlashStep {
