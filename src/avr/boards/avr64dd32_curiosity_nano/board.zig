@@ -11,9 +11,13 @@ pub const sdo = mcu.Gpio(periph.PORTA, 4, .output);
 pub const sdi = mcu.Gpio(periph.PORTA, 5, .input);
 pub const sck = mcu.Gpio(periph.PORTA, 6, .output);
 pub const cs = mcu.Gpio(periph.PORTA, 7, .output);
+pub const sda = mcu.Gpio(periph.PORTA, 2, .output);
+pub const sda_pp = mcu.Gpio(periph.PORTA, 2, .output);
+pub const scl = mcu.Gpio(periph.PORTA, 3, .output);
 
 pub const usart = mcu.Usart(periph.USART0);
 pub const spi = mcu.Spi(periph.SPI0, .{ .speed = 2_000_000 });
+pub const i2c = mcu.I2c(periph.TWI0, .{ .speed = 100_000 });
 
 pub const nrf24 = struct {
     pub const ce = mcu.Gpio(periph.PORTD, 1, .output);
@@ -30,4 +34,5 @@ export fn vectorSection() linksection(".vectors") callconv(.Naked) void {
 
 pub fn init() void {
     periph.PORTMUX.USARTROUTEA.modify(.{ .USART0 = .{ .value = .ALT3 } });
+    periph.SLPCTRL.CTRLA.modify(.{ .SEN = 1 });
 }

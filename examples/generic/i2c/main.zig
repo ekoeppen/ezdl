@@ -29,7 +29,7 @@ fn readLine() []u8 {
 fn handleInput(buffer: []const u8) anyerror!void {
     var args = std.mem.split(u8, buffer, " ");
     const cmd = args.first();
-    for (commands) |command| {
+    inline for (commands) |command| {
         if (std.ascii.eqlIgnoreCase(command.name, cmd)) {
             command.command() catch |err| {
                 _ = try writer.print("Error: {}\n", .{err});
@@ -42,7 +42,7 @@ fn handleInput(buffer: []const u8) anyerror!void {
 const Command = struct {
     name: []const u8,
     description: []const u8,
-    command: *const fn () anyerror!void,
+    command: fn () anyerror!void,
 };
 
 const commands: []const Command = &.{
@@ -54,7 +54,7 @@ const commands: []const Command = &.{
 
 fn help() !void {
     _ = try writer.writeAll("Commands: \n");
-    for (commands) |command| {
+    inline for (commands) |command| {
         _ = try writer.print("{s}: {s}\n", .{ command.name, command.description });
     }
 }

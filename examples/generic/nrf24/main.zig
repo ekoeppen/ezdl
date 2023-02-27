@@ -35,7 +35,7 @@ fn readLine() []u8 {
 const Command = struct {
     name: []const u8,
     description: []const u8,
-    command: *const fn (args: *std.mem.SplitIterator(u8)) anyerror!void,
+    command: fn (args: *std.mem.SplitIterator(u8)) anyerror!void,
 };
 
 const commands: []const Command = &.{
@@ -49,7 +49,7 @@ const commands: []const Command = &.{
 
 fn help(_: *std.mem.SplitIterator(u8)) !void {
     _ = try writer.writeAll("Commands: \n");
-    for (commands) |command| {
+    inline for (commands) |command| {
         _ = try writer.print("{s}: {s}\n", .{ command.name, command.description });
     }
 }
@@ -97,7 +97,7 @@ fn tx(_: *std.mem.SplitIterator(u8)) !void {
 fn handleInput(buffer: []const u8) anyerror!void {
     var args = std.mem.split(u8, buffer, " ");
     const cmd = args.first();
-    for (commands) |command| {
+    inline for (commands) |command| {
         if (std.ascii.eqlIgnoreCase(command.name, cmd)) {
             command.command(&args) catch |e| {
                 _ = try writer.print("Error: {}\n", .{e});
