@@ -169,3 +169,73 @@ pub fn addExecutable(
 
     return exe;
 }
+
+pub fn build(b: *std.Build) !void {
+    const linker_script_path = "zig-cache/memory.ld";
+    const elf_name = b.option("elf_name");
+    const main = b.option("main");
+    const board = b.option("board");
+    const output_name = try std.fmt.allocPrint(b.allocator, "{s}_{s}{s}", .{
+        std.fs.path.stem(elf_name),
+        board.name,
+        std.fs.path.extension(elf_name),
+    });
+    const target = .{
+        .cpu_arch = board.cpu_arch,
+        .cpu_model = board.cpu_model,
+        .os_tag = .freestanding,
+    };
+    const exe = b.addExecutable(.{
+        .name = output_name,
+        .optimize = b.standardOptimizeOption(.{}),
+        .target = target,
+        .root_source_file = .{ .path = main },
+    });
+    const info_tool = b.addExecutable(.{
+        .name = "info_tool",
+        .root_source_file = .{ .path = mkPath(@src(), "lib/build_info.zig") },
+    });
+    const build_info = info_tool.run();
+    try generateLinkerScript(linker_script_path, board.memory);
+    exe.setLinkerScriptPath(.{ .path = linker_script_path });
+    exe.step.dependOn(&build_info.step);
+    exe.strip = false;
+
+    var info_mod = b.createModule(.{
+        .source_file = .{ .path = "zig-cache/build_info.zig" },
+    });
+    var microzig_mod = b.createModule(.{
+        .source_file = .{ .path = mkPath(@src(), "microzig.zig") },
+    });
+    var ezdl_mod = b.createModule(.{
+        .source_file = .{ .path = mkPath(@src(), "ezdl.zig") },
+        .dependencies = &.{
+            .{ .name = "microzig", .module = microzig_mod },
+        },
+    });
+
+    exe.addModule("ezdl", ezdl_mod);
+    exe.addModule("build_info", info_mod);
+
+    if (board.board_path) |board_path| {
+        var board_mod = b.createModule(.{
+            .source_file = .{ .path = board_path },
+            .dependencies = &.{
+                .{ .name = "ezdl", .module = ezdl_mod },
+                .{ .name = "microzig", .module = microzig_mod },
+            },
+        });
+        exe.addModule("board", board_mod);
+    }
+
+    const size_cmd = b.addSystemCommand(&[_][]const u8{"size"});
+    size_cmd.addArtifactArg(exe);
+    b.getInstallStep().dependOn(&size_cmd.step);
+
+    switch (board.cpu_arch) {
+        .arm, .thumb => try stm32.addFamilySteps(b, exe, board),
+        .msp430 => try msp430.addFamilySteps(b, exe, board),
+        .avr => try avr.addFamilySteps(b, exe, board),
+        else => {},
+    }
+}
