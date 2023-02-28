@@ -40,5 +40,6 @@ pub fn init() void {
     periph.PORTC.PINCONFIG.modify(.{ .PULLUPEN = 1, .ISC = .{ .value = .INPUT_DISABLE } });
     periph.PORTD.PINCONFIG.modify(.{ .PULLUPEN = 1, .ISC = .{ .value = .INPUT_DISABLE } });
     periph.PORTF.PINCONFIG.modify(.{ .PULLUPEN = 1, .ISC = .{ .value = .INPUT_DISABLE } });
+    periph.RTC.PITCTRLA.modify(.{ .PERIOD = .{ .value = .CYC32768 }, .PITEN = 1 });
     // periph.CPU.CCP.write(.{ .CCP = .{ .value = .IOREG } });
 }

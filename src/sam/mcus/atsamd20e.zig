@@ -1,4 +1,5 @@
 pub const Pin = @import("../peripherals.zig").pin.Pin;
+pub const Nvic = @import("../peripherals.zig").nvic_m0.Nvic;
 
 pub fn reset() void {
     const AIRCR = @intToPtr(*volatile u32, 0xe000ed0c);

@@ -78,6 +78,7 @@ pub const boards = .{
     @import("src/avr/boards/arduino_uno/atmega328p.zig"),
     @import("src/avr/boards/arduino_leonardo/atmega32u4.zig"),
     @import("src/avr/boards/avr64dd32_curiosity_nano/avr64dd32.zig"),
+    @import("src/avr/boards/avr128db28_minimal/avr128db28.zig"),
 };
 
 pub fn boardFromName(name: []const u8) !Board {

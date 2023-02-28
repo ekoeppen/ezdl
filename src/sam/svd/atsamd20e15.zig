@@ -23,49 +23,49 @@ pub const devices = struct {
             PendSV: Handler = unhandled,
             reserved13: [1]u32 = undefined,
             ///  Power Manager
-            PM_PM: Handler = unhandled,
+            PM: Handler = unhandled,
             ///  System Controller
-            SYSCTRL_SYSCTRL: Handler = unhandled,
+            SYSCTRL: Handler = unhandled,
             ///  Watchdog Timer
-            WDT_WDT: Handler = unhandled,
+            WDT: Handler = unhandled,
             ///  Real Time Counter
-            RTC_RTC: Handler = unhandled,
+            RTC: Handler = unhandled,
             ///  External Interrupt Controller
-            EIC_EIC: Handler = unhandled,
+            EIC: Handler = unhandled,
             ///  Non-Volatile Memory Controller
-            NVMCTRL_NVMCTRL: Handler = unhandled,
+            NVMCTRL: Handler = unhandled,
             ///  Event Systems
-            EVSYS_EVSYS: Handler = unhandled,
+            EVSYS: Handler = unhandled,
             ///  Serial Communication Interface 0
-            SERCOM0_SERCOM0: Handler = unhandled,
+            SERCOM0: Handler = unhandled,
             ///  Serial Communication Interface 1
-            SERCOM1_SERCOM1: Handler = unhandled,
+            SERCOM1: Handler = unhandled,
             ///  Serial Communication Interface 2
-            SERCOM2_SERCOM2: Handler = unhandled,
+            SERCOM2: Handler = unhandled,
             ///  Serial Communication Interface 3
-            SERCOM3_SERCOM3: Handler = unhandled,
+            SERCOM3: Handler = unhandled,
             reserved25: [2]u32 = undefined,
             ///  Timer/Counter 0
-            TC0_TC0: Handler = unhandled,
+            TC0: Handler = unhandled,
             ///  Timer/Counter 1
-            TC1_TC1: Handler = unhandled,
+            TC1: Handler = unhandled,
             ///  Timer/Counter 2
-            TC2_TC2: Handler = unhandled,
+            TC2: Handler = unhandled,
             ///  Timer/Counter 3
-            TC3_TC3: Handler = unhandled,
+            TC3: Handler = unhandled,
             ///  Timer/Counter 4
-            TC4_TC4: Handler = unhandled,
+            TC4: Handler = unhandled,
             ///  Timer/Counter 5
-            TC5_TC5: Handler = unhandled,
+            TC5: Handler = unhandled,
             reserved33: [2]u32 = undefined,
             ///  Analog-to-Digital Converter
-            ADC_ADC: Handler = unhandled,
+            ADC: Handler = unhandled,
             ///  Analog Comparators
-            AC_AC: Handler = unhandled,
+            AC: Handler = unhandled,
             ///  Digital-to-Analog Converter
-            DAC_DAC: Handler = unhandled,
+            DAC: Handler = unhandled,
             ///  Peripheral Touch Controller
-            PTC_PTC: Handler = unhandled,
+            PTC: Handler = unhandled,
         };
 
         pub const peripherals = struct {
