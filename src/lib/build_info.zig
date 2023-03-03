@@ -12,7 +12,7 @@ pub fn main() !void {
         const git = std.ChildProcess.exec(.{
             .argv = &.{ "git", "rev-parse", "--short", "HEAD" },
             .allocator = allocator,
-        }) catch break :c "<none";
+        }) catch break :c "<none>";
         break :c if (git.term.Exited == 0) git.stdout[0..7] else "<none>";
     };
     var now = DateTime{};

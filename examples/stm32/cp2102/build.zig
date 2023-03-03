@@ -1,5 +1,5 @@
 const std = @import("std");
-const ezdl = @import("ezdl/src/ezdl.zig");
+const ezdl = @import("root").dependencies.imports.ezdl;
 
 pub fn build(b: *std.build.Builder) anyerror!void {
     const board_name = b.option([]const u8, "board", "Board") orelse "stm32f103c8_base";

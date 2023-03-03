@@ -1,14 +1,10 @@
 .{
-    .name = "I2C example",
+    .name = "Si7060 example",
     .version = "0.1.0",
     .dependencies = .{
         .ezdl = .{
             .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/41-enable-usage-as-zig-module/ezdl-41-enable-usage-as-zig-module.tar.gz",
             .hash = "12207f35dfa74ea92709a33bd10e40589d85d6f1b04df4123ec7cc8703a66b141879",
-        },
-        .accept = .{
-            .url = "https://gitlab.com/40hz/zig/accept/-/archive/v0.1.0/accept-v0.1.0.tar.gz",
-            .hash = "1220e268a76582c3fbbf0890e0362ace7c9cecf7b5127588c1c2ae93b648737c0197",
         },
     },
 }

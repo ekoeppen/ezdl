@@ -1,10 +1,10 @@
 .{
-    .name = "I2C example",
+    .name = "Accept example",
     .version = "0.1.0",
     .dependencies = .{
         .ezdl = .{
             .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/41-enable-usage-as-zig-module/ezdl-41-enable-usage-as-zig-module.tar.gz",
-            .hash = "12207f35dfa74ea92709a33bd10e40589d85d6f1b04df4123ec7cc8703a66b141879",
+            .hash = "12203b7e66076b55a4fdca937e504704a82a71b870de0a9acef887b8b635cb552a9a",
         },
         .accept = .{
             .url = "https://gitlab.com/40hz/zig/accept/-/archive/v0.1.0/accept-v0.1.0.tar.gz",

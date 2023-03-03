@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn path() []const u8 {
+fn path() []const u8 {
     return @src().file;
 }
 

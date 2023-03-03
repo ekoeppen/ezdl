@@ -1,5 +1,5 @@
 const std = @import("std");
-const ezdl = @import("ezdl.zig");
+const build = @import("../build.zig");
 
 pub const ObjCopyFormat = enum { bin, hex };
 
@@ -34,7 +34,7 @@ const FlashStep = struct {
         name: []const u8,
         tool: FlashTool,
         hex: *std.build.ObjCopyStep,
-        board: *const ezdl.Board,
+        board: *const build.Board,
     ) *FlashStep {
         const self = builder.allocator.create(FlashStep) catch unreachable;
         const port = switch (tool) {
@@ -217,7 +217,7 @@ pub fn addFlashStep(
     b: *std.build.Builder,
     hex: *std.build.ObjCopyStep,
     tool: FlashTool,
-    board: *const ezdl.Board,
+    board: *const build.Board,
 ) *FlashStep {
     const flash_cmd = FlashStep.create(b, "flash", tool, hex, board);
     flash_cmd.step.dependOn(&hex.step);

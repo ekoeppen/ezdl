@@ -1,0 +1,10 @@
+.{
+    .name = "Empty example",
+    .version = "0.1.0",
+    .dependencies = .{
+        .ezdl = .{
+            .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/41-enable-usage-as-zig-module/ezdl-41-enable-usage-as-zig-module.tar.gz",
+            .hash = "1220aacb169da78c11b84e8956f2f8c73199dd903ca68ebe1fdcc6430f047f9e63ac",
+        },
+    },
+}

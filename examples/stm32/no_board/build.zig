@@ -1,25 +1,21 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) anyerror!void {
-    const target = .{
+    const optimize = b.standardOptimizeOption(.{});
+    const target: std.zig.CrossTarget = .{
         .cpu_arch = .thumb,
         .cpu_model = .{ .explicit = &(@import("std").Target.arm.cpu.cortex_m0) },
         .os_tag = .freestanding,
     };
+    const ezdl = b.dependency("ezdl", .{ .target = target, .optimize = optimize });
     const exe = b.addExecutable(.{
         .name = "no_board.elf",
         .root_source_file = .{ .path = "main.zig" },
         .target = target,
-        .optimize = b.standardOptimizeOption(.{}),
+        .optimize = optimize,
     });
     exe.setLinkerScriptPath(.{ .path = "linker.ld" });
-    var microzig = b.createModule(.{
-        .source_file = .{ .path = "ezdl/src/microzig.zig" },
-    });
-    var ezdl = b.createModule(.{
-        .source_file = .{ .path = "ezdl/src/ezdl.zig" },
-        .dependencies = &.{.{ .name = "microzig", .module = microzig }},
-    });
-    exe.addModule("ezdl", ezdl);
+    exe.addModule("ezdl", ezdl.module("ezdl"));
+    exe.addModule("microzig", ezdl.module("microzig"));
     exe.install();
 }
