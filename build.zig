@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_tools = @import("src/build_tools.zig");
 
 pub const stm32 = @import("src/stm32/stm32.zig");
 pub const msp430 = @import("src/msp430/msp430.zig");
@@ -107,6 +108,8 @@ pub fn addExecutable(
     });
     const build_info = info_tool.run();
     exe.step.dependOn(&build_info.step);
+    const stats = build_tools.addStatsStep(b, exe);
+    b.getInstallStep().dependOn(&stats.step);
 
     const info_mod = b.createModule(.{
         .source_file = .{ .path = "zig-cache/build_info.zig" },

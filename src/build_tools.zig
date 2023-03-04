@@ -224,3 +224,67 @@ pub fn addFlashStep(
     b.step(flash_cmd.name, flash_cmd.description).dependOn(&flash_cmd.step);
     return flash_cmd;
 }
+
+const StatsStep = struct {
+    builder: *std.build.Builder,
+    file_source: std.Build.FileSource,
+    step: std.build.Step,
+    const sections: []const []const u8 = &.{
+        ".vectors",
+        ".text",
+        ".data",
+        ".bss",
+    };
+
+    fn create(
+        b: *std.build.Builder,
+        file_source: std.Build.FileSource,
+    ) *StatsStep {
+        const self = b.allocator.create(StatsStep) catch unreachable;
+        self.* = .{
+            .builder = b,
+            .file_source = file_source,
+            .step = std.build.Step.init(.run, "stats", b.allocator, make),
+        };
+        return self;
+    }
+
+    fn make(step: *std.build.Step) !void {
+        const self = @fieldParentPtr(StatsStep, "step", step);
+        const path = self.file_source.getPath(self.builder);
+        var file = try std.fs.cwd().openFile(path, .{});
+        defer file.close();
+        const elf_hdr = try std.elf.Header.read(file);
+        const stringtab = blk: {
+            var section_headers = elf_hdr.section_header_iterator(&file);
+            var section_counter: usize = 0;
+            while (section_counter < elf_hdr.shstrndx) : (section_counter += 1) {
+                _ = (try section_headers.next()).?;
+            }
+            const header = (try section_headers.next()).?;
+            const buffer = try self.builder.allocator.alloc(u8, @intCast(usize, header.sh_size));
+            const num_read = try file.preadAll(buffer, header.sh_offset);
+            if (num_read != buffer.len) return error.EndOfStream;
+            break :blk buffer;
+        };
+
+        var section_headers = elf_hdr.section_header_iterator(&file);
+        std.log.info("Section sizes for {s}:", .{std.fs.path.basename(path)});
+        while (try section_headers.next()) |section| {
+            const name = std.mem.span(@ptrCast([*:0]const u8, &stringtab[section.sh_name]));
+            for (sections) |s| {
+                if (std.ascii.eqlIgnoreCase(s, name)) {
+                    std.log.info("{s: <10}: {d}", .{ name, section.sh_size });
+                    break;
+                }
+            }
+        }
+    }
+};
+
+pub fn addStatsStep(b: *std.build.Builder, exe: *std.build.CompileStep) *StatsStep {
+    const stats_cmd = StatsStep.create(b, exe.getOutputSource());
+    stats_cmd.step.dependOn(&exe.step);
+    b.step("stats", "Print file statistics").dependOn(&stats_cmd.step);
+    return stats_cmd;
+}
