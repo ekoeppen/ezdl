@@ -1,8 +1,8 @@
-pub const lib = @import("lib/lib.zig");
-pub const drivers = @import("drivers/drivers.zig");
-pub const stm32 = @import("stm32/stm32.zig");
-pub const msp430 = @import("msp430/msp430.zig");
-pub const avr = @import("avr/avr.zig");
+pub const lib = @import("lib.zig");
+pub const drivers = @import("drivers.zig");
+pub const stm32 = @import("stm32.zig");
+pub const msp430 = @import("msp430.zig");
+pub const avr = @import("avr.zig");
 pub const arm = @import("arm.zig");
 
 pub fn irqIndicesToInts(comptime indices: anytype) []u8 {

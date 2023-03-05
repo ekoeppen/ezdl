@@ -1,7 +1,7 @@
-pub const Gpio = @import("../peripherals/peripherals.zig").gpio_dx.Gpio;
-pub const Usart = @import("../peripherals/peripherals.zig").usart_dx.Usart;
-pub const Spi = @import("../peripherals/peripherals.zig").spi_dx.Spi;
-pub const I2c = @import("../peripherals/peripherals.zig").i2c_dx.I2c;
+pub const Gpio = @import("../peripherals.zig").gpio_dx.Gpio;
+pub const Usart = @import("../peripherals.zig").usart_dx.Usart;
+pub const Spi = @import("../peripherals.zig").spi_dx.Spi;
+pub const I2c = @import("../peripherals.zig").i2c_dx.I2c;
 
 pub inline fn reset() void {
     asm volatile ("jmp 0");

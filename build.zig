@@ -2,9 +2,9 @@ const std = @import("std");
 const build_tools = @import("src/build_tools.zig");
 
 pub const arm = @import("src/arm.zig");
-pub const stm32 = @import("src/stm32/stm32.zig");
-pub const msp430 = @import("src/msp430/msp430.zig");
-pub const avr = @import("src/avr/avr.zig");
+pub const stm32 = @import("src/stm32.zig");
+pub const msp430 = @import("src/msp430.zig");
+pub const avr = @import("src/avr.zig");
 
 pub fn mkPath(
     comptime src: std.builtin.SourceLocation,

@@ -1,10 +1,10 @@
 const std = @import("std");
-const build = @import("../../build.zig");
-const build_tools = @import("../build_tools.zig");
+const build = @import("../build.zig");
+const build_tools = @import("build_tools.zig");
 const microzig = @import("microzig");
 
-pub const mcus = @import("mcus/mcus.zig");
-pub const svd = @import("svd/svd.zig");
+pub const mcus = @import("stm32/mcus.zig");
+pub const svd = @import("stm32/svd.zig");
 
 pub fn VectorTable(comptime T: type) type {
     return @Type(.{ .Struct = .{
@@ -41,12 +41,12 @@ pub fn addFamilySteps(
 ) !void {
     const startup = b.addObject(.{
         .name = "startup",
-        .root_source_file = .{ .path = build.mkPath(@src(), "startup.zig") },
+        .root_source_file = .{ .path = build.mkPath(@src(), "stm32/startup.zig") },
         .target = exe.target,
         .optimize = exe.optimize,
     });
     exe.addObject(startup);
-    exe.addLibraryPath(build.mkPath(@src(), ""));
+    exe.addLibraryPath(build.mkPath(@src(), "stm32"));
 
     const hex_cmd = try build_tools.addObjCopyStep(b, exe, .hex);
     const bin_cmd = try build_tools.addObjCopyStep(b, exe, .bin);
