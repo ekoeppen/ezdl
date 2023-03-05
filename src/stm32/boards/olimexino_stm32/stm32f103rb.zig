@@ -9,6 +9,7 @@ pub const config = .{
     .cpu_name = "stm32f103rb",
     .cpu_arch = .thumb,
     .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m3 },
+    .device_family = .stm32,
     .programmer = "dfu-util",
     .memory = &.{
         .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 128 * 1024 },

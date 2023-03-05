@@ -9,6 +9,7 @@ pub const config = .{
     .cpu_name = "stm32l011f4",
     .cpu_arch = .thumb,
     .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m0 },
+    .device_family = .stm32,
     .programmer = "stm32flash",
     .memory = &.{
         .{ .name = "rom", .attrs = "rx", .start = 0x08000000, .size = 16384 },

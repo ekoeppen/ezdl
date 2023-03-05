@@ -1,6 +1,7 @@
 const std = @import("std");
 const build_tools = @import("src/build_tools.zig");
 
+pub const arm = @import("src/arm.zig");
 pub const stm32 = @import("src/stm32/stm32.zig");
 pub const msp430 = @import("src/msp430/msp430.zig");
 pub const avr = @import("src/avr/avr.zig");
@@ -15,6 +16,13 @@ pub fn mkPath(
     };
 }
 
+pub const DeviceFamily = enum {
+    stm32,
+    msp430,
+    avr,
+    sam,
+};
+
 pub const MemoryRegion = struct {
     name: []const u8,
     attrs: []const u8,
@@ -28,6 +36,7 @@ pub const Board = struct {
     cpu_name: []const u8 = undefined,
     cpu_arch: std.Target.Cpu.Arch,
     cpu_model: std.zig.CrossTarget.CpuModel,
+    device_family: ?DeviceFamily = undefined,
     port: []const u8 = undefined,
     programmer: []const u8 = undefined,
     board_path: ?[]const u8 = null,
@@ -144,7 +153,7 @@ pub fn addExecutable(
     exe.strip = false;
 
     switch (board.cpu_arch) {
-        .arm, .thumb => try stm32.addFamilySteps(b, exe, board),
+        .arm, .thumb => try arm.addFamilySteps(b, exe, board),
         .msp430 => try msp430.addFamilySteps(b, exe, board),
         .avr => try avr.addFamilySteps(b, exe, board),
         else => {},
