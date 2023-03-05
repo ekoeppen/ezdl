@@ -154,18 +154,9 @@ pub fn addExecutable(
 }
 
 pub fn build(b: *std.Build) !void {
-    b.addModule(.{
-        .name = "microzig",
-        .source_file = .{ .path = "src/microzig.zig" },
-    });
-    b.addModule(.{
-        .name = "ezdl",
+    const microzig = b.addModule("microzig", .{ .source_file = .{ .path = "src/microzig.zig" } });
+    _ = b.addModule("ezdl", .{
         .source_file = .{ .path = "src/ezdl.zig" },
-        .dependencies = &.{
-            .{
-                .name = "microzig",
-                .module = b.modules.get("microzig") orelse unreachable,
-            },
-        },
+        .dependencies = &.{.{ .name = "microzig", .module = microzig }},
     });
 }
