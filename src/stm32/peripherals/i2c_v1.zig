@@ -17,11 +17,11 @@ pub fn I2c(comptime i2c: anytype, comptime pclk: u32, comptime frequency: u32) t
             i2c.CR1.modify(.{ .PE = 0 });
             i2c.CR2.modify(.{ .FREQ = pclk / 1_000_0000 });
             if (frequency <= 100_000) {
-                i2c.CCR.write(.{ .F_S = 0, .DUTY = 0, .CCR = pclk / (frequency * 2) });
-                i2c.TRISE.write(.{ .TRISE = pclk / 1_000_000 + 1 });
+                i2c.CCR.modify(.{ .F_S = 0, .DUTY = 0, .CCR = pclk / (frequency * 2) });
+                i2c.TRISE.modify(.{ .TRISE = pclk / 1_000_000 + 1 });
             } else {
-                i2c.CCR.write(.{ .F_S = 1, .DUTY = 0, .CCR = pclk / (frequency * 3) });
-                i2c.TRISE.write(.{ .TRISE = (pclk / 1_000_000) * 3 / 10 + 1 });
+                i2c.CCR.modify(.{ .F_S = 1, .DUTY = 0, .CCR = pclk / (frequency * 3) });
+                i2c.TRISE.modify(.{ .TRISE = (pclk / 1_000_000) * 3 / 10 + 1 });
             }
             i2c.CR1.modify(.{ .PE = 1, .ACK = 1 });
         }
@@ -46,7 +46,7 @@ pub fn I2c(comptime i2c: anytype, comptime pclk: u32, comptime frequency: u32) t
         }
 
         pub fn sendTargetAddress(address: u8) !void {
-            i2c.DR.write(.{ .DR = address });
+            i2c.DR.write(.{ .DR = address, .padding = 0 });
             start();
             while (!timedOut()) : (pause()) {
                 if (i2c.SR1.read().ADDR == 1) break;
@@ -106,7 +106,7 @@ pub fn I2c(comptime i2c: anytype, comptime pclk: u32, comptime frequency: u32) t
             try sendTargetAddress(@as(u8, address) << 1);
             for (data) |d| {
                 try waitForTxe();
-                i2c.DR.write(.{ .DR = d });
+                i2c.DR.write(.{ .DR = d, .padding = 0 });
             }
             if (!restart) generateStop();
         }

@@ -52,7 +52,7 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
 
         pub fn send(data: u8) void {
             while (periph.ISR.read().TXE == 0) {}
-            periph.TDR.write(.{ .TDR = data });
+            periph.TDR.write(.{ .TDR = data, .padding = 0 });
         }
 
         pub const Writer = std.io.Writer(Context, WriteError, write);

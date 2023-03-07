@@ -74,7 +74,7 @@ pub fn Usb(
         }
 
         fn resetRequest() void {
-            usb.DADDR.write(.{ .ADD = 0, .EF = 1 });
+            usb.DADDR.modify(.{ .ADD = 0, .EF = 1 });
             var btable_offset: u16 = 16 * endpoints.len;
             inline for (endpoints) |endpoint| btable_offset += endpoint.init(btable_offset);
         }
@@ -472,7 +472,7 @@ pub fn ControlEndpoint(
         fn handleIn(self: *Self) void {
             ep.clearInTransferComplete();
             if (self.setup_address != 0) {
-                usb.DADDR.write(.{ .ADD = self.setup_address, .EF = 1 });
+                usb.DADDR.modify(.{ .ADD = self.setup_address, .EF = 1 });
                 self.setup_address = 0;
             }
             if (self.pending_data.len > 0) {

@@ -50,6 +50,44 @@ pub const devices = struct {
             NVMCTRL_EE: Handler = unhandled,
         };
 
+        pub const VectorIndex = enum(i32) {
+            CRCSCAN_NMI = 1,
+            BOD_VLM = 2,
+            CLKCTRL_CFD = 3,
+            MVIO_MVIO = 4,
+            RTC_CNT = 5,
+            RTC_PIT = 6,
+            CCL_CCL = 7,
+            PORTA_PORT = 8,
+            TCA0_LUNF = 9,
+            TCA0_HUNF = 10,
+            TCA0_CMP0 = 11,
+            TCA0_CMP1 = 12,
+            TCA0_CMP2 = 13,
+            TCB0_INT = 14,
+            TCB1_INT = 15,
+            TCD0_OVF = 16,
+            TCD0_TRIG = 17,
+            TWI0_TWIS = 18,
+            TWI0_TWIM = 19,
+            SPI0_INT = 20,
+            USART0_RXC = 21,
+            USART0_DRE = 22,
+            USART0_TXC = 23,
+            PORTD_PORT = 24,
+            AC0_AC = 25,
+            ADC0_RESRDY = 26,
+            ADC0_WCMP = 27,
+            ZCD3_ZCD = 28,
+            PORTC_PORT = 29,
+            TCB2_INT = 30,
+            USART1_RXC = 31,
+            USART1_DRE = 32,
+            USART1_TXC = 33,
+            PORTF_PORT = 34,
+            NVMCTRL_EE = 35,
+        };
+
         pub const peripherals = struct {
             ///  Virtual Ports
             pub const VPORTA = @intToPtr(*volatile types.peripherals.VPORT, 0x0);
@@ -3875,13 +3913,13 @@ pub const types = struct {
         pub const SPI = extern struct {
             ///  Prescaler select
             pub const SPI_PRESC = enum(u2) {
-                ///  CLK_PER / 4
+                ///  System Clock / 4
                 DIV4 = 0x0,
-                ///  CLK_PER / 16
+                ///  System Clock / 16
                 DIV16 = 0x1,
-                ///  CLK_PER / 64
+                ///  System Clock / 64
                 DIV64 = 0x2,
-                ///  CLK_PER / 128
+                ///  System Clock / 128
                 DIV128 = 0x3,
             };
 
@@ -4005,21 +4043,21 @@ pub const types = struct {
 
             ///  Clock Selection
             pub const TCA_SINGLE_CLKSEL = enum(u3) {
-                ///  CLK_PER
+                ///  System Clock
                 DIV1 = 0x0,
-                ///  CLK_PER / 2
+                ///  System Clock / 2
                 DIV2 = 0x1,
-                ///  CLK_PER / 4
+                ///  System Clock / 4
                 DIV4 = 0x2,
-                ///  CLK_PER / 8
+                ///  System Clock / 8
                 DIV8 = 0x3,
-                ///  CLK_PER / 16
+                ///  System Clock / 16
                 DIV16 = 0x4,
-                ///  CLK_PER / 64
+                ///  System Clock / 64
                 DIV64 = 0x5,
-                ///  CLK_PER / 256
+                ///  System Clock / 256
                 DIV256 = 0x6,
-                ///  CLK_PER / 1024
+                ///  System Clock / 1024
                 DIV1024 = 0x7,
             };
 
@@ -4090,21 +4128,21 @@ pub const types = struct {
 
             ///  Clock Selection
             pub const TCA_SPLIT_CLKSEL = enum(u3) {
-                ///  CLK_PER
+                ///  System Clock
                 DIV1 = 0x0,
-                ///  CLK_PER / 2
+                ///  System Clock / 2
                 DIV2 = 0x1,
-                ///  CLK_PER / 4
+                ///  System Clock / 4
                 DIV4 = 0x2,
-                ///  CLK_PER / 8
+                ///  System Clock / 8
                 DIV8 = 0x3,
-                ///  CLK_PER / 16
+                ///  System Clock / 16
                 DIV16 = 0x4,
-                ///  CLK_PER / 64
+                ///  System Clock / 64
                 DIV64 = 0x5,
-                ///  CLK_PER / 256
+                ///  System Clock / 256
                 DIV256 = 0x6,
-                ///  CLK_PER / 1024
+                ///  System Clock / 1024
                 DIV1024 = 0x7,
             };
 

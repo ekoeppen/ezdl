@@ -51,7 +51,7 @@ pub fn Usart(comptime periph: anytype, comptime config: Config) type {
 
         pub fn send(data: u8) void {
             while (periph.SR.read().TXE == 0) {}
-            periph.DR.write(.{ .DR = data });
+            periph.DR.write(.{ .DR = data, .padding = 0 });
         }
 
         pub const Writer = std.io.Writer(Context, WriteError, write);

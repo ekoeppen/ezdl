@@ -17,9 +17,9 @@ pub fn I2c(comptime i2c: anytype, comptime pclk: u32, comptime frequency: u32) t
             _ = pclk;
             i2c.CR1.modify(.{ .PE = 0 });
             if (frequency <= 100_000) {
-                i2c.TIMINGR.write(.{ .SCLH = 7, .SCLL = 8, .SDADEL = 0, .SCLDEL = 0, .PRESC = 0 });
+                i2c.TIMINGR.modify(.{ .SCLH = 7, .SCLL = 8, .SDADEL = 0, .SCLDEL = 0, .PRESC = 0 });
             } else {
-                i2c.TIMINGR.write(.{ .SCLH = 0, .SCLL = 0, .SDADEL = 0, .SCLDEL = 0, .PRESC = 0 });
+                i2c.TIMINGR.modify(.{ .SCLH = 0, .SCLL = 0, .SDADEL = 0, .SCLDEL = 0, .PRESC = 0 });
             }
             i2c.CR2.modify(.{ .AUTOEND = 1, .NACK = 1 });
             i2c.CR1.modify(.{ .PE = 1 });
@@ -110,7 +110,7 @@ pub fn I2c(comptime i2c: anytype, comptime pclk: u32, comptime frequency: u32) t
             });
             for (data) |d| {
                 try waitForTxIs();
-                i2c.TXDR.write(.{ .TXDATA = d });
+                i2c.TXDR.write(.{ .TXDATA = d, .padding = 0 });
             }
             if (restart) try waitForTxComplete() else try waitForStop();
         }

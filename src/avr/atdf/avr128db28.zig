@@ -2,7 +2,7 @@ const micro = @import("microzig");
 const mmio = micro.mmio;
 
 pub const devices = struct {
-    pub const AVR32DD32 = struct {
+    pub const AVR128DB28 = struct {
         pub const properties = struct {
             pub const family = "AVR";
             pub const arch = "AVR8X";
@@ -40,7 +40,8 @@ pub const devices = struct {
             AC0_AC: Handler = unhandled,
             ADC0_RESRDY: Handler = unhandled,
             ADC0_WCMP: Handler = unhandled,
-            ZCD3_ZCD: Handler = unhandled,
+            ZCD0_ZCD: Handler = unhandled,
+            AC1_AC: Handler = unhandled,
             PORTC_PORT: Handler = unhandled,
             TCB2_INT: Handler = unhandled,
             USART1_RXC: Handler = unhandled,
@@ -48,6 +49,11 @@ pub const devices = struct {
             USART1_TXC: Handler = unhandled,
             PORTF_PORT: Handler = unhandled,
             NVMCTRL_EE: Handler = unhandled,
+            SPI1_INT: Handler = unhandled,
+            USART2_RXC: Handler = unhandled,
+            USART2_DRE: Handler = unhandled,
+            USART2_TXC: Handler = unhandled,
+            AC2_AC: Handler = unhandled,
         };
 
         pub const VectorIndex = enum(i32) {
@@ -78,14 +84,20 @@ pub const devices = struct {
             AC0_AC = 25,
             ADC0_RESRDY = 26,
             ADC0_WCMP = 27,
-            ZCD3_ZCD = 28,
-            PORTC_PORT = 29,
-            TCB2_INT = 30,
-            USART1_RXC = 31,
-            USART1_DRE = 32,
-            USART1_TXC = 33,
-            PORTF_PORT = 34,
-            NVMCTRL_EE = 35,
+            ZCD0_ZCD = 28,
+            AC1_AC = 29,
+            PORTC_PORT = 30,
+            TCB2_INT = 31,
+            USART1_RXC = 32,
+            USART1_DRE = 33,
+            USART1_TXC = 34,
+            PORTF_PORT = 35,
+            NVMCTRL_EE = 36,
+            SPI1_INT = 37,
+            USART2_RXC = 38,
+            USART2_DRE = 39,
+            USART2_TXC = 40,
+            AC2_AC = 41,
         };
 
         pub const peripherals = struct {
@@ -139,18 +151,28 @@ pub const devices = struct {
             pub const ADC0 = @intToPtr(*volatile types.peripherals.ADC, 0x600);
             ///  Analog Comparator
             pub const AC0 = @intToPtr(*volatile types.peripherals.AC, 0x680);
+            ///  Analog Comparator
+            pub const AC1 = @intToPtr(*volatile types.peripherals.AC, 0x688);
+            ///  Analog Comparator
+            pub const AC2 = @intToPtr(*volatile types.peripherals.AC, 0x690);
             ///  Digital to Analog Converter
             pub const DAC0 = @intToPtr(*volatile types.peripherals.DAC, 0x6a0);
             ///  Zero Cross Detect
-            pub const ZCD3 = @intToPtr(*volatile types.peripherals.ZCD, 0x6d8);
+            pub const ZCD0 = @intToPtr(*volatile types.peripherals.ZCD, 0x6c0);
+            ///  Operational Amplifier System
+            pub const OPAMP = @intToPtr(*volatile types.peripherals.OPAMP, 0x700);
             ///  Universal Synchronous and Asynchronous Receiver and Transmitter
             pub const USART0 = @intToPtr(*volatile types.peripherals.USART, 0x800);
             ///  Universal Synchronous and Asynchronous Receiver and Transmitter
             pub const USART1 = @intToPtr(*volatile types.peripherals.USART, 0x820);
+            ///  Universal Synchronous and Asynchronous Receiver and Transmitter
+            pub const USART2 = @intToPtr(*volatile types.peripherals.USART, 0x840);
             ///  Two-Wire Interface
             pub const TWI0 = @intToPtr(*volatile types.peripherals.TWI, 0x900);
             ///  Serial Peripheral Interface
             pub const SPI0 = @intToPtr(*volatile types.peripherals.SPI, 0x940);
+            ///  Serial Peripheral Interface
+            pub const SPI1 = @intToPtr(*volatile types.peripherals.SPI, 0x960);
             ///  16-bit Timer/Counter Type A
             pub const TCA0 = @intToPtr(*volatile types.peripherals.TCA, 0xa00);
             ///  16-bit Timer Type B
@@ -201,8 +223,18 @@ pub const types = struct {
                 PROFILE1 = 0x1,
                 ///  Power profile 2
                 PROFILE2 = 0x2,
-                ///  Power profile 3
-                PROFILE3 = 0x3,
+                _,
+            };
+
+            ///  Window selection mode
+            pub const AC_WINSEL = enum(u2) {
+                ///  Window function disabled
+                DISABLED = 0x0,
+                ///  Select ACn+1 as upper limit in window compare
+                UPSEL1 = 0x1,
+                ///  Select ACn+2 as upper limit in window compare
+                UPSEL2 = 0x2,
+                _,
             };
 
             ///  Interrupt Mode select
@@ -214,6 +246,18 @@ pub const types = struct {
                 ///  Positive input goes above negative input
                 POSEDGE = 0x3,
                 _,
+            };
+
+            ///  Interrupt Mode select
+            pub const AC_WINDOW_INTMODE = enum(u2) {
+                ///  Window interrupt when input above both references
+                ABOVE = 0x0,
+                ///  Window interrupt when input betweeen references
+                INSIDE = 0x1,
+                ///  Window interrupt when input below both references
+                BELOW = 0x2,
+                ///  Window interrupt when input outside reference
+                OUTSIDE = 0x3,
             };
 
             ///  AC Output Initial Value select
@@ -228,12 +272,12 @@ pub const types = struct {
             pub const AC_MUXNEG = enum(u3) {
                 ///  Negative Pin 0
                 AINN0 = 0x0,
+                ///  Negative Pin 1
+                AINN1 = 0x1,
                 ///  Negative Pin 2
                 AINN2 = 0x2,
-                ///  Negative Pin 3
-                AINN3 = 0x3,
                 ///  DAC Reference
-                DACREF = 0x4,
+                DACREF = 0x3,
                 _,
             };
 
@@ -241,10 +285,23 @@ pub const types = struct {
             pub const AC_MUXPOS = enum(u3) {
                 ///  Positive Pin 0
                 AINP0 = 0x0,
+                ///  Positive Pin 1
+                AINP1 = 0x1,
+                ///  Positive Pin 2
+                AINP2 = 0x2,
                 ///  Positive Pin 3
                 AINP3 = 0x3,
-                ///  Positive Pin 4
-                AINP4 = 0x4,
+                _,
+            };
+
+            ///  Analog Comparator Window State select
+            pub const AC_WINSTATE = enum(u2) {
+                ///  Above window
+                ABOVE = 0x0,
+                ///  Inside window
+                INSIDE = 0x1,
+                ///  Below window
+                BELOW = 0x2,
                 _,
             };
 
@@ -268,7 +325,15 @@ pub const types = struct {
                 ///  Run in Standby Mode
                 RUNSTDBY: u1,
             }),
-            reserved2: [1]u8,
+            ///  Control B
+            CTRLB: mmio.Mmio(packed struct(u8) {
+                ///  Window selection mode
+                WINSEL: packed union {
+                    raw: u2,
+                    value: AC_WINSEL,
+                },
+                padding: u6,
+            }),
             ///  Mux Control A
             MUXCTRL: mmio.Mmio(packed struct(u8) {
                 ///  Negative Input MUX Selection
@@ -314,7 +379,12 @@ pub const types = struct {
                 reserved4: u3,
                 ///  Analog Comparator State
                 CMPSTATE: u1,
-                padding: u3,
+                reserved6: u1,
+                ///  Analog Comparator Window State
+                WINSTATE: packed union {
+                    raw: u2,
+                    value: AC_WINSTATE,
+                },
             }),
         };
 
@@ -460,6 +530,8 @@ pub const types = struct {
 
             ///  Analog Channel Selection Bits
             pub const ADC_MUXNEG = enum(u7) {
+                ///  ADC input pin 0
+                AIN0 = 0x0,
                 ///  ADC input pin 1
                 AIN1 = 0x1,
                 ///  ADC input pin 2
@@ -474,38 +546,22 @@ pub const types = struct {
                 AIN6 = 0x6,
                 ///  ADC input pin 7
                 AIN7 = 0x7,
-                ///  ADC input pin 16
-                AIN16 = 0x10,
-                ///  ADC input pin 17
-                AIN17 = 0x11,
-                ///  ADC input pin 18
-                AIN18 = 0x12,
-                ///  ADC input pin 19
-                AIN19 = 0x13,
-                ///  ADC input pin 20
-                AIN20 = 0x14,
-                ///  ADC input pin 21
-                AIN21 = 0x15,
-                ///  ADC input pin 22
-                AIN22 = 0x16,
-                ///  ADC input pin 23
-                AIN23 = 0x17,
-                ///  ADC input pin 24
-                AIN24 = 0x18,
-                ///  ADC input pin 25
-                AIN25 = 0x19,
-                ///  ADC input pin 26
-                AIN26 = 0x1a,
-                ///  ADC input pin 27
-                AIN27 = 0x1b,
-                ///  ADC input pin 28
-                AIN28 = 0x1c,
-                ///  ADC input pin 29
-                AIN29 = 0x1d,
-                ///  ADC input pin 30
-                AIN30 = 0x1e,
-                ///  ADC input pin 31
-                AIN31 = 0x1f,
+                ///  ADC input pin 8
+                AIN8 = 0x8,
+                ///  ADC input pin 9
+                AIN9 = 0x9,
+                ///  ADC input pin 10
+                AIN10 = 0xa,
+                ///  ADC input pin 11
+                AIN11 = 0xb,
+                ///  ADC input pin 12
+                AIN12 = 0xc,
+                ///  ADC input pin 13
+                AIN13 = 0xd,
+                ///  ADC input pin 14
+                AIN14 = 0xe,
+                ///  ADC input pin 15
+                AIN15 = 0xf,
                 ///  Ground
                 GND = 0x40,
                 ///  DAC0
@@ -515,6 +571,8 @@ pub const types = struct {
 
             ///  Analog Channel Selection Bits
             pub const ADC_MUXPOS = enum(u7) {
+                ///  ADC input pin 0
+                AIN0 = 0x0,
                 ///  ADC input pin 1
                 AIN1 = 0x1,
                 ///  ADC input pin 2
@@ -529,6 +587,22 @@ pub const types = struct {
                 AIN6 = 0x6,
                 ///  ADC input pin 7
                 AIN7 = 0x7,
+                ///  ADC input pin 8
+                AIN8 = 0x8,
+                ///  ADC input pin 9
+                AIN9 = 0x9,
+                ///  ADC input pin 10
+                AIN10 = 0xa,
+                ///  ADC input pin 11
+                AIN11 = 0xb,
+                ///  ADC input pin 12
+                AIN12 = 0xc,
+                ///  ADC input pin 13
+                AIN13 = 0xd,
+                ///  ADC input pin 14
+                AIN14 = 0xe,
+                ///  ADC input pin 15
+                AIN15 = 0xf,
                 ///  ADC input pin 16
                 AIN16 = 0x10,
                 ///  ADC input pin 17
@@ -541,26 +615,6 @@ pub const types = struct {
                 AIN20 = 0x14,
                 ///  ADC input pin 21
                 AIN21 = 0x15,
-                ///  ADC input pin 22
-                AIN22 = 0x16,
-                ///  ADC input pin 23
-                AIN23 = 0x17,
-                ///  ADC input pin 24
-                AIN24 = 0x18,
-                ///  ADC input pin 25
-                AIN25 = 0x19,
-                ///  ADC input pin 26
-                AIN26 = 0x1a,
-                ///  ADC input pin 27
-                AIN27 = 0x1b,
-                ///  ADC input pin 28
-                AIN28 = 0x1c,
-                ///  ADC input pin 29
-                AIN29 = 0x1d,
-                ///  ADC input pin 30
-                AIN30 = 0x1e,
-                ///  ADC input pin 31
-                AIN31 = 0x1f,
                 ///  Ground
                 GND = 0x40,
                 ///  Temperature sensor
@@ -571,8 +625,6 @@ pub const types = struct {
                 VDDIO2DIV10 = 0x45,
                 ///  DAC0
                 DAC0 = 0x48,
-                ///  DACREF0
-                DACREF0 = 0x49,
                 _,
             };
 
@@ -955,8 +1007,8 @@ pub const types = struct {
                 IN0 = 0x5,
                 ///  AC0 OUT input source
                 AC0 = 0x6,
-                ///  ZCD3 OUT input source
-                ZCD3 = 0x7,
+                ///  ZCD0 OUT input source
+                ZCD0 = 0x7,
                 ///  USART0 TXD input source
                 USART0 = 0x8,
                 ///  SPI0 MOSI input source
@@ -964,9 +1016,9 @@ pub const types = struct {
                 ///  TCA0 WO0 input source
                 TCA0 = 0xa,
                 ///  TCB0 WO input source
-                TCB0 = 0xb,
+                TCB0 = 0xc,
                 ///  TCD0 WOA input source
-                TCD0 = 0xc,
+                TCD0 = 0xd,
                 _,
             };
 
@@ -984,10 +1036,8 @@ pub const types = struct {
                 EVENTB = 0x4,
                 ///  IO pin LUTn-IN1 input source
                 IN1 = 0x5,
-                ///  AC0 OUT input source
-                AC0 = 0x6,
-                ///  ZCD3 OUT input source
-                ZCD3 = 0x7,
+                ///  AC1 OUT input source
+                AC1 = 0x6,
                 ///  USART1 TXD input source
                 USART1 = 0x8,
                 ///  SPI0 MOSI input source
@@ -995,9 +1045,9 @@ pub const types = struct {
                 ///  TCA0 WO1 input source
                 TCA0 = 0xa,
                 ///  TCB1 WO input source
-                TCB1 = 0xb,
+                TCB1 = 0xc,
                 ///  TCD0 WOB input source
-                TCD0 = 0xc,
+                TCD0 = 0xd,
                 _,
             };
 
@@ -1015,20 +1065,18 @@ pub const types = struct {
                 EVENTB = 0x4,
                 ///  IO pin LUTn-IN2 input source
                 IN2 = 0x5,
-                ///  AC0 OUT input source
-                AC0 = 0x6,
-                ///  ZCD3 OUT input source
-                ZCD3 = 0x7,
-                ///  USART1 TXD input source
-                USART1 = 0x8,
+                ///  AC2 OUT input source
+                AC2 = 0x6,
+                ///  USART2 TXD input source
+                USART2 = 0x8,
                 ///  SPI0 SCK input source
                 SPI0 = 0x9,
                 ///  TCA0 WO2 input source
                 TCA0 = 0xa,
                 ///  TCB2 WO input source
-                TCB2 = 0xb,
+                TCB2 = 0xc,
                 ///  TCD0 WOC input source
-                TCD0 = 0xc,
+                TCD0 = 0xd,
                 _,
             };
 
@@ -1581,7 +1629,6 @@ pub const types = struct {
                 RUNSTDBY: u1,
             }),
             reserved32: [3]u8,
-            ///  XOSC HF Control A
             XOSCHFCTRLA: mmio.Mmio(packed struct(u8) {
                 ///  Enable
                 ENABLE: u1,
@@ -1625,7 +1672,14 @@ pub const types = struct {
                     value: CPU_CCP,
                 },
             }),
-            reserved9: [8]u8,
+            reserved7: [6]u8,
+            ///  Extended Z-pointer Register
+            RAMPZ: mmio.Mmio(packed struct(u8) {
+                ///  Extended Z-Pointer Address bits
+                RAMPZ: u1,
+                padding: u7,
+            }),
+            reserved9: [1]u8,
             ///  Stack Pointer
             SP: u16,
             ///  Status Register
@@ -1779,10 +1833,18 @@ pub const types = struct {
                 CCL_LUT3 = 0x13,
                 ///  Analog Comparator 0 out
                 AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
                 ///  ADC 0 Result Ready
                 ADC0_RESRDY = 0x24,
-                ///  Zero Cross Detect 3 out
-                ZCD3 = 0x30,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
                 ///  Port A Pin 0
                 PORTA_PIN0 = 0x40,
                 ///  Port A Pin 1
@@ -1803,8 +1865,12 @@ pub const types = struct {
                 USART0_XCK = 0x60,
                 ///  USART 1 XCK
                 USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
                 ///  SPI 0 SCK
                 SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
                 ///  Timer/Counter A0 overflow / low byte timer underflow
                 TCA0_OVF_LUNF = 0x80,
                 ///  Timer/Counter A0 high byte timer underflow
@@ -1868,10 +1934,18 @@ pub const types = struct {
                 CCL_LUT3 = 0x13,
                 ///  Analog Comparator 0 out
                 AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
                 ///  ADC 0 Result Ready
                 ADC0_RESRDY = 0x24,
-                ///  Zero Cross Detect 3 out
-                ZCD3 = 0x30,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
                 ///  Port A Pin 0
                 PORTA_PIN0 = 0x40,
                 ///  Port A Pin 1
@@ -1892,8 +1966,12 @@ pub const types = struct {
                 USART0_XCK = 0x60,
                 ///  USART 1 XCK
                 USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
                 ///  SPI 0 SCK
                 SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
                 ///  Timer/Counter A0 overflow / low byte timer underflow
                 TCA0_OVF_LUNF = 0x80,
                 ///  Timer/Counter A0 high byte timer underflow
@@ -1957,10 +2035,18 @@ pub const types = struct {
                 CCL_LUT3 = 0x13,
                 ///  Analog Comparator 0 out
                 AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
                 ///  ADC 0 Result Ready
                 ADC0_RESRDY = 0x24,
-                ///  Zero Cross Detect 3 out
-                ZCD3 = 0x30,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
                 ///  Port C Pin 0
                 PORTC_PIN0 = 0x40,
                 ///  Port C Pin 1
@@ -1987,8 +2073,12 @@ pub const types = struct {
                 USART0_XCK = 0x60,
                 ///  USART 1 XCK
                 USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
                 ///  SPI 0 SCK
                 SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
                 ///  Timer/Counter A0 overflow / low byte timer underflow
                 TCA0_OVF_LUNF = 0x80,
                 ///  Timer/Counter A0 high byte timer underflow
@@ -2052,10 +2142,18 @@ pub const types = struct {
                 CCL_LUT3 = 0x13,
                 ///  Analog Comparator 0 out
                 AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
                 ///  ADC 0 Result Ready
                 ADC0_RESRDY = 0x24,
-                ///  Zero Cross Detect 3 out
-                ZCD3 = 0x30,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
                 ///  Port C Pin 0
                 PORTC_PIN0 = 0x40,
                 ///  Port C Pin 1
@@ -2082,8 +2180,12 @@ pub const types = struct {
                 USART0_XCK = 0x60,
                 ///  USART 1 XCK
                 USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
                 ///  SPI 0 SCK
                 SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
                 ///  Timer/Counter A0 overflow / low byte timer underflow
                 TCA0_OVF_LUNF = 0x80,
                 ///  Timer/Counter A0 high byte timer underflow
@@ -2147,32 +2249,34 @@ pub const types = struct {
                 CCL_LUT3 = 0x13,
                 ///  Analog Comparator 0 out
                 AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
                 ///  ADC 0 Result Ready
                 ADC0_RESRDY = 0x24,
-                ///  Zero Cross Detect 3 out
-                ZCD3 = 0x30,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
                 ///  Port F Pin 0
                 PORTF_PIN0 = 0x48,
                 ///  Port F Pin 1
                 PORTF_PIN1 = 0x49,
-                ///  Port F Pin 2
-                PORTF_PIN2 = 0x4a,
-                ///  Port F Pin 3
-                PORTF_PIN3 = 0x4b,
-                ///  Port F Pin 4
-                PORTF_PIN4 = 0x4c,
-                ///  Port F Pin 5
-                PORTF_PIN5 = 0x4d,
                 ///  Port F Pin 6
                 PORTF_PIN6 = 0x4e,
-                ///  Port F Pin 7
-                PORTF_PIN7 = 0x4f,
                 ///  USART 0 XCK
                 USART0_XCK = 0x60,
                 ///  USART 1 XCK
                 USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
                 ///  SPI 0 SCK
                 SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
                 ///  Timer/Counter A0 overflow / low byte timer underflow
                 TCA0_OVF_LUNF = 0x80,
                 ///  Timer/Counter A0 high byte timer underflow
@@ -2236,32 +2340,204 @@ pub const types = struct {
                 CCL_LUT3 = 0x13,
                 ///  Analog Comparator 0 out
                 AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
                 ///  ADC 0 Result Ready
                 ADC0_RESRDY = 0x24,
-                ///  Zero Cross Detect 3 out
-                ZCD3 = 0x30,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
                 ///  Port F Pin 0
                 PORTF_PIN0 = 0x48,
                 ///  Port F Pin 1
                 PORTF_PIN1 = 0x49,
-                ///  Port F Pin 2
-                PORTF_PIN2 = 0x4a,
-                ///  Port F Pin 3
-                PORTF_PIN3 = 0x4b,
-                ///  Port F Pin 4
-                PORTF_PIN4 = 0x4c,
-                ///  Port F Pin 5
-                PORTF_PIN5 = 0x4d,
                 ///  Port F Pin 6
                 PORTF_PIN6 = 0x4e,
-                ///  Port F Pin 7
-                PORTF_PIN7 = 0x4f,
                 ///  USART 0 XCK
                 USART0_XCK = 0x60,
                 ///  USART 1 XCK
                 USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
                 ///  SPI 0 SCK
                 SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
+                ///  Timer/Counter A0 overflow / low byte timer underflow
+                TCA0_OVF_LUNF = 0x80,
+                ///  Timer/Counter A0 high byte timer underflow
+                TCA0_HUNF = 0x81,
+                ///  Timer/Counter A0 compare 0 / low byte timer compare 0
+                TCA0_CMP0_LCMP0 = 0x84,
+                ///  Timer/Counter A0 compare 1 / low byte timer compare 1
+                TCA0_CMP1_LCMP1 = 0x85,
+                ///  Timer/Counter A0 compare 2 / low byte timer compare 2
+                TCA0_CMP2_LCMP2 = 0x86,
+                ///  Timer/Counter B0 capture
+                TCB0_CAPT = 0xa0,
+                ///  Timer/Counter B0 overflow
+                TCB0_OVF = 0xa1,
+                ///  Timer/Counter B1 capture
+                TCB1_CAPT = 0xa2,
+                ///  Timer/Counter B1 overflow
+                TCB1_OVF = 0xa3,
+                ///  Timer/Counter B2 capture
+                TCB2_CAPT = 0xa4,
+                ///  Timer/Counter B2 overflow
+                TCB2_OVF = 0xa5,
+                ///  Timer/Counter D0 event 0
+                TCD0_CMPBCLR = 0xb0,
+                ///  Timer/Counter D0 event 1
+                TCD0_CMPASET = 0xb1,
+                ///  Timer/Counter D0 event 2
+                TCD0_CMPBSET = 0xb2,
+                ///  Timer/Counter D0 event 3
+                TCD0_PROGEV = 0xb3,
+                _,
+            };
+
+            ///  Channel 6 generator select
+            pub const EVSYS_CHANNEL6 = enum(u8) {
+                ///  Off
+                OFF = 0x0,
+                ///  UPDI SYNCH character
+                UPDI_SYNCH = 0x1,
+                ///  MVIO VDDIO2 OK
+                MVIO = 0x5,
+                ///  Real Time Counter overflow
+                RTC_OVF = 0x6,
+                ///  Real Time Counter compare
+                RTC_CMP = 0x7,
+                ///  Periodic Interrupt Timer output 0
+                RTC_PIT_DIV8192 = 0x8,
+                ///  Periodic Interrupt Timer output 1
+                RTC_PIT_DIV4096 = 0x9,
+                ///  Periodic Interrupt Timer output 2
+                RTC_PIT_DIV2048 = 0xa,
+                ///  Periodic Interrupt Timer output 3
+                RTC_PIT_DIV1024 = 0xb,
+                ///  Configurable Custom Logic LUT0
+                CCL_LUT0 = 0x10,
+                ///  Configurable Custom Logic LUT1
+                CCL_LUT1 = 0x11,
+                ///  Configurable Custom Logic LUT2
+                CCL_LUT2 = 0x12,
+                ///  Configurable Custom Logic LUT3
+                CCL_LUT3 = 0x13,
+                ///  Analog Comparator 0 out
+                AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
+                ///  ADC 0 Result Ready
+                ADC0_RESRDY = 0x24,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
+                ///  USART 0 XCK
+                USART0_XCK = 0x60,
+                ///  USART 1 XCK
+                USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
+                ///  SPI 0 SCK
+                SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
+                ///  Timer/Counter A0 overflow / low byte timer underflow
+                TCA0_OVF_LUNF = 0x80,
+                ///  Timer/Counter A0 high byte timer underflow
+                TCA0_HUNF = 0x81,
+                ///  Timer/Counter A0 compare 0 / low byte timer compare 0
+                TCA0_CMP0_LCMP0 = 0x84,
+                ///  Timer/Counter A0 compare 1 / low byte timer compare 1
+                TCA0_CMP1_LCMP1 = 0x85,
+                ///  Timer/Counter A0 compare 2 / low byte timer compare 2
+                TCA0_CMP2_LCMP2 = 0x86,
+                ///  Timer/Counter B0 capture
+                TCB0_CAPT = 0xa0,
+                ///  Timer/Counter B0 overflow
+                TCB0_OVF = 0xa1,
+                ///  Timer/Counter B1 capture
+                TCB1_CAPT = 0xa2,
+                ///  Timer/Counter B1 overflow
+                TCB1_OVF = 0xa3,
+                ///  Timer/Counter B2 capture
+                TCB2_CAPT = 0xa4,
+                ///  Timer/Counter B2 overflow
+                TCB2_OVF = 0xa5,
+                ///  Timer/Counter D0 event 0
+                TCD0_CMPBCLR = 0xb0,
+                ///  Timer/Counter D0 event 1
+                TCD0_CMPASET = 0xb1,
+                ///  Timer/Counter D0 event 2
+                TCD0_CMPBSET = 0xb2,
+                ///  Timer/Counter D0 event 3
+                TCD0_PROGEV = 0xb3,
+                _,
+            };
+
+            ///  Channel 7 generator select
+            pub const EVSYS_CHANNEL7 = enum(u8) {
+                ///  Off
+                OFF = 0x0,
+                ///  UPDI SYNCH character
+                UPDI_SYNCH = 0x1,
+                ///  MVIO VDDIO2 OK
+                MVIO = 0x5,
+                ///  Real Time Counter overflow
+                RTC_OVF = 0x6,
+                ///  Real Time Counter compare
+                RTC_CMP = 0x7,
+                ///  Periodic Interrupt Timer output 0
+                RTC_PIT_DIV512 = 0x8,
+                ///  Periodic Interrupt Timer output 1
+                RTC_PIT_DIV256 = 0x9,
+                ///  Periodic Interrupt Timer output 2
+                RTC_PIT_DIV128 = 0xa,
+                ///  Periodic Interrupt Timer output 3
+                RTC_PIT_DIV64 = 0xb,
+                ///  Configurable Custom Logic LUT0
+                CCL_LUT0 = 0x10,
+                ///  Configurable Custom Logic LUT1
+                CCL_LUT1 = 0x11,
+                ///  Configurable Custom Logic LUT2
+                CCL_LUT2 = 0x12,
+                ///  Configurable Custom Logic LUT3
+                CCL_LUT3 = 0x13,
+                ///  Analog Comparator 0 out
+                AC0_OUT = 0x20,
+                ///  Analog Comparator 1 out
+                AC1_OUT = 0x21,
+                ///  Analog Comparator 2 out
+                AC2_OUT = 0x22,
+                ///  ADC 0 Result Ready
+                ADC0_RESRDY = 0x24,
+                ///  Zero Cross Detect 0 out
+                ZCD0 = 0x30,
+                ///  OPAMP0 Ready
+                OPAMP0_READY = 0x34,
+                ///  OPAMP1 Ready
+                OPAMP1_READY = 0x35,
+                ///  USART 0 XCK
+                USART0_XCK = 0x60,
+                ///  USART 1 XCK
+                USART1_XCK = 0x61,
+                ///  USART 2 XCK
+                USART2_XCK = 0x62,
+                ///  SPI 0 SCK
+                SPI0_SCK = 0x68,
+                ///  SPI 1 SCK
+                SPI1_SCK = 0x69,
                 ///  Timer/Counter A0 overflow / low byte timer underflow
                 TCA0_OVF_LUNF = 0x80,
                 ///  Timer/Counter A0 high byte timer underflow
@@ -2316,15 +2592,6 @@ pub const types = struct {
                 _,
             };
 
-            ///  Software event on channel select
-            pub const EVSYS_SWEVENTB = enum(u2) {
-                ///  Software event on channel 8
-                CH8 = 0x0,
-                ///  Software event on channel 9
-                CH9 = 0x1,
-                _,
-            };
-
             ///  User channel select
             pub const EVSYS_USER = enum(u8) {
                 ///  Off
@@ -2341,6 +2608,10 @@ pub const types = struct {
                 CHANNEL4 = 0x5,
                 ///  Connect user to event channel 5
                 CHANNEL5 = 0x6,
+                ///  Connect user to event channel 6
+                CHANNEL6 = 0x7,
+                ///  Connect user to event channel 7
+                CHANNEL7 = 0x8,
                 _,
             };
 
@@ -2352,16 +2623,7 @@ pub const types = struct {
                     value: EVSYS_SWEVENTA,
                 },
             }),
-            ///  Software Event B
-            SWEVENTB: mmio.Mmio(packed struct(u8) {
-                ///  Software event on channel select
-                SWEVENTB: packed union {
-                    raw: u2,
-                    value: EVSYS_SWEVENTB,
-                },
-                padding: u6,
-            }),
-            reserved16: [14]u8,
+            reserved16: [15]u8,
             ///  Multiplexer Channel 0
             CHANNEL0: mmio.Mmio(packed struct(u8) {
                 ///  Channel 0 generator select
@@ -2410,7 +2672,23 @@ pub const types = struct {
                     value: EVSYS_CHANNEL5,
                 },
             }),
-            reserved32: [10]u8,
+            ///  Multiplexer Channel 6
+            CHANNEL6: mmio.Mmio(packed struct(u8) {
+                ///  Channel 6 generator select
+                CHANNEL6: packed union {
+                    raw: u8,
+                    value: EVSYS_CHANNEL6,
+                },
+            }),
+            ///  Multiplexer Channel 7
+            CHANNEL7: mmio.Mmio(packed struct(u8) {
+                ///  Channel 7 generator select
+                CHANNEL7: packed union {
+                    raw: u8,
+                    value: EVSYS_CHANNEL7,
+                },
+            }),
+            reserved32: [8]u8,
             ///  User 0 - CCL0 Event A
             USERCCLLUT0A: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2475,6 +2753,7 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            reserved44: [4]u8,
             ///  User 12 - ADC0
             USERADC0START: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2491,6 +2770,7 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            reserved47: [1]u8,
             ///  User 15 - EVOUTC
             USEREVSYSEVOUTC: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2507,6 +2787,7 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            reserved50: [1]u8,
             ///  User 18 - EVOUTF
             USEREVSYSEVOUTF: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2515,6 +2796,7 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            reserved52: [1]u8,
             ///  User 20 - USART0
             USERUSART0IRDA: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2531,6 +2813,15 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            ///  User 22 - USART2
+            USERUSART2IRDA: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            reserved58: [3]u8,
             ///  User 26 - TCA0 Event A
             USERTCA0CNTA: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2547,6 +2838,7 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            reserved62: [2]u8,
             ///  User 30 - TCB0 Event A
             USERTCB0CAPT: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2595,6 +2887,7 @@ pub const types = struct {
                     value: EVSYS_USER,
                 },
             }),
+            reserved72: [4]u8,
             ///  User 40 - TCD0 Event A
             USERTCD0INPUTA: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
@@ -2605,6 +2898,70 @@ pub const types = struct {
             }),
             ///  User 41 - TCD0 Event B
             USERTCD0INPUTB: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 42 - OPAMP0 Enable
+            USEROPAMP0ENABLE: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 43 - OPAMP0 Disable
+            USEROPAMP0DISABLE: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 44 - OPAMP0 Dump
+            USEROPAMP0DUMP: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 45 - OPAMP0 Drive
+            USEROPAMP0DRIVE: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 46 - OPAMP1 Enable
+            USEROPAMP1ENABLE: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 47 - OPAMP1 Disable
+            USEROPAMP1DISABLE: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 48 - OPAMP1 Dump
+            USEROPAMP1DUMP: mmio.Mmio(packed struct(u8) {
+                ///  User channel select
+                USER: packed union {
+                    raw: u8,
+                    value: EVSYS_USER,
+                },
+            }),
+            ///  User 49 - OPAMP1 Drive
+            USEROPAMP1DRIVE: mmio.Mmio(packed struct(u8) {
                 ///  User channel select
                 USER: packed union {
                     raw: u8,
@@ -2689,19 +3046,12 @@ pub const types = struct {
             };
 
             ///  Reset Pin Configuration select
-            pub const FUSE_RSTPINCFG = enum(u1) {
+            pub const FUSE_RSTPINCFG = enum(u2) {
                 ///  GPIO mode
                 GPIO = 0x0,
                 ///  Reset mode
-                RST = 0x1,
-            };
-
-            ///  UPDI Pin Configuration select
-            pub const FUSE_UPDIPINCFG = enum(u1) {
-                ///  GPIO Mode
-                GPIO = 0x0,
-                ///  UPDI Mode
-                UPDI = 0x1,
+                RST = 0x2,
+                _,
             };
 
             ///  MVIO System Configuration select
@@ -2841,17 +3191,13 @@ pub const types = struct {
             SYSCFG0: mmio.Mmio(packed struct(u8) {
                 ///  EEPROM Save
                 EESAVE: u1,
-                reserved3: u2,
+                reserved2: u1,
                 ///  Reset Pin Configuration
                 RSTPINCFG: packed union {
-                    raw: u1,
+                    raw: u2,
                     value: FUSE_RSTPINCFG,
                 },
-                ///  UPDI Pin Configuration
-                UPDIPINCFG: packed union {
-                    raw: u1,
-                    value: FUSE_UPDIPINCFG,
-                },
+                reserved5: u1,
                 ///  CRC Select
                 CRCSEL: packed union {
                     raw: u1,
@@ -3070,6 +3416,279 @@ pub const types = struct {
             ADDR: u32,
         };
 
+        ///  Operational Amplifier System
+        pub const OPAMP = extern struct {
+            ///  Output Mode select
+            pub const OPAMP_OUTMODE = enum(u2) {
+                ///  Output Driver Off
+                OFF = 0x0,
+                ///  Output Driver in Normal Mode
+                NORMAL = 0x1,
+                _,
+            };
+
+            ///  Negative Input Multiplexer select
+            pub const OPAMP_MUXNEG = enum(u3) {
+                ///  Negative input pin for OPn
+                INN = 0x0,
+                ///  Wiper from OPn's resistor ladder
+                WIP = 0x1,
+                ///  OPn output (unity gain)
+                OUT = 0x2,
+                ///  DAC output
+                DAC = 0x3,
+                _,
+            };
+
+            ///  Positive Input Multiplexer select
+            pub const OPAMP_OP0_MUXPOS = enum(u3) {
+                ///  Positive input pin for OPn
+                INP = 0x0,
+                ///  Wiper from OPn's resistor ladder
+                WIP = 0x1,
+                ///  DAC output
+                DAC = 0x2,
+                ///  Ground
+                GND = 0x3,
+                ///  VDD/2
+                VDDDIV2 = 0x4,
+                _,
+            };
+
+            ///  Positive Input Multiplexer select
+            pub const OPAMP_OP1_MUXPOS = enum(u3) {
+                ///  Positive input pin for OPn
+                INP = 0x0,
+                ///  Wiper from OPn's resistor ladder
+                WIP = 0x1,
+                ///  DAC output
+                DAC = 0x2,
+                ///  Ground
+                GND = 0x3,
+                ///  VDD/2
+                VDDDIV2 = 0x4,
+                ///  Output from OP0
+                LINKOUT = 0x5,
+                _,
+            };
+
+            ///  Multiplexer Bottom select
+            pub const OPAMP_MUXBOT = enum(u3) {
+                ///  Multiplexer off
+                OFF = 0x0,
+                ///  Positive input pin for OPn
+                INP = 0x1,
+                ///  Negative input pin for OPn
+                INN = 0x2,
+                ///  DAC output
+                DAC = 0x3,
+                ///  Link OP[n-1] output
+                LINKOUT = 0x4,
+                ///  Ground
+                GND = 0x5,
+                _,
+            };
+
+            ///  Multiplexer Top select
+            pub const OPAMP_MUXTOP = enum(u2) {
+                ///  Multiplexer off
+                OFF = 0x0,
+                ///  OPn output
+                OUT = 0x1,
+                ///  VDD
+                VDD = 0x2,
+                _,
+            };
+
+            ///  Multiplexer Wiper selector
+            pub const OPAMP_MUXWIP = enum(u3) {
+                ///  R1 = 15R, R2 = 1R, R2/R1 = 0.07
+                WIP0 = 0x0,
+                ///  R1 = 14R, R2 = 2R, R2/R1 = 0.14
+                WIP1 = 0x1,
+                ///  R1 = 12R, R2 = 4R, R2/R1 = 0.33
+                WIP2 = 0x2,
+                ///  R1 = 8R, R2 = 8R, R2/R1 = 1
+                WIP3 = 0x3,
+                ///  R1 = 6R, R2 = 10R, R2/R1 = 1.67
+                WIP4 = 0x4,
+                ///  R1 = 4R, R2 = 12R, R2/R1 = 3
+                WIP5 = 0x5,
+                ///  R1 = 2R, R2 = 14R, R2/R1 = 7
+                WIP6 = 0x6,
+                ///  R1 = 1R, R2 = 15R, R2/R1 = 15
+                WIP7 = 0x7,
+            };
+
+            ///  Input Range Select
+            pub const OPAMP_IRSEL = enum(u1) {
+                ///  Full Input Range
+                FULL = 0x0,
+                ///  Reduced Input Range
+                REDUCED = 0x1,
+            };
+
+            ///  Control A
+            CTRLA: mmio.Mmio(packed struct(u8) {
+                ///  Op Amp System Enable
+                ENABLE: u1,
+                padding: u7,
+            }),
+            ///  Debug Control
+            DBGCTRL: mmio.Mmio(packed struct(u8) {
+                ///  Run in Debug Mode
+                DBGRUN: u1,
+                padding: u7,
+            }),
+            ///  Timebase Value
+            TIMEBASE: mmio.Mmio(packed struct(u8) {
+                ///  Timebase Value
+                TIMEBASE: u7,
+                padding: u1,
+            }),
+            reserved15: [12]u8,
+            ///  Power Control
+            PWRCTRL: mmio.Mmio(packed struct(u8) {
+                ///  Input Range Select
+                IRSEL: packed union {
+                    raw: u1,
+                    value: OPAMP_IRSEL,
+                },
+                padding: u7,
+            }),
+            ///  Op Amp 0 Control A
+            OP0CTRLA: mmio.Mmio(packed struct(u8) {
+                ///  Always On
+                ALWAYSON: u1,
+                ///  Enable Events
+                EVENTEN: u1,
+                ///  Output Mode
+                OUTMODE: packed union {
+                    raw: u2,
+                    value: OPAMP_OUTMODE,
+                },
+                reserved7: u3,
+                ///  Run in Standby Mode
+                RUNSTBY: u1,
+            }),
+            ///  Op Amp 0 Status
+            OP0STATUS: mmio.Mmio(packed struct(u8) {
+                ///  Settled
+                SETTLED: u1,
+                padding: u7,
+            }),
+            ///  Op Amp 0 Resistor Ladder Multiplexer
+            OP0RESMUX: mmio.Mmio(packed struct(u8) {
+                ///  Multiplexer Top
+                MUXTOP: packed union {
+                    raw: u2,
+                    value: OPAMP_MUXTOP,
+                },
+                ///  Multiplexer Bottom
+                MUXBOT: packed union {
+                    raw: u3,
+                    value: OPAMP_MUXBOT,
+                },
+                ///  Multiplexer Wiper selector
+                MUXWIP: packed union {
+                    raw: u3,
+                    value: OPAMP_MUXWIP,
+                },
+            }),
+            ///  Op Amp 0 Input Multiplexer
+            OP0INMUX: mmio.Mmio(packed struct(u8) {
+                ///  Positive Input Multiplexer
+                MUXPOS: packed union {
+                    raw: u3,
+                    value: OPAMP_OP0_MUXPOS,
+                },
+                reserved4: u1,
+                ///  Negative Input Multiplexer
+                MUXNEG: packed union {
+                    raw: u3,
+                    value: OPAMP_MUXNEG,
+                },
+                padding: u1,
+            }),
+            ///  Op Amp 0 Settle
+            OP0SETTLE: mmio.Mmio(packed struct(u8) {
+                ///  Settle Time
+                SETTLE: u7,
+                padding: u1,
+            }),
+            ///  Op Amp 0 Calibration
+            OP0CAL: mmio.Mmio(packed struct(u8) {
+                ///  Calibration (for input offset voltage)
+                CAL: u8,
+            }),
+            reserved24: [2]u8,
+            ///  Op Amp 1 Control A
+            OP1CTRLA: mmio.Mmio(packed struct(u8) {
+                ///  Always On
+                ALWAYSON: u1,
+                ///  Enable Events
+                EVENTEN: u1,
+                ///  Output Mode
+                OUTMODE: packed union {
+                    raw: u2,
+                    value: OPAMP_OUTMODE,
+                },
+                reserved7: u3,
+                ///  Run in Standby Mode
+                RUNSTBY: u1,
+            }),
+            ///  Op Amp 1 Status
+            OP1STATUS: mmio.Mmio(packed struct(u8) {
+                ///  Settled
+                SETTLED: u1,
+                padding: u7,
+            }),
+            ///  Op Amp 1 Resistor Ladder Multiplexer
+            OP1RESMUX: mmio.Mmio(packed struct(u8) {
+                ///  Multiplexer Top
+                MUXTOP: packed union {
+                    raw: u2,
+                    value: OPAMP_MUXTOP,
+                },
+                ///  Multiplexer Bottom
+                MUXBOT: packed union {
+                    raw: u3,
+                    value: OPAMP_MUXBOT,
+                },
+                ///  Multiplexer Wiper selector
+                MUXWIP: packed union {
+                    raw: u3,
+                    value: OPAMP_MUXWIP,
+                },
+            }),
+            ///  Op Amp 1 Input Multiplexer
+            OP1INMUX: mmio.Mmio(packed struct(u8) {
+                ///  Positive Input Multiplexer
+                MUXPOS: packed union {
+                    raw: u3,
+                    value: OPAMP_OP1_MUXPOS,
+                },
+                reserved4: u1,
+                ///  Negative Input Multiplexer
+                MUXNEG: packed union {
+                    raw: u3,
+                    value: OPAMP_MUXNEG,
+                },
+                padding: u1,
+            }),
+            ///  Op Amp 1 Settle
+            OP1SETTLE: mmio.Mmio(packed struct(u8) {
+                ///  Settle Time
+                SETTLE: u7,
+                padding: u1,
+            }),
+            ///  Op Amp 1 Calibration
+            OP1CAL: mmio.Mmio(packed struct(u8) {
+                ///  Calibration (for input offset voltage)
+                CAL: u8,
+            }),
+        };
+
         ///  I/O Ports
         pub const PORT = extern struct {
             ///  Input/Sense Configuration select
@@ -3273,6 +3892,30 @@ pub const types = struct {
 
         ///  Port Multiplexer
         pub const PORTMUX = extern struct {
+            ///  Analog Comparator 0 Output select
+            pub const PORTMUX_AC0 = enum(u1) {
+                ///  OUT on PA7
+                DEFAULT = 0x0,
+                ///  OUT on PC6
+                ALT1 = 0x1,
+            };
+
+            ///  Analog Comparator 1 Output select
+            pub const PORTMUX_AC1 = enum(u1) {
+                ///  OUT on PA7
+                DEFAULT = 0x0,
+                ///  OUT on PC6
+                ALT1 = 0x1,
+            };
+
+            ///  Analog Comparator 2 Output select
+            pub const PORTMUX_AC2 = enum(u1) {
+                ///  OUT on PA7
+                DEFAULT = 0x0,
+                ///  OUT on PC6
+                ALT1 = 0x1,
+            };
+
             ///  CCL Look-Up Table 0 Signals select
             pub const PORTMUX_LUT0 = enum(u1) {
                 ///  Out: PA3 In: PA0, PA1, PA2
@@ -3336,23 +3979,27 @@ pub const types = struct {
             };
 
             ///  SPI0 Signals select
-            pub const PORTMUX_SPI0 = enum(u3) {
+            pub const PORTMUX_SPI0 = enum(u2) {
                 ///  PA4, PA5, PA6, PA7
                 DEFAULT = 0x0,
                 ///  PE0, PE1, PE2, PE3
                 ALT1 = 0x1,
                 ///  PG4, PG5, PG6, PG7
                 ALT2 = 0x2,
-                ///  PA0, PA1, PC0, PC1
-                ALT3 = 0x3,
-                ///  PD4, PD5, PD6, PD7
-                ALT4 = 0x4,
+                ///  Not connected to any pins
+                NONE = 0x3,
+            };
+
+            ///  SPI1 Signals select
+            pub const PORTMUX_SPI1 = enum(u2) {
                 ///  PC0, PC1, PC2, PC3
-                ALT5 = 0x5,
-                ///  PC1, PC2, PC3, PF7
-                ALT6 = 0x6,
-                ///  NA, NA, NA, Set to 1
-                NONE = 0x7,
+                DEFAULT = 0x0,
+                ///  PC4, PC5, PC6, PC7
+                ALT1 = 0x1,
+                ///  PB4, PB5, PB6, PB7
+                ALT2 = 0x2,
+                ///  Not connected to any pins
+                NONE = 0x3,
             };
 
             ///  TCA0 Signals select
@@ -3408,8 +4055,6 @@ pub const types = struct {
                 ALT2 = 0x2,
                 ///  PG4, PG5, PG6, PG7
                 ALT3 = 0x3,
-                ///  PA4, PA5, PD4, PD5
-                ALT4 = 0x4,
                 _,
             };
 
@@ -3421,24 +4066,17 @@ pub const types = struct {
                 ALT1 = 0x1,
                 ///  PC2, PC3, PC6, PC7
                 ALT2 = 0x2,
-                ///  PA0, PA1, PC2, PC3
-                ALT3 = 0x3,
+                _,
             };
 
             ///  USART0 Signals select
-            pub const PORTMUX_USART0 = enum(u3) {
+            pub const PORTMUX_USART0 = enum(u2) {
                 ///  PA0, PA1, PA2, PA3
                 DEFAULT = 0x0,
                 ///  PA4, PA5, PA6, PA7
                 ALT1 = 0x1,
-                ///  PA2, PA3
-                ALT2 = 0x2,
-                ///  PD4, PD5, PD6, PD7
-                ALT3 = 0x3,
-                ///  PC1, PC2, PC3
-                ALT4 = 0x4,
                 ///  Not connected to any pins
-                NONE = 0x5,
+                NONE = 0x3,
                 _,
             };
 
@@ -3446,11 +4084,30 @@ pub const types = struct {
             pub const PORTMUX_USART1 = enum(u2) {
                 ///  PC0, PC1, PC2, PC3
                 DEFAULT = 0x0,
-                ///  PD6, PD7
-                ALT2 = 0x2,
+                ///  PC4, PC5, PC6, PC7
+                ALT1 = 0x1,
                 ///  Not connected to any pins
                 NONE = 0x3,
                 _,
+            };
+
+            ///  USART2 Signals select
+            pub const PORTMUX_USART2 = enum(u2) {
+                ///  PF0, PF1, PF2, PF3
+                DEFAULT = 0x0,
+                ///  PF4, PF5
+                ALT1 = 0x1,
+                ///  Not connected to any pins
+                NONE = 0x3,
+                _,
+            };
+
+            ///  Zero Cross Detector 0 Output select
+            pub const PORTMUX_ZCD0 = enum(u1) {
+                ///  OUT on PA7
+                DEFAULT = 0x0,
+                ///  OUT on PC7
+                ALT1 = 0x1,
             };
 
             ///  EVSYS route A
@@ -3507,7 +4164,7 @@ pub const types = struct {
             USARTROUTEA: mmio.Mmio(packed struct(u8) {
                 ///  USART0 Signals
                 USART0: packed union {
-                    raw: u3,
+                    raw: u2,
                     value: PORTMUX_USART0,
                 },
                 ///  USART1 Signals
@@ -3515,17 +4172,27 @@ pub const types = struct {
                     raw: u2,
                     value: PORTMUX_USART1,
                 },
-                padding: u3,
+                ///  USART2 Signals
+                USART2: packed union {
+                    raw: u2,
+                    value: PORTMUX_USART2,
+                },
+                padding: u2,
             }),
-            reserved5: [2]u8,
+            reserved4: [1]u8,
             ///  SPI route A
             SPIROUTEA: mmio.Mmio(packed struct(u8) {
                 ///  SPI0 Signals
                 SPI0: packed union {
-                    raw: u3,
+                    raw: u2,
                     value: PORTMUX_SPI0,
                 },
-                padding: u5,
+                ///  SPI1 Signals
+                SPI1: packed union {
+                    raw: u2,
+                    value: PORTMUX_SPI1,
+                },
+                padding: u4,
             }),
             ///  TWI route A
             TWIROUTEA: mmio.Mmio(packed struct(u8) {
@@ -3573,6 +4240,34 @@ pub const types = struct {
                 },
                 padding: u5,
             }),
+            ///  AC route A
+            ACROUTEA: mmio.Mmio(packed struct(u8) {
+                ///  Analog Comparator 0 Output
+                AC0: packed union {
+                    raw: u1,
+                    value: PORTMUX_AC0,
+                },
+                ///  Analog Comparator 1 Output
+                AC1: packed union {
+                    raw: u1,
+                    value: PORTMUX_AC1,
+                },
+                ///  Analog Comparator 2 Output
+                AC2: packed union {
+                    raw: u1,
+                    value: PORTMUX_AC2,
+                },
+                padding: u5,
+            }),
+            ///  ZCD route A
+            ZCDROUTEA: mmio.Mmio(packed struct(u8) {
+                ///  Zero Cross Detector 0 Output
+                ZCD0: packed union {
+                    raw: u1,
+                    value: PORTMUX_ZCD0,
+                },
+                padding: u7,
+            }),
         };
 
         ///  Reset controller
@@ -3610,7 +4305,7 @@ pub const types = struct {
                 ///  1.024 kHz from OSC32K
                 OSC1K = 0x1,
                 ///  32.768 kHz from XOSC32K
-                XTAL32K = 0x2,
+                XOSC32K = 0x2,
                 ///  External Clock
                 EXTCLK = 0x3,
             };
@@ -4004,13 +4699,13 @@ pub const types = struct {
         pub const SYSCFG = extern struct {
             ///  Revision ID
             REVID: u8,
-            reserved3: [2]u8,
+            reserved23: [22]u8,
             ///  OCD Message Control
             OCDMCTRL: u8,
             ///  OCD Message Status
             OCDMSTATUS: mmio.Mmio(packed struct(u8) {
-                ///  OCD Message Valid
-                VALID: u1,
+                ///  OCD Message Read
+                OCDMR: u1,
                 padding: u7,
             }),
         };
@@ -5033,7 +5728,7 @@ pub const types = struct {
 
         ///  Two-Wire Interface
         pub const TWI = extern struct {
-            ///  Fast-mode Plus Enable select
+            ///  FM Plus Enable select
             pub const TWI_FMPEN = enum(u1) {
                 ///  Operating in Standard-mode or Fast-mode
                 OFF = 0x0,
@@ -5041,7 +5736,7 @@ pub const types = struct {
                 ON = 0x1,
             };
 
-            ///  Input voltage transition level select
+            ///  Input Voltage Transition Level select
             pub const TWI_INPUTLVL = enum(u1) {
                 ///  I2C input voltage transition level
                 I2C = 0x0,
@@ -5051,41 +5746,33 @@ pub const types = struct {
 
             ///  SDA Hold Time select
             pub const TWI_SDAHOLD = enum(u2) {
-                ///  No SDA Hold Delay
+                ///  SDA hold time off
                 OFF = 0x0,
-                ///  Short SDA hold time
+                ///  Typical 50ns hold time
                 @"50NS" = 0x1,
-                ///  Meets SMBUS 2.0 specification under typical conditions
+                ///  Typical 300ns hold time
                 @"300NS" = 0x2,
-                ///  Meets SMBUS 2.0 specificaiton across all corners
+                ///  Typical 500ns hold time
                 @"500NS" = 0x3,
             };
 
             ///  SDA Setup Time select
             pub const TWI_SDASETUP = enum(u1) {
-                ///  SDA setup time is four clock cycles
+                ///  SDA setup time is 4 clock cycles
                 @"4CYC" = 0x0,
-                ///  SDA setup time is eight clock cycle
+                ///  SDA setup time is 8 clock cycles
                 @"8CYC" = 0x1,
             };
 
-            ///  Debug Run select
-            pub const TWI_DBGRUN = enum(u1) {
-                ///  The peripheral is halted in Break Debug mode and ignores events
-                HALT = 0x0,
-                ///  The peripheral will continue to run in Break Debug mode when the CPU is halted
-                RUN = 0x1,
-            };
-
-            ///  Inactive Bus Time-Out select
+            ///  Inactive Bus Timeout select
             pub const TWI_TIMEOUT = enum(u2) {
-                ///  Bus time-out disabled. I2C.
+                ///  Bus Timeout Disabled
                 DISABLED = 0x0,
-                ///  50us - SMBus
+                ///  50 Microseconds
                 @"50US" = 0x1,
-                ///  100us
+                ///  100 Microseconds
                 @"100US" = 0x2,
-                ///  200us
+                ///  200 Microseconds
                 @"200US" = 0x3,
             };
 
@@ -5099,25 +5786,25 @@ pub const types = struct {
 
             ///  Command select
             pub const TWI_MCMD = enum(u2) {
-                ///  No action
+                ///  No Action
                 NOACT = 0x0,
-                ///  Execute Acknowledge Action followed by repeated Start.
+                ///  Issue Repeated Start Condition
                 REPSTART = 0x1,
-                ///  Execute Acknowledge Action followed by a byte read/write operation. Read/write is defined by DIR.
+                ///  Receive or Transmit Data, depending on DIR
                 RECVTRANS = 0x2,
-                ///  Execute Acknowledge Action followed by issuing a Stop condition.
+                ///  Issue Stop Condition
                 STOP = 0x3,
             };
 
             ///  Bus State select
             pub const TWI_BUSSTATE = enum(u2) {
-                ///  Unknown bus state
+                ///  Unknown Bus State
                 UNKNOWN = 0x0,
-                ///  Bus is idle
+                ///  Bus is Idle
                 IDLE = 0x1,
-                ///  This TWI controls the bus
+                ///  This Module Controls The Bus
                 OWNER = 0x2,
-                ///  The bus is busy
+                ///  The Bus is Busy
                 BUSY = 0x3,
             };
 
@@ -5125,25 +5812,25 @@ pub const types = struct {
             pub const TWI_SCMD = enum(u2) {
                 ///  No Action
                 NOACT = 0x0,
-                ///  Complete transaction
+                ///  Used To Complete a Transaction
                 COMPTRANS = 0x2,
-                ///  Used in response to an interrupt
+                ///  Used in Response to Address/Data Interrupt
                 RESPONSE = 0x3,
                 _,
             };
 
-            ///  Address or Stop select
+            ///  Client Address or Stop select
             pub const TWI_AP = enum(u1) {
-                ///  A Stop condition generated the interrupt on APIF flag
+                ///  Stop condition generated APIF
                 STOP = 0x0,
-                ///  Address detection generated the interrupt on APIF flag
+                ///  Address detection generated APIF
                 ADR = 0x1,
             };
 
             ///  Control A
             CTRLA: mmio.Mmio(packed struct(u8) {
                 reserved1: u1,
-                ///  Fast-mode Plus Enable
+                ///  FM Plus Enable
                 FMPEN: packed union {
                     raw: u1,
                     value: TWI_FMPEN,
@@ -5159,51 +5846,45 @@ pub const types = struct {
                     value: TWI_SDASETUP,
                 },
                 reserved6: u1,
-                ///  Input voltage transition level
+                ///  Input Voltage Transition Level
                 INPUTLVL: packed union {
                     raw: u1,
                     value: TWI_INPUTLVL,
                 },
                 padding: u1,
             }),
-            ///  Dual Mode Control
+            ///  Dual Control
             DUALCTRL: mmio.Mmio(packed struct(u8) {
-                ///  Enable
+                ///  Dual Control Enable
                 ENABLE: u1,
-                ///  Fast-mode Plus Enable
-                FMPEN: packed union {
-                    raw: u1,
-                    value: TWI_FMPEN,
-                },
+                ///  FM Plus Enable
+                FMPEN: u1,
                 ///  SDA Hold Time
                 SDAHOLD: packed union {
                     raw: u2,
                     value: TWI_SDAHOLD,
                 },
                 reserved6: u2,
-                ///  Input voltage transition level
+                ///  Input Voltage Transition Level
                 INPUTLVL: packed union {
                     raw: u1,
                     value: TWI_INPUTLVL,
                 },
                 padding: u1,
             }),
-            ///  Debug Control
+            ///  Debug Control Register
             DBGCTRL: mmio.Mmio(packed struct(u8) {
                 ///  Debug Run
-                DBGRUN: packed union {
-                    raw: u1,
-                    value: TWI_DBGRUN,
-                },
+                DBGRUN: u1,
                 padding: u7,
             }),
             ///  Host Control A
             MCTRLA: mmio.Mmio(packed struct(u8) {
-                ///  Enable
+                ///  Enable TWI Host
                 ENABLE: u1,
                 ///  Smart Mode Enable
                 SMEN: u1,
-                ///  Inactive Bus Time-Out
+                ///  Inactive Bus Timeout
                 TIMEOUT: packed union {
                     raw: u2,
                     value: TWI_TIMEOUT,
@@ -5232,7 +5913,7 @@ pub const types = struct {
                 FLUSH: u1,
                 padding: u4,
             }),
-            ///  Host STATUS
+            ///  Host Status
             MSTATUS: mmio.Mmio(packed struct(u8) {
                 ///  Bus State
                 BUSSTATE: packed union {
@@ -5252,33 +5933,24 @@ pub const types = struct {
                 ///  Read Interrupt Flag
                 RIF: u1,
             }),
-            ///  Host Baud Rate
-            MBAUD: mmio.Mmio(packed struct(u8) {
-                ///  Baud Rate
-                BAUD: u8,
-            }),
+            ///  Host Baud Rate Control
+            MBAUD: u8,
             ///  Host Address
-            MADDR: mmio.Mmio(packed struct(u8) {
-                ///  Address
-                ADDR: u8,
-            }),
+            MADDR: u8,
             ///  Host Data
-            MDATA: mmio.Mmio(packed struct(u8) {
-                ///  Data
-                DATA: u8,
-            }),
+            MDATA: u8,
             ///  Client Control A
             SCTRLA: mmio.Mmio(packed struct(u8) {
-                ///  Enable
+                ///  Enable TWI Client
                 ENABLE: u1,
                 ///  Smart Mode Enable
                 SMEN: u1,
-                ///  Address Recognition Mode
+                ///  Promiscuous Mode Enable
                 PMEN: u1,
                 reserved5: u2,
                 ///  Stop Interrupt Enable
                 PIEN: u1,
-                ///  Address or Stop Interrupt Enable
+                ///  Address/Stop Interrupt Enable
                 APIEN: u1,
                 ///  Data Interrupt Enable
                 DIEN: u1,
@@ -5299,7 +5971,7 @@ pub const types = struct {
             }),
             ///  Client Status
             SSTATUS: mmio.Mmio(packed struct(u8) {
-                ///  Address or Stop
+                ///  Client Address or Stop
                 AP: packed union {
                     raw: u1,
                     value: TWI_AP,
@@ -5314,24 +5986,18 @@ pub const types = struct {
                 RXACK: u1,
                 ///  Clock Hold
                 CLKHOLD: u1,
-                ///  Address or Stop Interrupt Flag
+                ///  Address/Stop Interrupt Flag
                 APIF: u1,
                 ///  Data Interrupt Flag
                 DIF: u1,
             }),
             ///  Client Address
-            SADDR: mmio.Mmio(packed struct(u8) {
-                ///  Address
-                ADDR: u8,
-            }),
+            SADDR: u8,
             ///  Client Data
-            SDATA: mmio.Mmio(packed struct(u8) {
-                ///  Data
-                DATA: u8,
-            }),
+            SDATA: u8,
             ///  Client Address Mask
             SADDRMASK: mmio.Mmio(packed struct(u8) {
-                ///  Address Mask Enable
+                ///  Address Enable
                 ADDREN: u1,
                 ///  Address Mask
                 ADDRMASK: u7,
