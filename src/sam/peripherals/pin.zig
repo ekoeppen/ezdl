@@ -8,13 +8,25 @@ const Drive = enum {
     strong,
 };
 
+const Mux = enum(u4) {
+    A = 0,
+    B = 1,
+    C = 2,
+    D = 3,
+    E = 4,
+    F = 5,
+    G = 6,
+    H = 7,
+    _,
+};
+
 const Config = struct {
-    pull_up: bool = false,
+    pull_enable: bool = false,
     direction: Direction = .input,
     in_enable: bool = false,
     mux_enable: bool = false,
     drive: Drive = .normal,
-    mux: u4 = 0,
+    mux: Mux = .A,
 };
 
 pub fn Pin(comptime periph: anytype, comptime pin: u5, comptime config: Config) type {
@@ -28,6 +40,19 @@ pub fn Pin(comptime periph: anytype, comptime pin: u5, comptime config: Config) 
             switch (c.direction) {
                 .input => periph.DIRCLR.write(.{ .DIRCLR = pin_bit }),
                 .output => periph.DIRSET.write(.{ .DIRSET = pin_bit }),
+            }
+            periph.PINCFG[pin].write(.{
+                .DRVSTR = if (c.drive == .strong) 0 else 1,
+                .PULLEN = if (c.pull_enable) 1 else 0,
+                .INEN = if (c.in_enable) 1 else 0,
+                .PMUXEN = if (c.mux_enable) 1 else 0,
+                .reserved6 = 0,
+                .padding = 0,
+            });
+            if (pin % 2 == 0) {
+                periph.PMUX[pin / 2].modify(.{ .PMUXE = .{ .raw = @enumToInt(c.mux) } });
+            } else {
+                periph.PMUX[pin / 2].modify(.{ .PMUXO = .{ .raw = @enumToInt(c.mux) } });
             }
         }
 

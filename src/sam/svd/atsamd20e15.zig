@@ -2868,7 +2868,7 @@ pub const types = struct {
                 }),
                 reserved48: [4]u8,
                 ///  Peripheral Multiplexing n
-                PMUX: mmio.Mmio(packed struct(u8) {
+                PMUX: [16]mmio.Mmio(packed struct(u8) {
                     ///  Peripheral Multiplexing Even
                     PMUXE: packed union {
                         raw: u4,
@@ -2882,7 +2882,7 @@ pub const types = struct {
                 }),
                 reserved64: [15]u8,
                 ///  Pin Configuration n
-                PINCFG: mmio.Mmio(packed struct(u8) {
+                PINCFG: [32]mmio.Mmio(packed struct(u8) {
                     ///  Peripheral Multiplexer Enable
                     PMUXEN: u1,
                     ///  Input Enable
