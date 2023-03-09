@@ -2880,7 +2880,6 @@ pub const types = struct {
                         value: PORT_PMUX__PMUXO,
                     },
                 }),
-                reserved64: [15]u8,
                 ///  Pin Configuration n
                 PINCFG: [32]mmio.Mmio(packed struct(u8) {
                     ///  Peripheral Multiplexer Enable
@@ -2894,7 +2893,7 @@ pub const types = struct {
                     DRVSTR: u1,
                     padding: u1,
                 }),
-                padding: [63]u8,
+                padding: [32]u8,
             };
 
             ///  Port Module
