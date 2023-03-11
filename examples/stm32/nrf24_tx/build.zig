@@ -1,5 +1,5 @@
 const std = @import("std");
-const ezdl = @import("ezdl/src/ezdl.zig");
+const ezdl = @import("ezdl");
 
 const board = ezdl.stm32.nucleo_f072rb;
 

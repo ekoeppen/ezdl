@@ -1,5 +1,5 @@
 const std = @import("std");
-const ezdl = @import("root").dependencies.imports.ezdl;
+const ezdl = @import("ezdl");
 
 pub fn build(b: *std.build.Builder) anyerror!void {
     const exe = try ezdl.addExecutable(b, "blink.elf", "main.zig", &.{
