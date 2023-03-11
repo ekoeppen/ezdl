@@ -1,6 +1,3 @@
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-
 default:
   image: registry.gitlab.com/sbenv/veroxis/images/zig:nightly
 
@@ -11,7 +8,6 @@ stages:
 build-examples:
   stage: build
   script:
-    - apk add git binutils-arm-none-eabi binutils-msp430-elf binutils
     - zig run src/testing/examples.zig -- src/testing/examples.json > examples.xml
   artifacts:
     when: always
