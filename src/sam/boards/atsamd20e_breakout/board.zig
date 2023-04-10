@@ -6,6 +6,7 @@ pub const periph = svd.peripherals;
 
 pub const nvic = mcu.Nvic(periph.NVIC);
 pub const led = mcu.Pin(&periph.PORT_GROUP[0], 15, .{ .direction = .output });
+pub const button = mcu.Pin(&periph.PORT_GROUP[0], 14, .{ .direction = .input });
 pub const tx = mcu.Pin(&periph.PORT_GROUP[0], 0, .{
     .direction = .input,
     .mux_enable = true,
@@ -22,6 +23,7 @@ pub const sercom_usart = mcu.SercomUsart(&periph.SERCOM1.USART_INT, .{
     .tx_pad = 0,
     .rx_pad = 1,
 });
+pub const flash = mcu.Nvm(periph.NVMCTRL, mcu.page_sizes);
 
 pub const console = sercom_usart;
 
@@ -61,6 +63,8 @@ pub fn init() void {
         periph.PM.APBCMASK.modify(.{ .ADC_ = 0 });
         periph.SystemControl.SCR.modify(.{ .SLEEPDEEP = .{ .value = .VALUE_1 } });
     }
+    periph.PM.APBBMASK.modify(.{ .NVMCTRL_ = 1 });
+    periph.PM.AHBMASK.modify(.{ .NVMCTRL_ = 1 });
 
     nvic.enableInterrupts(&.{3});
     periph.RTC.MODE0.CTRL.modify(.{ .ENABLE = 0 });

@@ -57,7 +57,7 @@ pub fn Pin(comptime periph: anytype, comptime pin: u5, comptime config: Config) 
         }
 
         pub fn isSet() bool {
-            return periph.IN.read() & pin_bit == 1;
+            return periph.IN.readRaw() & pin_bit == 1;
         }
 
         pub fn set() void {
