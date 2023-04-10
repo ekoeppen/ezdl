@@ -58,7 +58,12 @@ const FlashStep = struct {
         };
         self.* = FlashStep{
             .builder = builder,
-            .step = std.build.Step.init(.run, name, builder.allocator, make),
+            .step = std.build.Step.init(.{
+                .id = .run,
+                .name = name,
+                .owner = builder,
+                .makeFn = make,
+            }),
             .hex = hex,
             .tool = tool,
             .device = board.cpu_name,
@@ -86,7 +91,8 @@ const FlashStep = struct {
         return self;
     }
 
-    fn make(step: *std.build.Step) !void {
+    fn make(step: *std.build.Step, prog_node: *std.Progress.Node) !void {
+        _ = prog_node;
         const self = @fieldParentPtr(FlashStep, "step", step);
         switch (self.tool) {
             .jlink => try self.makeJLink(),
@@ -101,7 +107,7 @@ const FlashStep = struct {
     fn makeJLink(self: *FlashStep) !void {
         const path = try self.builder.cache_root.join(self.builder.allocator, &.{"flash.jlink"});
         try self.createCommandFile(path);
-        _ = try self.builder.execFromStep(&.{ "JLinkExe", path }, &self.step);
+        _ = self.builder.exec(&.{ "JLinkExe", path });
     }
 
     fn createCommandFile(self: *FlashStep, path: []const u8) !void {
@@ -124,9 +130,8 @@ const FlashStep = struct {
     }
 
     fn makeStm32Flash(self: *FlashStep) !void {
-        _ = try self.builder.execFromStep(
+        _ = self.builder.exec(
             &.{ "stm32flash", "-w", self.hex.output_file.getPath(), self.port.? },
-            &self.step,
         );
     }
 
@@ -150,7 +155,7 @@ const FlashStep = struct {
         const altSep = std.mem.indexOfScalar(u8, self.port.?, ',');
         const dev = if (altSep) |pos| self.port.?[0..pos] else self.port.?;
         const altId = if (altSep) |pos| self.port.?[pos + 1 ..] else "1";
-        _ = try self.builder.execFromStep(
+        _ = self.builder.exec(
             &.{
                 "dfu-util",
                 "-D",
@@ -161,7 +166,6 @@ const FlashStep = struct {
                 altId,
                 "-R",
             },
-            &self.step,
         );
     }
 
@@ -171,9 +175,8 @@ const FlashStep = struct {
             " ",
             &.{ "prog", self.hex.output_file.getPath() },
         );
-        _ = try self.builder.execFromStep(
+        _ = self.builder.exec(
             &.{ "mspdebug", self.programmer orelse unreachable, command },
-            &self.step,
         );
     }
 
@@ -183,7 +186,7 @@ const FlashStep = struct {
             "-Uflash:w:{s}",
             .{self.hex.output_file.getPath()},
         );
-        _ = try self.builder.execFromStep(&[_][]const u8{
+        _ = self.builder.exec(&[_][]const u8{
             "avrdude",
             "-v",
             "-c",
@@ -195,11 +198,11 @@ const FlashStep = struct {
             "-P",
             self.port orelse unreachable,
             operation,
-        }, &self.step);
+        });
     }
 
     fn makeStLinkFlash(self: *FlashStep) !void {
-        _ = try self.builder.execFromStep(
+        _ = self.builder.exec(
             &.{
                 "st-flash",
                 "--reset",
@@ -208,7 +211,6 @@ const FlashStep = struct {
                 "write",
                 self.hex.output_file.getPath(),
             },
-            &self.step,
         );
     }
 };
@@ -244,12 +246,18 @@ const StatsStep = struct {
         self.* = .{
             .builder = b,
             .file_source = file_source,
-            .step = std.build.Step.init(.run, "stats", b.allocator, make),
+            .step = std.build.Step.init(.{
+                .id = .run,
+                .name = "stats",
+                .owner = b,
+                .makeFn = make,
+            }),
         };
         return self;
     }
 
-    fn make(step: *std.build.Step) !void {
+    fn make(step: *std.build.Step, prog_node: *std.Progress.Node) !void {
+        _ = prog_node;
         const self = @fieldParentPtr(StatsStep, "step", step);
         const path = self.file_source.getPath(self.builder);
         var file = try std.fs.cwd().openFile(path, .{});
