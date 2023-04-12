@@ -7,10 +7,7 @@
       "nucleo_f103rb",
       "nucleo_f072rb",
       "atsamd20e15_breakout",
-      "exp_msp430g2",
-      "arduino_uno",
-      "arduino_leonardo",
-      "avr64dd32_curiosity_nano"
+      "exp_msp430g2"
     ]
   },
   {
@@ -23,11 +20,7 @@
       "stm32f030f4_nrf24",
       "stm32l011f4_nrf24",
       "nucleo_l031k6",
-      "atsamd20e15_breakout",
-      "exp_msp430g2",
-      "arduino_uno",
-      "arduino_leonardo",
-      "avr64dd32_curiosity_nano"
+      "atsamd20e15_breakout"
     ]
   },
   {
@@ -35,9 +28,7 @@
     "path": "examples/generic/accept",
     "boards": [
       "nucleo_f072rb",
-      "exp_msp430g2",
-      "arduino_uno",
-      "avr64dd32_curiosity_nano"
+      "exp_msp430g2"
     ]
   },
   {
@@ -45,9 +36,7 @@
     "path": "examples/generic/hello_world",
     "boards": [
       "nucleo_f072rb",
-      "nucleo_l031k6",
-      "arduino_uno",
-      "avr64dd32_curiosity_nano"
+      "nucleo_l031k6"
     ]
   },
   {
@@ -64,8 +53,7 @@
     "boards": [
       "nucleo_f103rb",
       "nucleo_f072rb",
-      "olimexino_stm32",
-      "avr64dd32_curiosity_nano"
+      "olimexino_stm32"
     ]
   },
   {
@@ -74,8 +62,7 @@
     "boards": [
       "nucleo_f103rb",
       "nucleo_f072rb",
-      "olimexino_stm32",
-      "avr64dd32_curiosity_nano"
+      "olimexino_stm32"
     ]
   },
   {
@@ -84,8 +71,7 @@
     "boards": [
       "nucleo_f103rb",
       "nucleo_f072rb",
-      "stm32l011f4_nrf24",
-      "avr64dd32_curiosity_nano"
+      "stm32l011f4_nrf24"
     ]
   },
   {
