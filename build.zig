@@ -118,7 +118,7 @@ pub fn addExecutable(
         .name = "info_tool",
         .root_source_file = .{ .path = mkPath(@src(), "src/lib/build_info.zig") },
     });
-    const build_info = info_tool.run();
+    const build_info = b.addRunArtifact(info_tool);
     exe.step.dependOn(&build_info.step);
     const stats = build_tools.addStatsStep(b, exe);
     b.getInstallStep().dependOn(&stats.step);

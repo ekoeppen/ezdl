@@ -1,0 +1,14 @@
+.{
+    .name = "Accept example",
+    .version = "0.1.0",
+    .dependencies = .{
+        .ezdl = .{
+            .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/v0.2.9/ezdl-v0.2.9.tar.gz",
+            .hash = "12203b7519ff84f69d776ce7227a92acfeffea18fb8c120fadb93badc97f25549fa3",
+        },
+        .accept = .{
+            .url = "https://gitlab.com/40hz/zig/accept/-/archive/v0.2.1/accept-v0.2.1.tar.gz",
+            .hash = "12206993fb95921e42d3ce04d7c066c00dc90f0e613f6b0bcac70cc053bf997108fd",
+        },
+    },
+}
