@@ -75,6 +75,7 @@ pub const boards = .{
     @import("src/stm32/boards/stm32f1_base/stm32f103c8_bl.zig"),
     @import("src/sam/boards/atsamd20e_breakout/atsamd20e15.zig"),
     @import("src/sam/boards/atsamd20e_breakout/atsamd20e15_bl.zig"),
+    @import("src/sam/boards/arduino_zero/atsamd21g18.zig"),
     @import("src/msp430/boards/exp_msp430g2/msp430g2553.zig"),
     @import("src/avr/boards/arduino_uno/atmega328p.zig"),
     @import("src/avr/boards/arduino_leonardo/atmega32u4.zig"),
