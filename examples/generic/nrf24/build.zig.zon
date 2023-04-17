@@ -3,8 +3,8 @@
     .version = "0.1.0",
     .dependencies = .{
         .ezdl = .{
-            .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/v0.2.7/ezdl-v0.2.7.tar.gz",
-            .hash = "122057de19e1509c24869e5d44d729143a1e39830e33a35e3763262b5f752641f602",
+            .url = "https://gitlab.com/40hz/zig/ezdl/-/archive/v0.2.10/ezdl-v0.2.10.tar.gz",
+            .hash = "1220592dddfb441f9ad55f8bcba661338f7aacc04f575b7623b6d999d4aa7b126ed2",
         },
         .accept = .{
             .url = "https://gitlab.com/40hz/zig/accept/-/archive/v0.2.1/accept-v0.2.1.tar.gz",

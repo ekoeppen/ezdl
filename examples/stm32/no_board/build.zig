@@ -17,5 +17,5 @@ pub fn build(b: *std.Build) anyerror!void {
     exe.setLinkerScriptPath(.{ .path = "linker.ld" });
     exe.addModule("ezdl", ezdl.module("ezdl"));
     exe.addModule("microzig", ezdl.module("microzig"));
-    exe.install();
+    b.installArtifact(exe);
 }
