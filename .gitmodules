@@ -1,3 +1,3 @@
 [submodule "src/3rdparty/regz"]
 	path = src/3rdparty/regz
-	url = https://github.com/ekoeppen/regz.git
+	url = https://git.sr.ht/~ekoeppen/regz
